@@ -1,0 +1,252 @@
+/* ---------- FULL-SCREEN OVERLAY (covers main site header) ---------- */
+.fp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;              /* above main site header/navbar */
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+}
+
+/* optional: re-use same body lock as chat */
+body.no-scroll {
+  overflow: hidden !important;
+}
+
+/* ---------- PAGE WRAPPER INSIDE OVERLAY ---------- */
+.fp-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+}
+
+/* ---------- TOP GREEN BAR ---------- */
+
+.fp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* left block + logout button */
+  padding: 12px 24px;
+  background: #48a43f;
+  color: #f0fdf4;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* left side (back + titles) */
+.fp-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* back button */
+.fp-icon-btn {
+  border: none;
+  background: rgba(0, 0, 0, 0.12);
+  color: #f0fdf4;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+/* title + subtitle */
+.fp-title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.fp-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.fp-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* logout button – pill style on the right */
+.fp-logout-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #f0fdf4;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fp-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ---------- MAIN / CARD ---------- */
+
+.fp-main {
+  flex: 1;
+  padding: 24px 16px 32px;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+/* make card wide so it looks like your 2nd screenshot */
+.fp-card {
+  width: min(1100px, 100%);
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  padding: 22px 22px 22px;
+}
+
+.fp-center {
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #4b5563;
+  text-align: center;
+}
+
+/* ---------- FORM GRID ---------- */
+
+.fp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.fp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.fp-field.fp-full {
+  grid-column: 1 / -1;
+}
+
+.fp-field label {
+  font-weight: 600;
+  color: #111827;
+}
+
+.fp-req {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.fp-input {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #f9fafb;
+}
+
+.fp-input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.15);
+  background: #ffffff;
+}
+
+.fp-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.fp-hint {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* ---------- ACTION BUTTONS ---------- */
+
+.fp-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.fp-btn {
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+}
+
+.fp-primary {
+  background: #22c55e;
+  color: #f0fdf4;
+}
+
+.fp-primary:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.fp-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* ---------- BANNERS ---------- */
+
+.fp-banner {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.fp-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.fp-success {
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* ---------- MOBILE LAYOUT ---------- */
+
+@media (max-width: 640px) {
+  .fp-topbar {
+    padding-inline: 12px;
+  }
+
+  .fp-logout-btn {
+    padding: 5px 14px;
+    font-size: 12px;
+  }
+
+  .fp-main {
+    padding: 12px 0 16px;
+  }
+
+  .fp-card {
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    padding: 18px 14px 18px;
+  }
+
+  .fp-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,136 @@
+.policy-container {
+  max-width: 1200px;   /* increased from 900px for a wider layout */
+  margin: 30px auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.policy-header {
+  background: #1db908;
+  color: #fff;
+  padding: 20px;
+}
+
+.policy-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.policy-content {
+  padding: 20px;
+  line-height: 1.6;
+  font-size: 15px;
+  color: #333;
+}
+
+.policy-content h2 {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #1db908;
+}
+
+.policy-content p {
+  margin-bottom: 12px;
+}
+
+.back-btn {
+  background: #1db908;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #179307;
+}
+
+.policy-header {
+  background: #1db908;
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.policy-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.back-icon {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: bold;
+  transition: transform 0.2s ease;
+}
+
+.back-icon:hover {
+  transform: translateX(-4px);
+}
+
+/* --- Justify body text neatly inside the box --- */
+.policy-content p,
+.policy-content li{
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  word-break: break-word;
+}
+
+/* Lists spacing so bullets align cleanly */
+.policy-content ul{
+  list-style: disc;
+  padding-left: 20px;
+  margin: 12px 0;
+}
+
+/* --- Back button: slightly bigger with proper hit-area --- */
+.back-icon{
+  font-size: 26px;        /* was 22px */
+  padding: 6px 10px;      /* bigger clickable area, same look */
+  line-height: 1;
+  display: inline-flex;   /* keeps it vertically centered with the title */
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px){
+  .back-icon{ font-size: 28px; }  /* a touch larger on laptops */
+}
+
+/* ensure header stays nicely centered vertically */
+.policy-header{ align-items: center; }
+
+/* mobile: keep justify, but no hyphen or mid-word breaks */
+@media (max-width: 640px){
+  .policy-content p,
+  .policy-content li{
+    hyphens: none;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+
+    word-break: normal;          /* don’t split words */
+    overflow-wrap: break-word;   /* only break very long tokens (URLs) */
+
+    text-align: justify;
+    text-justify: inter-word;
+    line-height: 1.75;           /* smoother spacing when justified */
+  }
+}
+
+/* Fallback: left-align only inside the kv block */
+.policy-content .kv p { text-align: left; text-justify: auto; }

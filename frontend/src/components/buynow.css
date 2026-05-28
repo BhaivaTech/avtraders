@@ -1,0 +1,61 @@
+/* src/components/buynow.css */
+
+/* header pieces kept generic so your existing design stays the same */
+.site-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; background:#ffffff; border-bottom:1px solid #e5e7eb;
+}
+.site-header .left .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.site-header .left img { height:36px; border-radius:6px; }
+.site-header .center a { margin:0 8px; }
+.hide-on-mobile { display:block; }
+@media (max-width:768px){ .hide-on-mobile{ display:none; } }
+
+.btn-buy{
+  appearance:none; border:1px solid #22c55e; background:linear-gradient(180deg,#dcfce7 0%,#a7f3d0 100%);
+  color:#065f46; padding:8px 14px; border-radius:999px; font-weight:700; cursor:pointer;
+}
+
+/* Buy Now sheet */
+.bn-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center; z-index:80; }
+.bn-sheet{
+  width:min(520px, 100%); margin:0 10px 12px; background:#fff; border:1px solid #e5e7eb;
+  border-radius:14px; box-shadow:0 12px 24px rgba(0,0,0,.12); overflow:hidden;
+}
+.bn-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 12px 6px; }
+.bn-title{ font-weight:800; font-size:16px; }
+.bn-sub{ color:#64748b; font-size:13px; }
+.bn-x{ width:32px; height:32px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; font-size:18px; color:#6b7280; }
+
+.bn-item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; gap:12px; border-top:1px dashed #e5e7eb; }
+.bn-item-name{ font-weight:700; }
+.bn-item-meta{ font-size:12px; color:#94a3b8; }
+.bn-item-price{ font-weight:800; }
+
+.bn-actions{ display:flex; gap:10px; padding:10px 12px 12px; flex-wrap:wrap; }
+.bn-pay, .bn-secondary{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:10px; font-weight:800; text-decoration:none;
+}
+.bn-pay{ border:1px solid #10b981; color:#064e3b; background:linear-gradient(180deg,#d1fae5 0%,#a7f3d0 100%); }
+.bn-secondary{ border:1px solid #cbd5e1; color:#334155; background:#fff; }
+
+.bn-note{ border-top:1px dashed #e5e7eb; background:#f9fafb; padding:10px 12px; font-size:12px; color:#64748b; }
+
+/* Products list */
+.bn-cat-title{ font-weight:800; margin-bottom:8px; }
+.bn-list{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+.bn-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px dashed #e5e7eb; }
+.bn-left .bn-name{ font-weight:700; }
+.bn-left .bn-unit{ font-size:12px; color:#94a3b8; }
+.bn-right{ display:flex; align-items:center; gap:10px; }
+.bn-price{ font-weight:800; }
+.bn-mini{ padding:8px 12px; border-radius:10px; border:1px solid #10b981; text-decoration:none; background:#ecfdf5; color:#065f46; font-weight:700; }
+
+/* Checkout */
+.bn-check-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0 14px; border-bottom:1px dashed #e5e7eb; }
+.bn-sku{ font-size:12px; color:#94a3b8; }
+.bn-price-big{ font-weight:900; font-size:20px; }
+
+.bn-paybox{ margin-top:14px; border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; }
+.bn-pay-title{ font-weight:800; margin-bottom:6px; }
+.bn-help{ color:#64748b; margin:8px 0 12px; }
