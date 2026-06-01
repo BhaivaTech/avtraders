@@ -2,12 +2,17 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import {
-  StandardCheckoutClient,
-  Env,
-  MetaInfo,
-  StandardCheckoutPayRequest,
-} from "pg-sdk-node";
+// Lazy-load pg-sdk-node so a broken/missing package doesn't crash the server.
+let StandardCheckoutClient, Env, MetaInfo, StandardCheckoutPayRequest;
+let sdkLoadError = null;
+
+try {
+  const sdk = await import("pg-sdk-node");
+  ({ StandardCheckoutClient, Env, MetaInfo, StandardCheckoutPayRequest } = sdk);
+} catch (err) {
+  sdkLoadError = err;
+  console.warn("[PhonePe] pg-sdk-node could not be loaded — PhonePe payments will be unavailable:", err.message);
+}
 
 /* ---------- ENV + CONFIG ---------- */
 
@@ -48,6 +53,12 @@ function ensureConfigured() {
 let clientInstance = null;
 
 function getClient() {
+  if (sdkLoadError) {
+    const err = new Error("phonepe_sdk_unavailable");
+    err.status = 503;
+    err.data = { message: "PhonePe SDK failed to load: " + sdkLoadError.message };
+    throw err;
+  }
   ensureConfigured();
 
   if (!clientInstance) {
@@ -88,6 +99,12 @@ function normalizePayResponse(resp) {
 export const phonepeApi = {
   /** Create payment order (Standard Checkout) */
   async createOrder({ merchantOrderId, amountPaise, redirectUrl, metaInfo = {} }) {
+    if (sdkLoadError) {
+      const err = new Error("phonepe_sdk_unavailable");
+      err.status = 503;
+      err.data = { message: "PhonePe SDK failed to load — payments are temporarily unavailable." };
+      throw err;
+    }
     try {
       const client = getClient();
 
@@ -128,6 +145,12 @@ export const phonepeApi = {
 
   /** Get order status by merchantOrderId */
   async getOrderStatus(merchantOrderId) {
+    if (sdkLoadError) {
+      const err = new Error("phonepe_sdk_unavailable");
+      err.status = 503;
+      err.data = { message: "PhonePe SDK failed to load — payments are temporarily unavailable." };
+      throw err;
+    }
     try {
       const client = getClient();
       const resp = await client.getOrderStatus(String(merchantOrderId));
