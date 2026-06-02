@@ -35,7 +35,7 @@ export default function AdminAnnouncements() {
       const rows = Array.isArray(res?.data) ? res.data : res?.data?.items || [];
       setList(rows);
     } catch (e) {
-      console.error(e);
+      console.error('[AdminAnnouncements] loadAnnouncements failed:', e);
       setError(e?.response?.data?.message || 'Failed to load announcements');
     }
     setLoading(false);
@@ -71,7 +71,7 @@ export default function AdminAnnouncements() {
       setForm((f) => ({ ...f, title: '', message: '', link: '', image_url: '' }));
       await loadAnnouncements();
     } catch (e) {
-      console.error(e);
+      console.error('[AdminAnnouncements] handleSubmit failed:', e);
       setError(e?.response?.data?.message || 'Failed to save announcement');
     }
     setSaving(false);

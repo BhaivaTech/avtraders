@@ -1,6 +1,7 @@
 // src/controllers/paymentController.js
 // Business logic for payment (PhonePe) endpoints.
 
+import crypto from 'crypto';
 import { phonepeApi } from '../routes/phonepe-api.js';
 import {
   insertPayment,
@@ -25,6 +26,27 @@ function resolveState(state) {
   if (s === 'COMPLETED' || s === 'SUCCESS') return 'success';
   if (s === 'FAILED' || s === 'DECLINED' || s === 'CANCELLED') return 'failed';
   return 'pending';
+}
+
+/* ------------------------------------------------------------------ */
+/*  PhonePe webhook signature verification                               */
+/* ------------------------------------------------------------------ */
+/**
+ * Verifies the X-VERIFY header sent by PhonePe on webhook calls.
+ * Format: SHA256(rawBody + saltKey) + "###" + saltIndex
+ * Returns true if PHONEPE_SALT_KEY is not configured (skip in dev).
+ */
+function verifyPhonePeSignature(rawBody, xVerify) {
+  const saltKey = (process.env.PHONEPE_SALT_KEY || '').trim();
+  if (!saltKey) return true; // skip verification if not configured
+
+  const parts = (xVerify || '').split('###');
+  const receivedHash = parts[0] || '';
+  const computedHash = crypto
+    .createHash('sha256')
+    .update(rawBody + saltKey)
+    .digest('hex');
+  return computedHash === receivedHash;
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,7 +137,18 @@ export async function phonePeReturn(req, res) {
 /* ------------------------------------------------------------------ */
 export async function webhook(req, res) {
   try {
-    const { event, payload } = req.body || {};
+    // Verify PhonePe signature before processing
+    const xVerify = req.headers['x-verify'] || '';
+    const rawBody = typeof req.body === 'string'
+      ? req.body
+      : JSON.stringify(req.body);
+    if (!verifyPhonePeSignature(rawBody, xVerify)) {
+      console.warn('[webhook] Invalid X-VERIFY signature — request rejected');
+      return res.status(400).json({ ok: false, error: 'invalid_signature' });
+    }
+
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const { event, payload } = body;
     const state = (payload?.state || '').toUpperCase();
     const merchantOrderId = payload?.merchantOrderId || payload?.orderId || null;
     if (!merchantOrderId) return res.status(200).json({ ok: true });

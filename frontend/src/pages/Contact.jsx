@@ -1,20 +1,26 @@
 // src/pages/Contact.jsx
 import React from "react";
+import {
+  CONTACT_EMAIL,
+  CONTACT_PHONE,
+  WHATSAPP_URL,
+  MAPS_LINK,
+  MAPS_ADDRESS,
+  SITE_TITLE,
+} from '../lib/config.js';
 
 export default function Contact() {
-  const phone = "+919886371630";
-  const whatsapp = "https://wa.me/919886371630";
-  const email = "info.avtradersagriclinic@gmail.com";
+  const phone   = CONTACT_PHONE;
+  const whatsapp = WHATSAPP_URL;
+  const email   = CONTACT_EMAIL;
 
   const mailtoHref = `mailto:${email}?subject=${encodeURIComponent(
-    "Enquiry from AV Traders Agri Clinic"
+    `Enquiry from ${SITE_TITLE}`
   )}&body=${encodeURIComponent("Hello,\n\nI would like to know more about...")}`;
 
-  const mapsLink = "https://maps.app.goo.gl/1duLbXo2MEzaL5Vp6?g_st=aw";
-  const mapAddress = encodeURIComponent(
-    "AV Traders Agri Clinic, Kurubarahally, Tumkur road, Doddaballapura, Bengaluru Rural, Karnataka 561203"
-  );
-  const embedSrc = `https://www.google.com/maps?q=${mapAddress}&z=16&output=embed`;
+  const mapsLink  = MAPS_LINK;
+  const mapAddress = encodeURIComponent(MAPS_ADDRESS);
+  const embedSrc  = `https://www.google.com/maps?q=${mapAddress}&z=16&output=embed`;
 
   return (
     <div className="card contact" style={{ padding: 0, overflow: "hidden" }}>
@@ -54,7 +60,7 @@ export default function Contact() {
               <span className="c-emoji">📞</span>
               <div className="c-title">Phone</div>
             </div>
-            <a className="c-link" href={`tel:${phone}`}>+91 9886371630</a>
+            <a className="c-link" href={`tel:${phone}`}>{phone.startsWith('+91') ? phone.replace('+91', '+91 ') : phone}</a>
             <div className="btn-row">
               <a className="btn btn-call" href={`tel:${phone}`}>☎ Call</a>
               <a className="btn btn-wa" href={whatsapp} target="_blank" rel="noreferrer">💬 WhatsApp</a>

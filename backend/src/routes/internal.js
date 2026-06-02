@@ -7,7 +7,18 @@ const router = express.Router();
 
 function ok(v) { return v !== undefined && v !== null && v !== ""; }
 
-router.post("/msg91-proxy", async (req, res) => {
+// Restrict to localhost only — this route must never be reachable from the internet.
+function requireLocalhost(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || '';
+  const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  if (!isLocal) {
+    console.warn(`[internal] Blocked non-localhost access from ${ip}`);
+    return res.status(403).json({ error: 'forbidden' });
+  }
+  return next();
+}
+
+router.post("/msg91-proxy", requireLocalhost, async (req, res) => {
   try {
     const token = req.headers["x-proxy-token"] || req.query.token;
     if (!token || token !== (process.env.MSG91_PROXY_TOKEN || "")) {

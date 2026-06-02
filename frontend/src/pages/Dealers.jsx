@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { CONTACT_EMAIL } from '../lib/config.js';
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const LOGIN_MODE = import.meta.env.VITE_DEALER_LOGIN_MODE || "simple"; 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const LOGIN_MODE = import.meta.env.VITE_DEALER_LOGIN_MODE || "simple";
 const OTP_RESEND_SECONDS = 30;
 
 function normalizePhone(phone) {
@@ -57,7 +58,7 @@ export default function Dealers() {
   const [licFile, setLicFile] = useState(null);
 
   const mailtoHref = useMemo(() => {
-    const to = "info.avtradersagriclinic@gmail.com";
+    const to = CONTACT_EMAIL;
     const subject = "Dealer Portal — Enquiry";
     const body = [
       "Hello AV Traders / AV Agro Distribution,",

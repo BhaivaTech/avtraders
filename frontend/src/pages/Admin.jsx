@@ -7,10 +7,11 @@ import './Admin.css';
 
 // Centralized endpoint helpers
 import { resolveApiOrigin, buildMediaUrl } from '@/lib/endpoint';
+import { ADMIN_EMAIL_ALLOWED } from '../lib/config.js';
 
 /* ------------ constants ------------ */
 const DEFAULT_TRACK_LINK = 'http://www.vrlgroup.in/track_consignment.aspx';
-const ADMIN_EMAIL_ALLOWED = 'info.avtradersagriclinic@gmail.com';
+// ADMIN_EMAIL_ALLOWED is now imported from lib/config.js (reads VITE_ADMIN_EMAIL)
 const ADMIN_AUTH_KEY = 'adminAuth';
 const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
 const MAX_MEDIA_FILES = 15;

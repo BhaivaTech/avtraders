@@ -8,7 +8,7 @@ import { resolveApiOrigin } from "./endpoint";
  * If VITE_API_BASE_URL is set, we use its origin.
  */
 const ORIGIN = resolveApiOrigin();
-console.log("[socket] origin =", ORIGIN);
+if (import.meta.env.DEV) console.log('[socket] origin =', ORIGIN);
 
 export const socket = io(ORIGIN, {
   path: "/socket.io",

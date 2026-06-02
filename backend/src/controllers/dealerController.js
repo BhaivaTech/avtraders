@@ -24,11 +24,19 @@ import {
 } from '../models/dealerModel.js';
 
 /* ------------------------------------------------------------------ */
-/*  Boot: ensure tables exist                                            */
+/*  Singleton nodemailer transport                                        */
 /* ------------------------------------------------------------------ */
-ensureDealerTables().catch((err) => {
-  console.error('[dealer] table ensure failed:', err?.message || err);
-});
+let _mailerInstance = null;
+function mailer() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  if (!_mailerInstance) {
+    _mailerInstance = nodemailer.createTransport({
+      host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_SECURE,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  return _mailerInstance;
+}
 
 /* ------------------------------------------------------------------ */
 /*  ENV                                                                  */
@@ -70,11 +78,6 @@ function signDealerJwt(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
-function mailer() {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  return nodemailer.createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_SECURE, auth: { user: SMTP_USER, pass: SMTP_PASS } });
-}
-
 async function sendEmail(to, subject, text) {
   try {
     const tr = mailer();
@@ -110,7 +113,7 @@ export async function sendOtp(req, res) {
       return res.status(400).json({ message: 'Enter a valid 10-digit mobile number' });
     }
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = String(crypto.randomInt(100000, 1000000));
     await upsertDealerOtp(phone10, otp, DEALER_OTP_EXPIRY_SECONDS);
 
     try {
@@ -263,7 +266,9 @@ export async function downloadPricelist(req, res) {
     if (!row) return res.status(404).send('Invalid download token');
     if (row.status !== 'approved') return res.status(403).send('Dealer is not approved');
     if (Date.now() > new Date(row.expires_at).getTime()) return res.status(410).send('Download link expired');
-    if (!fs.existsSync(row.file_path)) return res.status(404).send('Price list file not found');
+    try { await fs.promises.access(row.file_path); } catch {
+      return res.status(404).send('Price list file not found');
+    }
 
     return res.download(row.file_path, row.file_name);
   } catch (err) {

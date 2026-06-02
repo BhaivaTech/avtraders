@@ -34,8 +34,6 @@ export async function checkExists(req, res) {
 /* ------------------------------------------------------------------ */
 export async function sendOtp(req, res) {
   try {
-    console.log('checking request');
-    
     const mobile = normalizeMobile10(req.body?.mobile);
     const r = await sendFarmerOTP(mobile);
     res.json({ ok: true, message: r.message || 'OTP sent' });

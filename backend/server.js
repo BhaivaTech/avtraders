@@ -9,12 +9,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.resolve(__dirname, ".env");
 dotenv.config({ path: envPath });
-console.log("[env] loaded:", envPath, "exists:", fs.existsSync(envPath));
+
+/* ---- validate critical env vars immediately after loading .env ---- */
+await import("./src/config/env.js");
 
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import http from "http";
+import morgan from "morgan";
 import session from "express-session";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -70,6 +73,10 @@ app.options("*", cors({ origin: corsCheck, credentials: true }));
 
 /* ---------- Security ---------- */
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
+/* ---------- Request Logging --------- */
+const logFormat = prod ? 'combined' : 'dev';
+app.use(morgan(logFormat));
 
 /* ---------- Parsers ----------- */
 app.use(express.json({ limit: "10mb" }));
@@ -134,10 +141,16 @@ app.use(
   })
 );
 
-/* -------- Health -------- */
-app.get("/api/health", (_req, res) =>
-  res.json({ ok: true, env: process.env.NODE_ENV || "development" })
-);
+/* -------- Health (with DB ping) -------- */
+app.get("/api/health", async (_req, res) => {
+  try {
+    const { pool } = await import("./src/config/db.js");
+    await pool.query("SELECT 1");
+    res.json({ ok: true, env: process.env.NODE_ENV || "development", db: true });
+  } catch (err) {
+    res.status(503).json({ ok: false, db: false, error: err?.message || "DB unreachable" });
+  }
+});
 
 /* --------- Routes --------- */
 const { default: adminRoutes } = await import("./src/routes/admin.js");
@@ -152,15 +165,8 @@ const { default: farmersRoutes } = await import("./src/routes/farmers.js");
 /* ✅ NEW: dealer routes */
 const { default: dealerRoutes } = await import("./src/routes/dealer.js");
 
-function requireAdminIfAdminRole(req, res, next) {
-  const qRole = (req.query.role || "").toLowerCase();
-  const bRole = (req.body?.role || req.body?.sender_role || "").toLowerCase();
-  if (qRole === "admin" || bRole === "admin") {
-    if (req.session && req.session.admin) return next();
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  return next();
-}
+/* Import requireAdminIfAdminRole from shared middleware (no more duplicate) */
+const { requireAdminIfAdminRole } = await import("./src/middlewares/auth.js");
 
 /* Mount API routes UNDER /api */
 app.use("/api/admin", adminRoutes);
@@ -187,6 +193,15 @@ const io = new Server(server, {
 attachChatSocket(io);
 io.on("connection", () => {});
 
+/* ---------- Global JSON error handler ---------- */
+// Must be defined AFTER all routes. Catches any next(err) calls.
+app.use((err, _req, res, _next) => {
+  const status = err.status || 500;
+  const message = err.message || 'Internal server error';
+  console.error(`[error] ${status} ${message}`);
+  res.status(status).json({ ok: false, message });
+});
+
 /* -------------- Boot -------------- */
 console.log("[CORS] allowed:", EXPLICIT);
 
@@ -200,5 +215,18 @@ ensureTables()
     console.error("Failed to ensure tables:", err);
     process.exit(1);
   });
+
+/* ---------- Graceful shutdown ---------- */
+function gracefulShutdown(signal) {
+  console.log(`\n[shutdown] ${signal} received — closing server...`);
+  server.close(() => {
+    console.log('[shutdown] HTTP server closed.');
+    process.exit(0);
+  });
+  // Force exit after 10s if connections linger
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 
 export default app;

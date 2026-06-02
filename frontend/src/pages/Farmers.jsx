@@ -907,7 +907,7 @@ export default function Farmers() {
       alert(data.error || 'Could not start payment. Please try again.');
     } catch (err) {
       console.error('phonepe create error', err);
-      console.log('phonepe error response data:', err?.response?.data);
+      if (import.meta.env.DEV) console.log('[Farmers] phonepe error response data:', err?.response?.data);
 
       const server = err?.response?.data || {};
       const msg =
@@ -1014,7 +1014,7 @@ export default function Farmers() {
       alert(r?.data?.message || 'OTP sent');
       setStep('otp');
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] sendOtp failed:', e);
       alert(e?.response?.data?.message || 'Failed to send OTP');
     }
   }
@@ -1037,7 +1037,7 @@ export default function Farmers() {
       alert(r?.data?.message || 'OTP sent');
       setStep('otp');
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] sendOtpWithDetails failed:', e);
       alert(e?.response?.data?.message || 'Failed to send OTP');
     }
   }
@@ -1074,7 +1074,7 @@ export default function Farmers() {
       setLogged(true);
       await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] verifyOtp failed:', e);
       alert(e?.response?.data?.message || 'OTP verification failed');
     }
   }

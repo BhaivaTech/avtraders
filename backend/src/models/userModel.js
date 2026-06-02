@@ -67,7 +67,9 @@ export async function getFullUserByMobile(mobile) {
 
 export async function getFarmerProfile(userId) {
   const [rows] = await pool.query(
-    'SELECT * FROM farmer_profiles WHERE user_id=? LIMIT 1',
+    `SELECT id, user_id, full_name, mobile, whatsapp, village, taluk,
+            district, pincode, land_size, crops_text, created_at, updated_at
+     FROM farmer_profiles WHERE user_id=? LIMIT 1`,
     [userId]
   );
   return rows[0] || null;
