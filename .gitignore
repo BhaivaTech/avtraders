@@ -1,0 +1,60 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+.pnp
+.pnp.js
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# ========================
+# Build Output
+# ========================
+dist/
+build/
+out/
+
+# ========================
+# Uploads / User Files
+# ========================
+backend/uploads/
+backend/uploads_private/
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ========================
+# OS & Editor Files
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ========================
+# Misc
+# ========================
+*.tgz
+*.zip
+.cache/
