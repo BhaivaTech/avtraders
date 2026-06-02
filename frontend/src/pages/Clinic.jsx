@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import { api } from "../lib/api.js";
+import { resolveApiOrigin } from "../lib/endpoint.js";
+import { WHATSAPP_URL } from '../lib/config.js';
 
 
 /* ========== tiny inline icons (no deps) ========== */
@@ -37,7 +39,6 @@ const IconCard = (props) => (
 );
 
 /* ========== helpers ========== */
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const norm = (v) => String(v || "").replace(/\D/g, "").slice(-10);
 
 /* 
@@ -73,7 +74,7 @@ export function useFarmerUnread() {
     })();
 
     // real-time increment on new messages
-    const s = io(API_BASE, { transports: ["websocket"], withCredentials: true });
+    const s = io(resolveApiOrigin(), { transports: ["websocket"], withCredentials: true });
     s.on("chat:new_message", (p) => {
       // If we know chat_id, require it to match; otherwise optimistically increment
       if (chatIdRef.current && p?.chat_id !== chatIdRef.current) return;
@@ -224,7 +225,7 @@ return (
         </Link>
         <a
           className="btn secondary"
-          href="https://wa.me/919886371630"
+          href={WHATSAPP_URL}
           target="_blank"
           rel="noreferrer"
         >

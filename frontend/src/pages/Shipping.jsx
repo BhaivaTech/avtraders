@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Policy.css";
+import { CONTACT_EMAIL, CONTACT_PHONE } from '../lib/config.js';
 
 export default function ShippingPolicy() {
   const navigate = useNavigate();
@@ -67,8 +68,8 @@ export default function ShippingPolicy() {
 
         <h2>Contact</h2>
         <p>
-          Phone: <a href="tel:+919886371630">+91 9886371630</a><br/>
-          Email: <a href="mailto:info.avtradersagriclinic@gmail.com">info.avtradersagriclinic@gmail.com</a>
+          Phone: <a href={`tel:${CONTACT_PHONE}`}>{CONTACT_PHONE.replace('+91', '+91 ')}</a><br/>
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
       </main>
     </div>

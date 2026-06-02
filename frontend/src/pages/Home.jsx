@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { api } from "../lib/api.js";
 import { socket as sharedSocket } from "../lib/socket.js";
+import { CONTACT_PHONE, CONTACT_EMAIL, WHATSAPP_CHANNEL_URL } from '../lib/config.js';
 
 /* ---------- Preloading helper ---------- */
 function preload(srcs = []) {
@@ -338,7 +339,7 @@ function WhatsAppChannelPopup() {
       </p>
       <div style={styles.row}>
         <a
-          href="https://whatsapp.com/channel/0029Va60pPt6GcGKrWQbRU33"
+          href={WHATSAPP_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
           style={styles.btn}
@@ -990,8 +991,8 @@ useEffect(() => {
               >
                 Contact
               </div>
-              <div>📞 +91 9886371630</div>
-              <div>✉️ info.avtradersagriclinic@gmail.com</div>
+              <div>📞 {CONTACT_PHONE.replace('+91', '+91 ')}</div>
+              <div>✉️ {CONTACT_EMAIL}</div>
             </div>
             <div>
               <div

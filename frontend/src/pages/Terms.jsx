@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Policy.css";
+import { CONTACT_EMAIL, CONTACT_PHONE, SITE_URL } from '../lib/config.js';
 
 export default function Terms() {
   const navigate = useNavigate();
@@ -33,8 +34,8 @@ export default function Terms() {
       <main className="policy-content">
         <p>
           These Terms &amp; Conditions (“Terms”) govern your access to and use of
-          <a href="https://www.avtradersagriclinic.com/" target="_blank" rel="noopener noreferrer">
-            {" "}https://www.avtradersagriclinic.com/
+          <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
+            {" "}{SITE_URL}
           </a>{" "}
           (the “Website/Platform”) operated by <b>AV Traders </b> (“we”, “us”, “our”).
           By using this Website or placing an order, you agree to these Terms and our
@@ -123,8 +124,8 @@ export default function Terms() {
           <b>AV Traders Agri Clinic</b><br />
           Kurubarahally, Tumkur Road, Doddaballapura,<br />
           Bengaluru Rural, Karnataka – 561203<br />
-          Phone: <a href="tel:+919886371630">+91 9886371630</a><br />
-          Email: <a href="mailto:info.avtradersagriclinic@gmail.com">info.avtradersagriclinic@gmail.com</a>
+          Phone: <a href={`tel:${CONTACT_PHONE}`}>{CONTACT_PHONE.replace('+91', '+91 ')}</a><br />
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
 
         <p className="muted" style={{ marginTop: 12 }}>

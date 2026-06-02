@@ -2,10 +2,10 @@
 // Business logic for admin authentication endpoints.
 
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { sendAdminOTP, verifyAdminOTP } from '../utils/otp/otpAdmin.js';
 
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '').trim();
 const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
 
 let ADMIN_OTP_TTL = Number(
@@ -13,9 +13,9 @@ let ADMIN_OTP_TTL = Number(
 );
 if (!Number.isFinite(ADMIN_OTP_TTL) || ADMIN_OTP_TTL <= 0) ADMIN_OTP_TTL = 60;
 
-if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-  throw new Error('[admin] Missing ADMIN_EMAIL or ADMIN_PASSWORD in .env');
-}
+// Hash the admin password once at startup (env.js already guarantees it is set).
+const _rawPass = String(process.env.ADMIN_PASSWORD || '').trim();
+const adminPasswordHash = await bcrypt.hash(_rawPass, 12);
 
 /* ------------------------------------------------------------------ */
 /*  POST /api/admin/login-start                                          */
@@ -24,7 +24,8 @@ export async function loginStart(req, res) {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '').trim();
 
-  if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+  const passwordOk = await bcrypt.compare(password, adminPasswordHash);
+  if (email !== ADMIN_EMAIL || !passwordOk) {
     return res.status(401).json({ ok: false, error: 'bad-credentials' });
   }
 
