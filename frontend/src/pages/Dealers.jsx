@@ -26,6 +26,33 @@ function fileLooksValid(file) {
   return okTypes.includes(file.type) && file.size <= maxBytes;
 }
 
+/* ─────────────────────────────────────────────
+   SVG Icons
+───────────────────────────────────────────── */
+const IconCheck = (props) => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const IconAlert = (props) => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const IconSuccess = (props) => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
 export default function Dealers() {
   const [step, setStep] = useState("intro");
 
@@ -385,211 +412,251 @@ export default function Dealers() {
   const isSimpleMode = LOGIN_MODE === "simple";
 
   return (
-    <div className="dealer-page">
-      <section className="dealer-hero">
-        <div className="dealer-hero-content">
-          <div className="dealer-badge">AV Agro Distribution</div>
-          <h1>Dealer Portal</h1>
-          <p>
+    <div className="cl-root">
+
+      {/* ── HERO ── */}
+      <section className="cl-hero" style={{ paddingBottom: "3rem" }}>
+        <div className="cl-hero-left">
+          <div className="cl-hero-eyebrow">
+            <span className="cl-hero-pulse" aria-hidden="true" />
+            AV Agro Distribution
+          </div>
+
+          <h1 className="cl-hero-title">
+            Dealer <em>Portal</em>
+          </h1>
+
+          <p className="cl-hero-sub">
             Secure dealer onboarding, document verification and protected access to the latest
             wholesale price list after admin approval.
           </p>
 
-          <div className="dealer-hero-grid">
-            <div>✅ Dealer Registration</div>
-            <div>🧾 GST & Licence Verification</div>
-            <div>🔐 Approved Dealer Access</div>
-            <div>📥 Protected Price List</div>
+          <div className="cl-hero-proof">
+            <div className="cl-hero-proof-tag">Secure Access</div>
+            <div className="cl-hero-proof-divider" aria-hidden="true" />
+            <div className="cl-hero-proof-text">JWT-secured &amp; Document-verified</div>
           </div>
         </div>
       </section>
 
+      {/* ── ALERTS ── */}
       {(msg || err) && (
-        <div className={`dealer-alert ${err ? "dealer-alert-error" : "dealer-alert-success"}`}>
-          <div style={{ whiteSpace: "pre-wrap" }}>{err || msg}</div>
-          <button type="button" onClick={clearAlerts}>✕</button>
+        <div className={`cl-alert ${err ? "cl-alert-error" : "cl-alert-success"}`}>
+          <div className="cl-alert-icon">
+            {err ? <IconAlert /> : <IconSuccess />}
+          </div>
+          <div className="cl-alert-text" style={{ whiteSpace: "pre-wrap" }}>
+            {err || msg}
+          </div>
+          <button type="button" className="cl-alert-close" onClick={clearAlerts}>✕</button>
         </div>
       )}
 
-      <section className="dealer-layout">
-        <div className="dealer-info-card">
-          <h2>Dealer Onboarding Requirements</h2>
-          <p>
+      {/* ── LAYOUT ── */}
+      <div className="cl-dealer-layout">
+        <div className="cl-svc-card cl-info-sidebar" style={{ "--svc-accent": "var(--g600)", padding: "2rem" }}>
+          <h2 className="cl-h2" style={{ fontSize: "1.4rem" }}>Requirements</h2>
+          <p className="cl-lead" style={{ fontSize: "0.95rem", marginBottom: "1.5rem" }}>
             New dealers must submit valid business details and documents. Admin approval is required
             before accessing the dealer price list.
           </p>
 
-          <div className="dealer-checklist">
-            <div>✔ Dealer name and firm details</div>
-            <div>✔ Valid GST number</div>
-            <div>✔ Complete address with pincode</div>
-            <div>✔ GST certificate upload</div>
-            <div>✔ Insecticide licence upload</div>
-          </div>
+          <ul className="cl-svc-list" style={{ marginBottom: "2rem" }}>
+            <li><span className="cl-svc-check"><IconCheck /></span>Dealer name and firm details</li>
+            <li><span className="cl-svc-check"><IconCheck /></span>Valid GST number</li>
+            <li><span className="cl-svc-check"><IconCheck /></span>Complete address with pincode</li>
+            <li><span className="cl-svc-check"><IconCheck /></span>GST certificate upload</li>
+            <li><span className="cl-svc-check"><IconCheck /></span>Insecticide licence upload</li>
+          </ul>
 
-          <div className="dealer-note">
-            {isSimpleMode
-              ? "Temporary mode: mobile login is enabled now. WhatsApp OTP can be connected later after MSG91/Meta issue is fixed."
-              : "Secure login: WhatsApp OTP verification is enabled."}
+          <div className="cl-rx-card">
+            <div className="cl-rx-icon">ℹ️</div>
+            <div>
+              <div className="cl-rx-label">{isSimpleMode ? "Temporary Mode" : "Secure Login"}</div>
+              <div className="cl-rx-sub">
+                {isSimpleMode
+                  ? "Mobile login is enabled. WhatsApp OTP verification will be activated in an upcoming update."
+                  : "WhatsApp OTP verification is enabled."}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="dealer-form-card">
+        <div className="cl-svc-card cl-form-card" style={{ "--svc-accent": "var(--sky-600)", padding: "2.5rem 2rem" }}>
+
+          {/* STEP: INTRO */}
           {step === "intro" && (
-            <form onSubmit={isSimpleMode ? handleSimpleLogin : handleSendOtp} className="dealer-form">
-              <h2>{isSimpleMode ? "Dealer Mobile Login" : "Dealer WhatsApp OTP Login"}</h2>
-              <p>
+            <form onSubmit={isSimpleMode ? handleSimpleLogin : handleSendOtp} className="cl-form">
+              <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>
+                {isSimpleMode ? "Dealer Mobile Login" : "Dealer WhatsApp OTP Login"}
+              </h2>
+              <p className="cl-lead" style={{ marginBottom: "2rem" }}>
                 {isSimpleMode
                   ? "Enter your mobile number to continue. OTP connection is kept ready for future activation."
                   : "Enter your mobile number. OTP will be sent to your WhatsApp."}
               </p>
 
-              <label>Mobile Number</label>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter 10-digit mobile number"
-                inputMode="numeric"
-              />
+              <div className="cl-form-group">
+                <label className="cl-label">Mobile Number</label>
+                <input
+                  className="cl-input"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter 10-digit mobile number"
+                  inputMode="numeric"
+                />
+              </div>
 
-              <div className="dealer-actions">
-                <button disabled={loading}>
+              <div className="cl-cta-row" style={{ marginTop: "1rem" }}>
+                <button className="cl-btn-primary" disabled={loading}>
                   {loading
                     ? "Please wait..."
                     : isSimpleMode
-                    ? "Continue"
-                    : "Send OTP"}
+                      ? "Continue"
+                      : "Send OTP"}
                 </button>
-
-                <a href="/contact">Contact Support</a>
+                <a className="cl-btn-ghost" href="/contact">Contact Support</a>
               </div>
 
-              <small>
-                {isSimpleMode
-                  ? "After MSG91 is corrected, this same screen can be changed to WhatsApp OTP login."
-                  : "Approved dealers will be redirected to dashboard after OTP verification."}
-              </small>
+              <div className="cl-rx-card" style={{ marginTop: "1.5rem", background: "transparent", border: "none", borderLeft: "3px solid var(--sky-400)" }}>
+                <div className="cl-rx-sub">
+                  {isSimpleMode
+                    ? "For now, mobile login is active. We will transition to secure WhatsApp OTP login soon."
+                    : "Approved dealers will be redirected to dashboard after OTP verification."}
+                </div>
+              </div>
             </form>
           )}
 
+          {/* STEP: VERIFY OTP */}
           {step === "verifyOtp" && (
-            <form onSubmit={handleVerifyOtp} className="dealer-form">
-              <h2>Verify OTP</h2>
-              <p>
+            <form onSubmit={handleVerifyOtp} className="cl-form">
+              <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Verify OTP</h2>
+              <p className="cl-lead" style={{ marginBottom: "2rem" }}>
                 OTP sent to WhatsApp number: <b>{normalizePhone(phone)}</b>
               </p>
 
-              <label>Enter OTP</label>
-              <input
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter OTP"
-                inputMode="numeric"
-              />
+              <div className="cl-form-group">
+                <label className="cl-label">Enter OTP</label>
+                <input
+                  className="cl-input"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter OTP"
+                  inputMode="numeric"
+                />
+              </div>
 
-              <div className="dealer-actions">
-                <button disabled={loading}>
+              <div className="cl-cta-row" style={{ marginTop: "1rem" }}>
+                <button className="cl-btn-primary" disabled={loading}>
                   {loading ? "Verifying..." : "Verify OTP"}
                 </button>
 
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="cl-btn-ghost"
                   onClick={handleResendOtp}
                   disabled={loading || cooldown > 0}
                 >
                   {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
                 </button>
 
-                <button type="button" className="secondary-btn" onClick={resetToIntro}>
+                <button type="button" className="cl-btn-ghost" onClick={resetToIntro}>
                   Change Number
                 </button>
               </div>
             </form>
           )}
 
+          {/* STEP: REGISTER */}
           {step === "register" && (
-            <form onSubmit={handleRegister} className="dealer-form">
-              <h2>Dealer Registration</h2>
-              <p>
+            <form onSubmit={handleRegister} className="cl-form">
+              <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Dealer Registration</h2>
+              <p className="cl-lead" style={{ marginBottom: "2rem" }}>
                 Mobile: <b>{normalizePhone(phone)}</b>
               </p>
 
-              <div className="dealer-form-grid">
-                <div>
-                  <label>Dealer Name *</label>
+              <div className="cl-form-grid">
+                <div className="cl-form-group">
+                  <label className="cl-label">Dealer Name *</label>
                   <input
+                    className="cl-input"
                     value={form.dealer_name}
                     onChange={(e) => setForm({ ...form, dealer_name: e.target.value })}
                     placeholder="Enter dealer name"
                   />
                 </div>
 
-                <div>
-                  <label>Firm / Company Name *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Firm / Company Name *</label>
                   <input
+                    className="cl-input"
                     value={form.firm_name}
                     onChange={(e) => setForm({ ...form, firm_name: e.target.value })}
                     placeholder="Enter firm name"
                   />
                 </div>
 
-                <div>
-                  <label>Email Optional</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Email <span style={{ opacity: 0.6, fontWeight: 400 }}>(Optional)</span></label>
                   <input
+                    className="cl-input"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="example@gmail.com"
                   />
                 </div>
 
-                <div>
-                  <label>GST Number *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">GST Number *</label>
                   <input
+                    className="cl-input"
                     value={form.gst}
                     onChange={(e) => setForm({ ...form, gst: e.target.value.toUpperCase() })}
                     placeholder="15-character GSTIN"
                     maxLength={15}
                   />
                   {form.gst && (
-                    <small className={gstLooksValid(form.gst) ? "valid-text" : "invalid-text"}>
-                      {gstLooksValid(form.gst)
-                        ? "GST format looks valid"
-                        : "GST format is invalid"}
-                    </small>
+                    <div className="cl-input-msg" style={{ color: gstLooksValid(form.gst) ? "var(--g600)" : "#e53e3e" }}>
+                      {gstLooksValid(form.gst) ? "GST format looks valid" : "GST format is invalid"}
+                    </div>
                   )}
                 </div>
 
-                <div>
-                  <label>Village / Post *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Village / Post *</label>
                   <input
+                    className="cl-input"
                     value={form.village_post}
                     onChange={(e) => setForm({ ...form, village_post: e.target.value })}
                     placeholder="Village / Post"
                   />
                 </div>
 
-                <div>
-                  <label>Taluk *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Taluk *</label>
                   <input
+                    className="cl-input"
                     value={form.taluk}
                     onChange={(e) => setForm({ ...form, taluk: e.target.value })}
                     placeholder="Taluk"
                   />
                 </div>
 
-                <div>
-                  <label>District *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">District *</label>
                   <input
+                    className="cl-input"
                     value={form.district}
                     onChange={(e) => setForm({ ...form, district: e.target.value })}
                     placeholder="District"
                   />
                 </div>
 
-                <div>
-                  <label>Pin Code *</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Pin Code *</label>
                   <input
+                    className="cl-input"
                     value={form.pincode}
                     onChange={(e) => setForm({ ...form, pincode: e.target.value.replace(/\D/g, "") })}
                     placeholder="6-digit pincode"
@@ -598,28 +665,30 @@ export default function Dealers() {
                   />
                 </div>
 
-                <div>
-                  <label>GST Certificate * PDF/JPG/PNG ≤ 8MB</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">GST Certificate * <span style={{ opacity: 0.6, fontWeight: 400 }}>(PDF/JPG/PNG ≤ 8MB)</span></label>
                   <input
+                    className="cl-input-file"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                     onChange={(e) => setGstFile(e.target.files?.[0] || null)}
                   />
-                  <small>{gstFile ? `Selected: ${gstFile.name}` : "No file selected"}</small>
+                  <div className="cl-input-msg">{gstFile ? `Selected: ${gstFile.name}` : "No file selected"}</div>
                 </div>
 
-                <div>
-                  <label>Insecticide Licence * PDF/JPG/PNG ≤ 8MB</label>
+                <div className="cl-form-group">
+                  <label className="cl-label">Insecticide Licence * <span style={{ opacity: 0.6, fontWeight: 400 }}>(PDF/JPG/PNG ≤ 8MB)</span></label>
                   <input
+                    className="cl-input-file"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                     onChange={(e) => setLicFile(e.target.files?.[0] || null)}
                   />
-                  <small>{licFile ? `Selected: ${licFile.name}` : "No file selected"}</small>
+                  <div className="cl-input-msg">{licFile ? `Selected: ${licFile.name}` : "No file selected"}</div>
                 </div>
               </div>
 
-              <label className="dealer-checkbox">
+              <label className="cl-checkbox">
                 <input
                   type="checkbox"
                   checked={form.confirm_true}
@@ -628,55 +697,55 @@ export default function Dealers() {
                 <span>I confirm the information provided is true and correct.</span>
               </label>
 
-              <div className="dealer-actions">
-                <button disabled={loading}>
+              <div className="cl-cta-row" style={{ marginTop: "1.5rem" }}>
+                <button className="cl-btn-primary" disabled={loading}>
                   {loading ? "Submitting..." : "Submit for Approval"}
                 </button>
-
-                <button type="button" className="secondary-btn" onClick={resetToIntro}>
+                <button type="button" className="cl-btn-ghost" onClick={resetToIntro}>
                   Back
                 </button>
               </div>
             </form>
           )}
 
+          {/* STEP: PENDING */}
           {step === "pending" && (
-            <div className="dealer-status-box">
-              <h2>Request Received ✅</h2>
-              <p>
+            <div className="cl-status-box">
+              <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Request Received ✅</h2>
+              <p className="cl-lead" style={{ marginBottom: "2rem" }}>
                 Your dealer registration request has been received. Please wait until admin verifies
                 and approves your documents. Once approved, you will get access to the protected
                 price list.
               </p>
 
-              <div className="dealer-actions">
-                <button onClick={resetToIntro}>Back to Dealer Login</button>
-                <a href="/contact">Contact Support</a>
+              <div className="cl-cta-row">
+                <button className="cl-btn-primary" onClick={resetToIntro}>Back to Dealer Login</button>
+                <a className="cl-btn-ghost" href="/contact">Contact Support</a>
               </div>
             </div>
           )}
 
+          {/* STEP: DASHBOARD */}
           {step === "dashboard" && (
-            <div className="dealer-status-box">
-              <h2>Dealer Dashboard</h2>
-              <p>
+            <div className="cl-status-box">
+              <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Dealer Dashboard</h2>
+              <p className="cl-lead" style={{ marginBottom: "2rem" }}>
                 Status: <b>{dealer?.status || "approved"}</b>
                 <br />
                 Mobile: <b>{normalizePhone(phone)}</b>
               </p>
 
-              <div className="price-card">
-                <h3>Download Latest Price List</h3>
-                <p>
+              <div className="cl-rx-card" style={{ background: "var(--g50)", borderColor: "var(--g100)", borderLeftColor: "var(--g600)", padding: "1.5rem", flexDirection: "column", gap: "12px", marginBottom: "2rem" }}>
+                <h3 style={{ margin: 0, fontSize: "1.1rem", color: "var(--g900)" }}>Download Latest Price List</h3>
+                <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--g800)", opacity: 0.8 }}>
                   This file is protected and available only for approved dealers.
                 </p>
 
-                <div className="dealer-actions">
-                  <button onClick={handleDownloadPriceList} disabled={loading}>
+                <div className="cl-cta-row" style={{ marginTop: "0.5rem" }}>
+                  <button className="cl-btn-primary" onClick={handleDownloadPriceList} disabled={loading}>
                     {loading ? "Loading..." : "Download Price List"}
                   </button>
-
-                  <button className="secondary-btn" onClick={resetToIntro}>
+                  <button className="cl-btn-ghost" onClick={resetToIntro}>
                     Logout
                   </button>
                 </div>
@@ -684,357 +753,344 @@ export default function Dealers() {
             </div>
           )}
         </div>
-      </section>
-
-      <section className="dealer-coming">
-        <div>
-          <h2>Ordering Coming Soon</h2>
-          <p>
-            Dealer ordering, quotations, invoices and dispatch tracking will be enabled in the next phase.
-          </p>
-        </div>
-
-        <div className="dealer-actions">
-          <a href={mailtoHref}>Dealer Enquiry</a>
-          <a href="/contact">Contact Support</a>
-        </div>
-      </section>
+      </div>
 
       <style>{`
-        .dealer-page {
-          display: grid;
-          gap: 20px;
+        /* ══════════════════════════════════════════════
+           @import: premium agricultural font pairing
+        ══════════════════════════════════════════════ */
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        /* ══════════════════════════════════════════════
+           Design tokens — Shared with Clinic
+        ══════════════════════════════════════════════ */
+        .cl-root {
+          /* Green ramp — primary brand */
+          --g50:  #EAF3DE;
+          --g100: #C0DD97;
+          --g200: #97C459;
+          --g400: #639922;
+          --g500: #4E7F18;
+          --g600: #3B6D11;
+          --g700: #2F5A0D;
+          --g800: #27500A;
+          --g900: #173404;
+
+          /* Amber ramp — warmth / treatment */
+          --a50:  #FAEEDA;
+          --a100: #FAC775;
+          --a200: #EF9F27;
+          --a400: #BA7517;
+          --a600: #854F0B;
+          --a800: #633806;
+
+          /* Earth / soil accent */
+          --earth-50:  #F5F0E8;
+          --earth-100: #E3D5BC;
+          --earth-400: #9C7A4A;
+          --earth-600: #6B5030;
+
+          /* Sky blue — trust */
+          --sky-50:  #EBF5FB;
+          --sky-100: #BAD9F1;
+          --sky-400: #3A8DC5;
+          --sky-600: #1E5F8A;
+
+          /* Layout */
+          --max-w: 1180px;
+          --r-sm:  8px;
+          --r-md:  14px;
+          --r-lg:  20px;
+          --r-xl:  28px;
+          --r-2xl: 36px;
+
+          /* Motion */
+          --ease: cubic-bezier(0.4, 0, 0.2, 1);
+          --dur:  220ms;
+
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+          color: #1a2e1a;
         }
 
-        .dealer-hero {
-          border-radius: 24px;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at top left, rgba(255,255,255,.28), transparent 30%),
-            linear-gradient(135deg, #0f766e, #2563eb 48%, #1e3a8a);
-          color: white;
-          box-shadow: 0 18px 45px rgba(15, 23, 42, .18);
-        }
-
-        .dealer-hero-content {
-          padding: 34px 26px;
-          display: grid;
-          gap: 14px;
-          text-align: center;
-        }
-
-        .dealer-badge {
-          width: fit-content;
+        .cl-root {
+          display: flex;
+          flex-direction: column;
+          max-width: var(--max-w);
           margin: 0 auto;
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: rgba(255,255,255,.16);
-          border: 1px solid rgba(255,255,255,.24);
-          font-weight: 800;
-          font-size: 13px;
-          letter-spacing: .4px;
+          padding: 0 1.5rem 5rem;
         }
 
-        .dealer-hero h1 {
-          margin: 0;
-          font-size: clamp(30px, 5vw, 52px);
-          line-height: 1;
-          font-weight: 950;
-        }
-
-        .dealer-hero p {
-          margin: 0 auto;
-          max-width: 880px;
-          line-height: 1.7;
-          opacity: .96;
-        }
-
-        .dealer-hero-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: 8px;
-        }
-
-        .dealer-hero-grid div {
-          padding: 12px;
-          border-radius: 16px;
-          background: rgba(255,255,255,.14);
-          border: 1px solid rgba(255,255,255,.18);
-          font-weight: 800;
-        }
-
-        .dealer-layout {
-          display: grid;
-          grid-template-columns: .85fr 1.15fr;
-          gap: 20px;
-          align-items: start;
-        }
-
-        .dealer-info-card,
-        .dealer-form-card,
-        .dealer-coming,
-        .dealer-alert {
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
-        }
-
-        .dealer-info-card,
-        .dealer-form-card {
-          padding: 22px;
-        }
-
-        .dealer-info-card {
-          border-top: 5px solid #10b981;
-        }
-
-        .dealer-form-card {
-          border-top: 5px solid #2563eb;
-        }
-
-        .dealer-info-card h2,
-        .dealer-form h2,
-        .dealer-status-box h2,
-        .dealer-coming h2 {
-          margin: 0 0 10px;
-          color: #0f172a;
-          font-weight: 950;
-        }
-
-        .dealer-info-card p,
-        .dealer-form p,
-        .dealer-status-box p,
-        .dealer-coming p,
-        .price-card p {
-          color: #64748b;
-          line-height: 1.7;
-          margin: 0 0 12px;
-        }
-
-        .dealer-checklist {
-          display: grid;
-          gap: 10px;
-          margin: 16px 0;
-        }
-
-        .dealer-checklist div {
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          padding: 11px 12px;
-          border-radius: 14px;
-          font-weight: 800;
-          color: #0f172a;
-        }
-
-        .dealer-note {
-          background: #eff6ff;
-          color: #1e3a8a;
-          border: 1px solid #bfdbfe;
-          padding: 12px;
-          border-radius: 14px;
-          line-height: 1.6;
-          font-weight: 800;
-        }
-
-        .dealer-form {
-          display: grid;
-          gap: 12px;
-        }
-
-        .dealer-form label {
-          font-weight: 900;
-          color: #0f172a;
-          font-size: 13px;
-        }
-
-        .dealer-form input {
-          width: 100%;
-          padding: 12px 13px;
-          border: 1px solid #dbe3ef;
-          border-radius: 14px;
-          outline: none;
-          background: #fff;
-        }
-
-        .dealer-form input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 4px rgba(37, 99, 235, .13);
-        }
-
-        .dealer-form small {
-          color: #64748b;
-          line-height: 1.5;
-        }
-
-        .dealer-form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-        }
-
-        .dealer-form-grid > div {
-          display: grid;
+        .cl-eyebrow {
+          display: inline-flex;
+          align-items: center;
           gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.13em;
+          text-transform: uppercase;
+          color: var(--g600);
+          background: var(--g50);
+          border: 1px solid var(--g100);
+          border-radius: 100px;
+          padding: 5px 14px;
+          margin-bottom: 1.5rem;
         }
 
-        .dealer-checkbox {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px;
-          border-radius: 14px;
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
+        .cl-h2 {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(1.75rem, 4vw, 2.5rem);
+          font-weight: 400;
+          line-height: 1.2;
+          letter-spacing: -0.01em;
+          color: inherit;
+          margin: 0 0 0.75rem;
+        }
+        .cl-h2 em {
+          font-style: italic;
+          color: var(--g500);
         }
 
-        .dealer-checkbox input {
-          width: auto;
+        .cl-lead {
+          font-size: 1rem;
+          color: #4a5e4a;
+          line-height: 1.75;
+          margin: 0 0 3rem;
+          max-width: 560px;
         }
 
-        .dealer-actions {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-
-        .dealer-actions button,
-        .dealer-actions a,
-        .dealer-form button {
-          border: none;
-          background: #111827;
-          color: white;
-          padding: 11px 14px;
-          border-radius: 14px;
-          cursor: pointer;
-          text-decoration: none;
-          font-weight: 900;
+        .cl-btn-primary {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 44px;
-        }
-
-        .dealer-actions button:disabled,
-        .dealer-form button:disabled {
-          opacity: .65;
-          cursor: not-allowed;
-        }
-
-        .secondary-btn {
-          background: #f8fafc !important;
-          color: #111827 !important;
-          border: 1px solid #e5e7eb !important;
-        }
-
-        .dealer-status-box {
-          display: grid;
-          gap: 12px;
-        }
-
-        .price-card {
-          border: 1px solid #e5e7eb;
-          background: #f8fafc;
-          border-radius: 18px;
-          padding: 16px;
-        }
-
-        .price-card h3 {
-          margin: 0 0 8px;
-          color: #0f172a;
-          font-weight: 950;
-        }
-
-        .dealer-alert {
-          padding: 14px 16px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-          font-weight: 800;
-          line-height: 1.6;
-        }
-
-        .dealer-alert button {
+          gap: 9px;
+          padding: 13px 26px;
+          background: var(--g600);
+          color: #fff;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.95rem;
+          font-weight: 700;
+          border-radius: var(--r-md);
           border: none;
-          background: rgba(255,255,255,.75);
-          border-radius: 10px;
           cursor: pointer;
-          padding: 6px 10px;
-          font-weight: 900;
+          text-decoration: none;
+          transition: background var(--dur) var(--ease),
+                      transform var(--dur) var(--ease),
+                      box-shadow var(--dur) var(--ease);
+          position: relative;
+          letter-spacing: 0.01em;
+        }
+        .cl-btn-primary:hover {
+          background: var(--g800);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(59, 109, 17, 0.35);
+        }
+        .cl-btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
 
-        .dealer-alert-success {
-          background: #ecfdf5;
-          border-left: 5px solid #10b981;
-          color: #065f46;
+        .cl-btn-ghost {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 24px;
+          background: transparent;
+          color: inherit;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          border-radius: var(--r-md);
+          border: 1.5px solid #dbe3ef;
+          cursor: pointer;
+          text-decoration: none;
+          transition: border-color var(--dur) var(--ease),
+                      background var(--dur) var(--ease),
+                      transform var(--dur) var(--ease);
+        }
+        .cl-btn-ghost:hover {
+          border-color: var(--g400);
+          background: var(--g50);
+          transform: translateY(-2px);
+        }
+        .cl-btn-ghost:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
         }
 
-        .dealer-alert-error {
-          background: #fef2f2;
-          border-left: 5px solid #ef4444;
-          color: #991b1b;
+        .cl-cta-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
         }
 
-        .valid-text {
-          color: #047857 !important;
-          font-weight: 800;
+        /* Hero */
+        .cl-hero {
+          padding: 4.5rem 0;
+          position: relative;
         }
-
-        .invalid-text {
-          color: #dc2626 !important;
-          font-weight: 800;
+        .cl-hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--g600);
+          margin-bottom: 1.5rem;
         }
-
-        .dealer-coming {
-          padding: 20px;
+        .cl-hero-pulse {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: var(--g400);
+          display: inline-block;
+          animation: cl-pulse 2.6s ease-in-out infinite;
+        }
+        @keyframes cl-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.45; transform: scale(0.7); }
+        }
+        .cl-hero-title {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+          font-weight: 400;
+          line-height: 1.15;
+          letter-spacing: -0.01em;
+          margin: 0 0 1.5rem;
+        }
+        .cl-hero-title em { font-style: italic; color: var(--g500); }
+        .cl-hero-sub {
+          font-size: 1.05rem;
+          line-height: 1.8;
+          color: #4a5e4a;
+          margin: 0 0 2rem;
+          max-width: 600px;
+        }
+        .cl-hero-proof {
           display: flex;
           align-items: center;
-          justify-content: space-between;
           gap: 16px;
-          background: linear-gradient(135deg, #fef3c7, #fde68a);
+          margin-top: 1.75rem;
+          flex-wrap: wrap;
+        }
+        .cl-hero-proof-tag { font-size: 0.8rem; color: var(--g600); font-weight: 600; }
+        .cl-hero-proof-divider { width: 1px; height: 16px; background: #dbe3ef; }
+        .cl-hero-proof-text { font-size: 0.8rem; color: #4a5e4a; font-weight: 500; }
+
+        /* Alerts */
+        .cl-alert {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 16px 20px;
+          border-radius: var(--r-md);
+          margin-bottom: 2rem;
+          animation: cl-fade-in var(--dur) var(--ease);
+        }
+        .cl-alert-icon { margin-top: 2px; flex-shrink: 0; }
+        .cl-alert-text { font-size: 0.95rem; font-weight: 600; line-height: 1.5; flex-grow: 1; }
+        .cl-alert-close { background: none; border: none; cursor: pointer; opacity: 0.5; transition: opacity var(--dur); font-size: 16px; font-weight: 700; padding: 0 4px; }
+        .cl-alert-close:hover { opacity: 1; }
+        .cl-alert-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+        .cl-alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+        @keyframes cl-fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Forms Layout */
+        .cl-dealer-layout {
+          display: grid;
+          grid-template-columns: 0.8fr 1.2fr;
+          gap: 2rem;
+          align-items: start;
         }
 
-        @media (max-width: 950px) {
-          .dealer-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .dealer-hero-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
+        .cl-svc-card {
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: var(--r-xl);
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.03);
         }
+        .cl-svc-card::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 4px;
+          background: var(--svc-accent);
+        }
+        
+        .cl-svc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cl-svc-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.95rem; color: #4a5e4a; font-weight: 500; }
+        .cl-svc-check { color: var(--svc-accent); margin-top: 2px; flex-shrink: 0; }
 
-        @media (max-width: 640px) {
-          .dealer-hero-content {
-            padding: 26px 16px;
-          }
+        .cl-rx-card {
+          background: var(--a50);
+          border: 1px solid var(--a100);
+          border-left: 3px solid var(--a200);
+          border-radius: var(--r-md);
+          padding: 12px 14px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .cl-rx-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .cl-rx-label { font-size: 13px; font-weight: 700; color: var(--a800); margin-bottom: 2px; }
+        .cl-rx-sub { font-size: 12px; color: #4a5e4a; line-height: 1.5; }
 
-          .dealer-hero-grid,
-          .dealer-form-grid {
-            grid-template-columns: 1fr;
-          }
+        /* Form Controls */
+        .cl-form { display: flex; flex-direction: column; }
+        .cl-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+        .cl-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.25rem; }
+        .cl-form-grid .cl-form-group { margin-bottom: 0; }
+        .cl-label { font-size: 0.9rem; font-weight: 700; color: #1a2e1a; }
+        .cl-input {
+          padding: 12px 14px;
+          border: 1px solid #dbe3ef;
+          border-radius: var(--r-sm);
+          font-family: inherit;
+          font-size: 0.95rem;
+          transition: all var(--dur) var(--ease);
+          background: #fff;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .cl-input:focus { border-color: var(--sky-400); box-shadow: 0 0 0 3px rgba(58, 141, 197, 0.15); outline: none; }
+        
+        .cl-input-file {
+          padding: 8px 0;
+          font-family: inherit;
+          font-size: 0.9rem;
+        }
+        
+        .cl-input-msg { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
 
-          .dealer-info-card,
-          .dealer-form-card {
-            padding: 16px;
-          }
+        .cl-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: var(--r-md);
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .cl-checkbox input { margin: 0; width: 18px; height: 18px; cursor: pointer; }
 
-          .dealer-coming {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .dealer-actions {
-            width: 100%;
-          }
-
-          .dealer-actions button,
-          .dealer-actions a {
-            width: 100%;
-          }
+        /* Responsive */
+        @media (max-width: 900px) {
+          .cl-dealer-layout { grid-template-columns: 1fr; }
+          .cl-hero { padding: 3rem 0; }
+          .cl-form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+          .cl-svc-card { padding: 1.5rem 1.25rem !important; }
+          .cl-cta-row button { width: 100%; justify-content: center; }
         }
       `}</style>
     </div>
