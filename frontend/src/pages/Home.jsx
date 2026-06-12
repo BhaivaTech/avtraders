@@ -378,7 +378,7 @@ export default function Home() {
     try {
       setAnnLoading(true);
       setAnnError("");
-      const res = await api.get("/api/announcements", {
+      const res = await api.get("/announcements", {
         withCredentials: true,
       });
 

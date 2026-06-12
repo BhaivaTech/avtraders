@@ -28,10 +28,12 @@ import NotFound          from './pages/NotFound.jsx';
 
 import SiteHeader        from './components/SiteHeader.jsx';
 import ErrorBoundary     from './components/ErrorBoundary.jsx';
+import OfflineBanner     from './components/OfflineBanner.jsx';
 
 export default function App() {
   return (
     <>
+      <OfflineBanner />
       <SiteHeader />
       <div className="container">
         <ErrorBoundary>

@@ -1,4 +1,5 @@
 //otpadmin.js
+import crypto from "crypto";
 import nodemailer from "nodemailer";
 import dayjs from "dayjs";
 import { pool } from "../../config/db.js";
@@ -32,7 +33,7 @@ if (PROVIDER === "smtp") {
 
 export async function sendAdminOTP(email) {
   await ensureOtpTable();
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(crypto.randomInt(100000, 1000000)); // cryptographically secure
   const expiresAt = dayjs().add(EXPIRY_S, "second").format("YYYY-MM-DD HH:mm:ss");
 
   await pool.query(
@@ -74,6 +75,9 @@ export async function verifyAdminOTP(email, rawCode) {
     return { ok: false, message: "OTP expired" };
   }
 
+  // Mark this OTP as verified
   await pool.query("UPDATE admin_otps SET verified=1 WHERE id=?", [row.id]);
+  // Invalidate all other unverified OTPs for this email
+  await pool.query("DELETE FROM admin_otps WHERE email=? AND verified=0 AND id != ?", [email, row.id]);
   return { ok: true };
 }

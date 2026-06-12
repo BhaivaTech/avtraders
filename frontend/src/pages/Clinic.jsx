@@ -105,7 +105,7 @@ export function useFarmerUnread() {
 
     (async () => {
       try {
-        const r = await api.get(`/api/quotes/latest-by-mobile/${mobile10}`, {
+        const r = await api.get(`/quotes/latest-by-mobile/${mobile10}`, {
           withCredentials: true,
         });
         chatIdRef.current = r?.data?.chat_id || null;

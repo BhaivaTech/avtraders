@@ -59,7 +59,7 @@ export async function verifyOtp(req, res) {
   try {
     const mobile = normalizeMobile10(req.body?.mobile);
     const code = String(req.body?.code || '').trim();
-    const role = (req.body?.role || 'farmer').toLowerCase();
+    const role = 'farmer'; // always farmer — never trust client-supplied role
     const name = req.body?.name;
     const address = req.body?.address;
 

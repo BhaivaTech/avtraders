@@ -1,6 +1,7 @@
 // src/controllers/quotationController.js
 // Business logic for quotation endpoints.
 
+import crypto from 'crypto';
 import { pool } from '../config/db.js';
 import { sendWA } from '../services/msg91.js';
 import {
@@ -152,7 +153,12 @@ export async function markPaid(req, res) {
     if (!id) return fail(res, 400, 'id required');
 
     const secret = req.get('X-Internal-Secret') || '';
-    if (!process.env.INTERNAL_WEBHOOK_SECRET || secret !== process.env.INTERNAL_WEBHOOK_SECRET) {
+    const expected = process.env.INTERNAL_WEBHOOK_SECRET || '';
+    if (!expected) return fail(res, 401, 'unauthorized');
+    // Constant-time comparison to prevent timing attacks
+    const a = Buffer.from(secret);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
       return fail(res, 401, 'unauthorized');
     }
 

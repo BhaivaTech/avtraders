@@ -28,7 +28,19 @@ export function attachChatSocket(io) { ioRef = io; }
 /* ------------------------------------------------------------------ */
 const norm = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 const stripLeadingSlash = (p) => String(p || '').replace(/^[\/\\]+/, '');
-const diskPathFromUrl = (urlPath) => path.join(process.cwd(), stripLeadingSlash(urlPath));
+
+/** Whitelist of allowed sender roles — prevents arbitrary string injection */
+const ALLOWED_SENDER_ROLES = new Set(['farmer', 'admin', 'dealer', 'system']);
+
+// Resolves a URL path to an absolute disk path, refusing to escape uploads/
+const UPLOAD_BASE = path.resolve(process.cwd(), 'uploads');
+function safeUploadPath(urlPath) {
+  const resolved = path.resolve(UPLOAD_BASE, stripLeadingSlash(urlPath).replace(/^uploads[\/\\]/, ''));
+  if (!resolved.startsWith(UPLOAD_BASE + path.sep) && resolved !== UPLOAD_BASE) {
+    throw Object.assign(new Error('Path traversal attempt blocked'), { status: 400 });
+  }
+  return resolved;
+}
 
 /* ------------------------------------------------------------------ */
 /*  POST /api/chat/message                                               */
@@ -36,7 +48,11 @@ const diskPathFromUrl = (urlPath) => path.join(process.cwd(), stripLeadingSlash(
 export async function postMessage(req, res) {
   try {
     const mobile = norm(req.body?.mobile);
-    const sender_role = (req.body?.sender_role || 'farmer').toLowerCase();
+    const rawRole = (req.body?.sender_role || 'farmer').toLowerCase();
+    if (!ALLOWED_SENDER_ROLES.has(rawRole)) {
+      return res.status(400).json({ message: 'Invalid sender_role' });
+    }
+    const sender_role = rawRole;
     const text = (req.body?.text ?? '').trim() || null;
     const reply_to = Number(req.body?.reply_to) || null;
     const sDate = (req.body?.last_spray_date ?? '').trim() || null;
@@ -102,6 +118,9 @@ export async function getThread(req, res) {
   try {
     const chatId = Number(req.params.chatId);
     const role = (req.query.role || 'farmer').toLowerCase();
+    if (!ALLOWED_SENDER_ROLES.has(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
     const rows = await getChatThread(chatId, role);
     res.json(rows);
   } catch (e) {
@@ -117,7 +136,13 @@ export async function deleteMessage(req, res) {
   try {
     const id = Number(req.params.id);
     const role = (req.body?.role || req.query?.role || 'farmer').toLowerCase();
+    if (!ALLOWED_SENDER_ROLES.has(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
     const mode = (req.body?.mode || req.query?.mode || 'me').toLowerCase();
+    if (mode !== 'me' && mode !== 'everyone') {
+      return res.status(400).json({ message: 'Invalid delete mode' });
+    }
 
     const msg = await getMessageById(id);
     if (!msg) return res.status(404).json({ message: 'Message not found' });
@@ -135,7 +160,7 @@ export async function deleteMessage(req, res) {
       const attachments = await hardDeleteAttachmentsByMessage(id);
       for (const a of attachments) {
         if (a.file_path) {
-          try { await fsp.unlink(diskPathFromUrl(a.file_path)); } catch {}
+          try { await fsp.unlink(safeUploadPath(a.file_path)); } catch {}
         }
       }
       await hardDeleteMessage(id);
@@ -157,6 +182,9 @@ export async function clearChat(req, res) {
   try {
     const { chat_id, role = 'admin', scope = 'me' } = req.body || {};
     if (!chat_id) return res.status(400).json({ message: 'chat_id required' });
+    if (!ALLOWED_SENDER_ROLES.has(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
     if (scope !== 'me') return res.status(400).json({ message: 'Only scope=me is supported' });
 
     await softDeleteAllMessages(chat_id, role);
@@ -172,6 +200,9 @@ export async function deleteChat(req, res) {
   try {
     const { chat_id, role = 'admin' } = req.body || {};
     if (!chat_id) return res.status(400).json({ message: 'chat_id required' });
+    if (!ALLOWED_SENDER_ROLES.has(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
 
     await softDeleteAllMessages(chat_id, role);
     ioRef?.emit('chat:deleted', { chat_id, role });
@@ -202,6 +233,10 @@ export async function setChatStatus(req, res) {
   try {
     const { chat_id, status } = req.body || {};
     if (!chat_id || !status) return res.status(400).json({ message: 'chat_id and status required' });
+    const ALLOWED_STATUSES = new Set(['UNREAD', 'READ', 'SENT']);
+    if (!ALLOWED_STATUSES.has(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
     await updateChatStatus(chat_id, status);
     ioRef?.emit('chat:status', { chat_id, status });
     res.json({ ok: true });

@@ -811,7 +811,7 @@ export default function Admin() {
   /* ---------- loaders ---------- */
   async function loadChats() {
     try {
-      const r = await api.get('/api/chat/all', {
+      const r = await api.get('/chat/all', {
         withCredentials: true,
       });
       const list = r.data || [];
@@ -834,7 +834,7 @@ export default function Admin() {
   async function loadThread(chatId) {
     try {
       const r = await api.get(
-        `/api/chat/thread/${chatId}?role=admin`,
+        `/chat/thread/${chatId}?role=admin`,
         { withCredentials: true },
       );
       setThread(r.data || []);
@@ -851,7 +851,7 @@ export default function Admin() {
   async function markRead(chatId) {
     try {
       await api.post(
-        '/api/chat/status',
+        '/chat/status',
         { chat_id: chatId, status: 'READ' },
         { withCredentials: true },
       );
@@ -859,7 +859,7 @@ export default function Admin() {
   }
   async function loadSelectedChatExtras(c) {
     try {
-      const u = await api.get(`/api/auth/exists/${c.mobile}`, {
+      const u = await api.get(`/auth/exists/${c.mobile}`, {
         withCredentials: true,
       });
       setBlocked(!!u?.data?.user?.blocked);
@@ -1022,7 +1022,7 @@ export default function Admin() {
     try {
       setBusy(true);
       const r = await api.post(
-        '/api/admin/login-start',
+        '/admin/login-start',
         { email: loginEmail, password: loginPassword },
         { withCredentials: true },
       );
@@ -1053,7 +1053,7 @@ export default function Admin() {
     try {
       setBusy(true);
       const r = await api.post(
-        '/api/admin/verify-otp',
+        '/admin/verify-otp',
         { email: loginEmail, code: otpCode },
         { withCredentials: true },
       );
@@ -1076,7 +1076,7 @@ export default function Admin() {
     if (!confirm('Do you want to logout?')) return;
     try {
       await api.post(
-        '/api/admin/logout',
+        '/admin/logout',
         {},
         { withCredentials: true },
       );
@@ -1111,7 +1111,7 @@ export default function Admin() {
       body: annBody.trim(),
     };
 
-    const res = await api.post('/api/announcements', payload, {
+    const res = await api.post('/announcements', payload, {
       withCredentials: true,
     });
 
@@ -1308,7 +1308,7 @@ export default function Admin() {
     if (!confirm('Delete this message for you?')) return;
     try {
       await api.delete(
-        `/api/chat/message/${id}?role=admin&mode=me`,
+        `/chat/message/${id}?role=admin&mode=me`,
         { withCredentials: true },
       );
     } catch {}
@@ -1325,7 +1325,7 @@ export default function Admin() {
       return;
     try {
       await api.delete(
-        `/api/chat/message/${id}?role=admin&mode=everyone`,
+        `/chat/message/${id}?role=admin&mode=everyone`,
         { withCredentials: true },
       );
     } catch {}
@@ -1343,7 +1343,7 @@ export default function Admin() {
       return;
     try {
       await api.post(
-        '/api/chat/clear',
+        '/chat/clear',
         { chat_id: chatId, role: 'admin', scope: 'me' },
         { withCredentials: true },
       );
@@ -1362,7 +1362,7 @@ export default function Admin() {
       return;
     try {
       await api.post(
-        '/api/chat/delete',
+        '/chat/delete',
         { chat_id: chatId, role: 'admin' },
         { withCredentials: true },
       );
@@ -1408,7 +1408,7 @@ export default function Admin() {
         setUploadProgress(0);
       }
 
-      await api.post('/api/chat/message', fd, {
+      await api.post('/chat/message', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true,
       });
@@ -1459,7 +1459,7 @@ export default function Admin() {
         fdText.append('sender_role', 'admin');
         fdText.append('text', text.trim());
         if (replyTo?.id) fdText.append('reply_to', replyTo.id);
-        await api.post('/api/chat/message', fdText, {
+        await api.post('/chat/message', fdText, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -1474,7 +1474,7 @@ export default function Admin() {
         fd.append('file', item.file);
         fd.append('original_name', item.file.name);
 
-        await api.post('/api/chat/message', fd, {
+        await api.post('/chat/message', fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -1548,7 +1548,7 @@ export default function Admin() {
         Math.round(audioDraft.duration || 0),
       ),
     );
-    await api.post('/api/chat/message', fd, {
+    await api.post('/chat/message', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       withCredentials: true,
     });
@@ -1565,7 +1565,7 @@ export default function Admin() {
     fd.append('amount', amount || 0);
     fd.append('file', file);
     fd.append('original_name', file.name);
-    await api.post('/api/quotes/upload', fd, {
+    await api.post('/quotes/upload', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       withCredentials: true,
     });
@@ -1582,7 +1582,7 @@ export default function Admin() {
     if (!sel || !lr) return;
     const link = track || DEFAULT_TRACK_LINK;
     await api.post(
-      '/api/chat/lr',
+      '/chat/lr',
       { chat_id: sel.id, lr_number: lr, tracking_link: link },
       { withCredentials: true },
     );

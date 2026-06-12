@@ -675,14 +675,17 @@ export default function Farmers() {
     const z = (n) => String(n).padStart(2, '0');
     return `${z(d.getDate())}-${z(d.getMonth() + 1)}-${d.getFullYear()}`;
   };
-  const linkify = (t = '') =>
-    (t || '').replace(
-      /(https?:\/\/[^\s]+|www\.[^\s]+)/gi,
-      (url) => {
-        const href = url.startsWith('www.') ? `http://${url}` : url;
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-      }
-    );
+  const linkify = (text = '') => {
+    const esc = (s) =>
+      s.replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+      );
+    const re = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    return esc(text).replace(re, (m) => {
+      const href = m.startsWith('www.') ? `http://${m}` : m;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${m}</a>`;
+    });
+  };
 
   /* -------- login persistence -------- */
   useEffect(() => {
@@ -691,11 +694,18 @@ export default function Farmers() {
     (async () => {
       try {
         const m = saved.mobile;
-        await api.post('/auth/login', { mobile: m }, { withCredentials: true });
+        // Verify session is still valid before marking as logged in
+        const meRes = await api.get('/auth/me', { withCredentials: true });
+        if (!meRes.data?.ok || !meRes.data?.farmer?.id) {
+          localStorage.removeItem('farmerAuth');
+          return;
+        }
         setMobile(m);
         setLogged(true);
         await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
-      } catch (_) {}
+      } catch (_) {
+        localStorage.removeItem('farmerAuth');
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1057,22 +1067,21 @@ export default function Farmers() {
     const payload = { mobile: m, code: otp, role: 'farmer' };
 
     try {
-      // 1) verify OTP
+      // 1) verify OTP (creates session via verifyOtp controller)
       await api.post('/auth/verify-otp', payload, { withCredentials: true });
 
-      // 2) create login session (sets req.session.farmer)
-      await api.post('/auth/login', { mobile: m }, { withCredentials: true });
-
-      // 3) If this was a NEW number (exists === false)
+      // 2) If this was a NEW number (exists === false)
       //    save the details they entered into farmer_profiles + users
       if (!exists) {
         await saveProfileAfterLogin(m);
       }
 
-      // 4) mark as logged in and load chat context
+      // 3) Load chat context to confirm session is valid
+      await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
+
+      // 4) Only persist auth AFTER session is confirmed working
       localStorage.setItem('farmerAuth', JSON.stringify({ mobile: m }));
       setLogged(true);
-      await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
     } catch (e) {
       console.error('[Farmers] verifyOtp failed:', e);
       alert(e?.response?.data?.message || 'OTP verification failed');

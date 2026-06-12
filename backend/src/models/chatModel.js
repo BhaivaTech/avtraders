@@ -4,6 +4,24 @@
 import { pool } from '../config/db.js';
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Whitelist of roles allowed for SQL column interpolation. */
+const VALID_SOFT_DELETE_COLUMNS = {
+  admin: 'deleted_for_admin',
+  farmer: 'deleted_for_farmer',
+};
+
+/**
+ * Resolve a role string to a safe column name.
+ * Returns null if the role is not whitelisted.
+ */
+function safeSoftDeleteCol(role) {
+  return VALID_SOFT_DELETE_COLUMNS[role] || null;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Chats                                                                */
 /* ------------------------------------------------------------------ */
 
@@ -111,7 +129,8 @@ export async function insertMessage(chatId, senderRole, text, meta) {
 }
 
 export async function getChatThread(chatId, role) {
-  const hideCol = role === 'admin' ? 'deleted_for_admin' : 'deleted_for_farmer';
+  const hideCol = safeSoftDeleteCol(role);
+  if (!hideCol) throw Object.assign(new Error('Invalid role'), { status: 400 });
 
   const baseSelect = `
     SELECT m.id, m.chat_id, m.sender_role, m.text, m.meta, m.created_at,
@@ -149,12 +168,14 @@ export async function getMessageById(id) {
 }
 
 export async function softDeleteMessage(id, role) {
-  const col = role === 'admin' ? 'deleted_for_admin' : 'deleted_for_farmer';
+  const col = safeSoftDeleteCol(role);
+  if (!col) throw Object.assign(new Error('Invalid role'), { status: 400 });
   await pool.query(`UPDATE messages SET ${col}=1 WHERE id=?`, [id]);
 }
 
 export async function softDeleteAllMessages(chatId, role) {
-  const col = role === 'admin' ? 'deleted_for_admin' : 'deleted_for_farmer';
+  const col = safeSoftDeleteCol(role);
+  if (!col) throw Object.assign(new Error('Invalid role'), { status: 400 });
   await pool.query(`UPDATE messages SET ${col}=1 WHERE chat_id=?`, [chatId]);
 }
 

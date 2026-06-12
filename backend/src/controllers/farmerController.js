@@ -66,8 +66,8 @@ export async function saveProfile(req, res) {
     }
 
     await conn.beginTransaction();
-    await upsertFarmerProfile(userId, farmer.mobile, { full_name, whatsapp: whatsapp || null, village, taluk, district, pincode, land_size: land_size || null, crops_text: crops_text || null });
-    await updateUserNameWhatsapp(userId, full_name, whatsapp || null);
+    await upsertFarmerProfile(userId, farmer.mobile, { full_name, whatsapp: whatsapp || null, village, taluk, district, pincode, land_size: land_size || null, crops_text: crops_text || null }, conn);
+    await updateUserNameWhatsapp(userId, full_name, whatsapp || null, conn);
     await conn.commit();
 
     req.session.farmer = { ...farmer, name: full_name, whatsapp: whatsapp || farmer.whatsapp || null };

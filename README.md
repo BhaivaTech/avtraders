@@ -22,7 +22,7 @@ npm run dev            # starts on PORT=5000 by default
 ### 2) Database
 Import `schema.sql` into your MySQL `avtradersdb` (on your VPS). For example:
 ```bash
-mysql -h 46.28.44.56 -u appuser -p avtradersdb < schema.sql
+mysql -h <DB_HOST> -u <DB_USER> -p <DB_NAME> < schema.sql
 ```
 
 ### 3) Frontend

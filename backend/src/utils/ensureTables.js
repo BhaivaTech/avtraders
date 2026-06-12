@@ -207,6 +207,43 @@ export async function ensureTables() {
         [process.env.ADMIN_DEFAULT_NAME || "Site Admin", process.env.ADMIN_DEFAULT_MOBILE || "9886371630"]
       );
     }
+
+    // Idempotent index additions for existing databases.
+    // MySQL 8+: CREATE INDEX IF NOT EXISTS is not supported for all syntax forms,
+    // so we catch ER_DUP_KEYNAME (1061) instead.
+    const addIndex = async (table, name, cols) => {
+      try {
+        await conn.query(`ALTER TABLE \`${table}\` ADD INDEX \`${name}\` (${cols})`);
+      } catch (e) {
+        if (e.errno !== 1061) throw e; // 1061 = duplicate key name → already exists
+      }
+    };
+
+    await addIndex('chats',         'idx_chats_user_id',              '`user_id`');
+    await addIndex('chats',         'idx_chats_status',               '`status`');
+    await addIndex('messages',      'idx_messages_chat_id',           '`chat_id`');
+    await addIndex('messages',      'idx_messages_created_at',        '`created_at`');
+    await addIndex('attachments',   'idx_attachments_message_id',     '`message_id`');
+    await addIndex('quotations',    'idx_quotations_chat_id',         '`chat_id`');
+    await addIndex('payments',      'idx_payments_chat_id',           '`chat_id`');
+    await addIndex('payments',      'idx_payments_txn_id',            '`txn_id`');
+    await addIndex('dealer_orders', 'idx_dealer_orders_dealer_id',    '`dealer_id`');
+    await addIndex('dealer_documents', 'idx_dealer_docs_dealer_id',   '`dealer_id`');
+    await addIndex('dealer_audit',  'idx_dealer_audit_dealer_id',     '`dealer_id`');
+
+    // Ensure `blocked` column exists on users (added after initial schema)
+    try {
+      await conn.query("ALTER TABLE `users` ADD COLUMN `blocked` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_verified`");
+    } catch (e) {
+      if (e.errno !== 1060) throw e; // 1060 = column already exists
+    }
+
+    // Ensure `last_read_admin_at` column exists on chats
+    try {
+      await conn.query("ALTER TABLE `chats` ADD COLUMN `last_read_admin_at` DATETIME NULL AFTER `updated_at`");
+    } catch (e) {
+      if (e.errno !== 1060) throw e; // 1060 = column already exists
+    }
   } finally {
     conn.release();
   }

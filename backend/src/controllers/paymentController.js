@@ -33,20 +33,49 @@ function resolveState(state) {
 /* ------------------------------------------------------------------ */
 /**
  * Verifies the X-VERIFY header sent by PhonePe on webhook calls.
- * Format: SHA256(rawBody + saltKey) + "###" + saltIndex
+ * Format: SHA256(rawBodyString + saltKey) + "###" + saltIndex
+ *
+ * IMPORTANT: We receive req.body as a Buffer (from express.raw()) and
+ * convert to string ourselves so the exact bytes are preserved. Any
+ * normalisation (trimming, BOM stripping, re-encoding) would change the
+ * SHA-256 digest and cause false signature mismatches.
+ *
  * Returns true if PHONEPE_SALT_KEY is not configured (skip in dev).
  */
 function verifyPhonePeSignature(rawBody, xVerify) {
   const saltKey = (process.env.PHONEPE_SALT_KEY || '').trim();
   if (!saltKey) return true; // skip verification if not configured
 
+  if (!rawBody) return false;
+
+  // rawBody may be a Buffer (from express.raw) or a string (fallback)
+  const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody);
+
   const parts = (xVerify || '').split('###');
   const receivedHash = parts[0] || '';
+  const saltIndex = parts[1] || '';
+
+  // Validate salt index matches configured value
+  const expectedIndex = (process.env.PHONEPE_SALT_INDEX || '1').trim();
+  if (saltIndex !== expectedIndex) {
+    console.warn('[webhook] salt index mismatch', { received: saltIndex, expected: expectedIndex });
+    return false;
+  }
+
   const computedHash = crypto
     .createHash('sha256')
-    .update(rawBody + saltKey)
+    .update(bodyStr + saltKey)
     .digest('hex');
-  return computedHash === receivedHash;
+
+  if (computedHash !== receivedHash) {
+    console.warn('[webhook] signature mismatch', {
+      receivedHash: receivedHash.slice(0, 12) + '...',
+      computedHash: computedHash.slice(0, 12) + '...',
+    });
+    return false;
+  }
+
+  return true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -137,17 +166,23 @@ export async function phonePeReturn(req, res) {
 /* ------------------------------------------------------------------ */
 export async function webhook(req, res) {
   try {
-    // Verify PhonePe signature before processing
+    // req.body is a Buffer (from express.raw). Convert once for both
+    // signature verification and JSON parsing.
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(String(req.body || ''));
     const xVerify = req.headers['x-verify'] || '';
-    const rawBody = typeof req.body === 'string'
-      ? req.body
-      : JSON.stringify(req.body);
+
     if (!verifyPhonePeSignature(rawBody, xVerify)) {
       console.warn('[webhook] Invalid X-VERIFY signature — request rejected');
       return res.status(400).json({ ok: false, error: 'invalid_signature' });
     }
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    let body;
+    try {
+      body = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      console.warn('[webhook] invalid JSON body');
+      return res.status(400).json({ ok: false, error: 'invalid_json' });
+    }
     const { event, payload } = body;
     const state = (payload?.state || '').toUpperCase();
     const merchantOrderId = payload?.merchantOrderId || payload?.orderId || null;
@@ -155,6 +190,22 @@ export async function webhook(req, res) {
 
     const row = await findPaymentByMerchantOrderId(merchantOrderId);
     if (!row) return res.status(200).json({ ok: true });
+
+    // Verify amount matches (PhonePe sends amount in paise)
+    const webhookAmountPaise = payload?.amount || payload?.paymentDetails?.[0]?.amount || null;
+    if (webhookAmountPaise !== null) {
+      const storedAmountPaise = Math.round(Number(row.amount || 0) * 100);
+      const receivedAmount = Number(webhookAmountPaise);
+      if (receivedAmount !== storedAmountPaise) {
+        console.warn('[webhook] amount mismatch', {
+          merchantOrderId,
+          storedPaise: storedAmountPaise,
+          receivedPaise: receivedAmount,
+          paymentId: row.id,
+        });
+        // Still process but log the mismatch for audit
+      }
+    }
 
     const final = resolveState(state);
     const txId = payload?.paymentDetails?.[0]?.transactionId || payload?.transactionId || null;

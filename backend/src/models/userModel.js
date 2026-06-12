@@ -46,8 +46,8 @@ export async function updateUser(id, name, address, role) {
   );
 }
 
-export async function updateUserNameWhatsapp(id, name, whatsapp) {
-  await pool.query(
+export async function updateUserNameWhatsapp(id, name, whatsapp, conn = pool) {
+  await conn.query(
     'UPDATE users SET name = ?, whatsapp = ? WHERE id = ?',
     [name, whatsapp || null, id]
   );
@@ -75,9 +75,9 @@ export async function getFarmerProfile(userId) {
   return rows[0] || null;
 }
 
-export async function upsertFarmerProfile(userId, mobile, data) {
+export async function upsertFarmerProfile(userId, mobile, data, conn = pool) {
   const { full_name, whatsapp, village, taluk, district, pincode, land_size, crops_text } = data;
-  await pool.query(
+  await conn.query(
     `INSERT INTO farmer_profiles
        (user_id, full_name, mobile, whatsapp, village, taluk, district, pincode, land_size, crops_text)
      VALUES (?,?,?,?,?,?,?,?,?,?)

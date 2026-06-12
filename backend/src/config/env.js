@@ -6,7 +6,7 @@ const REQUIRED = [
   { key: 'SESSION_SECRET',  bad: ['change_me', 'changeme', ''],      minLen: 32 },
   { key: 'JWT_SECRET',      bad: ['CHANGE_ME', 'changeme', ''],       minLen: 16 },
   { key: 'ADMIN_EMAIL',     bad: [''],                                 minLen: 5  },
-  { key: 'ADMIN_PASSWORD',  bad: [''],                                 minLen: 6  },
+  { key: 'ADMIN_PASSWORD',  bad: [''],                                 minLen: 8  },
 ];
 
 const errors = [];

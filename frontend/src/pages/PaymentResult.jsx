@@ -105,6 +105,10 @@ export default function PaymentResult() {
   const [loading, setLoading] = useState(true);
   const timerRef = useRef(null);
   const schedRef = useRef({ i: 0, c: 0 });
+  // Ref to track current status without stale closure issues
+  const statusRef = useRef(status);
+  // Keep ref in sync with state
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   const fetchStatus = async () => {
     try {
@@ -118,19 +122,23 @@ export default function PaymentResult() {
         } else {
           setStatus("pending");
         }
+        return s; // Return the resolved status for polling logic
       }
     } catch {}
+    return null;
   };
 
   // boot
   useEffect(() => {
     let mounted = true;
     const init = async () => {
-      await fetchStatus();
+      const initialStatus = await fetchStatus();
       setLoading(false);
-      if (status !== "success" && status !== "failed") {
+      const current = initialStatus || statusRef.current;
+      if (current !== "success" && current !== "failed") {
         // schedule polling (PENDING reconciliation)
         const step = () => {
+          if (!mounted) return;
           const plan = schedule[schedRef.current.i] || schedule[schedule.length - 1];
           if (schedRef.current.c >= plan.times) {
             schedRef.current.i = Math.min(schedRef.current.i + 1, schedule.length - 1);
@@ -139,8 +147,10 @@ export default function PaymentResult() {
           schedRef.current.c += 1;
           timerRef.current = setTimeout(async () => {
             if (!mounted) return;
-            await fetchStatus();
-            if (status === "pending") step();
+            const resolved = await fetchStatus();
+            // Use ref instead of state to avoid stale closure
+            const currentStatus = resolved || statusRef.current;
+            if (currentStatus === "pending") step();
           }, plan.every);
         };
         step();
