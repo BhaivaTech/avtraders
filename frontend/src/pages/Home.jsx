@@ -360,14 +360,9 @@ export default function Home() {
     try {
       setAnnLoading(true);
       setAnnError("");
-<<<<<<< Updated upstream
       const res = await api.get("/announcements", {
         withCredentials: true,
       });
-
-=======
-      const res = await api.get("/api/announcements", { withCredentials: true });
->>>>>>> Stashed changes
       const list =
         Array.isArray(res?.data) ? res.data
           : Array.isArray(res?.data?.items) ? res.data.items
