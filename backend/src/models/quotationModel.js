@@ -1,53 +1,11 @@
 // src/models/quotationModel.js
 // All DB queries for the 'quotations' table.
+//
+// Note: the canonical schema (quotations.message_id, quotations.status,
+// quotations.paid_at, the FK to messages, and users.farmer_last_seen_at)
+// is now owned by migrations/004_canonicalize_schema.sql — not by JS.
 
 import { pool } from '../config/db.js';
-
-/* ------------------------------------------------------------------ */
-/*  Schema migration (idempotent)                                        */
-/* ------------------------------------------------------------------ */
-
-export async function ensureQuotationSchema() {
-  const [[dbRow]] = await pool.query('SELECT DATABASE() AS db');
-  const db = dbRow.db;
-
-  async function ensureColumn(table, column, ddl) {
-    const [[r]] = await pool.query(
-      `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.COLUMNS
-         WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND COLUMN_NAME=?`,
-      [db, table, column]
-    );
-    if (!r.n) await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
-  }
-  async function ensureIndex(table, index, ddlSuffix) {
-    const [[r]] = await pool.query(
-      `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.STATISTICS
-         WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND INDEX_NAME=?`,
-      [db, table, index]
-    );
-    if (!r.n) await pool.query(`ALTER TABLE \`${table}\` ADD INDEX \`${index}\` ${ddlSuffix}`);
-  }
-  async function ensureFK(table, fkName, ddl) {
-    const [[r]] = await pool.query(
-      `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
-        WHERE CONSTRAINT_SCHEMA=? AND CONSTRAINT_NAME=?`,
-      [db, fkName]
-    );
-    if (!r.n) await pool.query(`ALTER TABLE \`${table}\` ADD CONSTRAINT \`${fkName}\` ${ddl}`);
-  }
-
-  try { await ensureColumn('users', 'farmer_last_seen_at', 'DATETIME NULL'); } catch {}
-  try { await ensureIndex('users', 'idx_users_farmer_seen', '(farmer_last_seen_at)'); } catch {}
-  try { await ensureColumn('quotations', 'message_id', 'BIGINT NULL'); } catch {}
-  try { await ensureColumn('quotations', 'status', 'ENUM("PENDING","PAID","DELETED") NOT NULL DEFAULT "PENDING"'); } catch {}
-  try { await ensureColumn('quotations', 'paid_at', 'DATETIME NULL'); } catch {}
-  try {
-    await ensureFK(
-      'quotations', 'fk_quotations_message',
-      'FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE'
-    );
-  } catch {}
-}
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                              */

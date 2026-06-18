@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS dealers (
   district         VARCHAR(120) NOT NULL,
   pincode          VARCHAR(10) NOT NULL,
   status           ENUM('pending','approved','rejected') DEFAULT 'pending',
+  blocked          TINYINT(1) NOT NULL DEFAULT 0,
   rejection_reason TEXT NULL,
   created_at       DATETIME,
   updated_at       DATETIME
@@ -214,6 +215,23 @@ CREATE TABLE IF NOT EXISTS dealer_audit (
   created_at DATETIME,
   INDEX idx_dealer_audit_dealer_id (dealer_id),
   FOREIGN KEY (dealer_id) REFERENCES dealers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS auth_audit (
+  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+  actor_type  ENUM('farmer','dealer','admin','system') NOT NULL,
+  actor_id    VARCHAR(64) NULL,
+  identifier  VARCHAR(255) NULL,
+  action      VARCHAR(80) NOT NULL,
+  success     TINYINT(1) NOT NULL DEFAULT 1,
+  ip          VARCHAR(64) NULL,
+  user_agent  VARCHAR(500) NULL,
+  meta        JSON NULL,
+  created_at  DATETIME NOT NULL,
+  INDEX idx_auth_audit_actor (actor_type, actor_id),
+  INDEX idx_auth_audit_identifier (identifier),
+  INDEX idx_auth_audit_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS price_lists (

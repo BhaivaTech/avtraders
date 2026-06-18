@@ -1,32 +1,38 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
+/**
+ * Language switcher.
+ *
+ * The visible UI is a custom dropdown with the native script name for
+ * each language (English / ಕನ್ನಡ). Behind the scenes we still load
+ * the Google Translate widget so the actual body text is translated
+ * without us having to maintain hand-written i18n for every string.
+ */
+const LANGUAGES = [
+  { code: "en", label: "English",  native: "English" },
+  { code: "kn", label: "Kannada",  native: "ಕನ್ನಡ" },
+];
+
 export default function LanguageSwitch() {
   const [lang, setLang] = useState(() => {
     try { return localStorage.getItem("site_lang") || "en"; } catch { return "en"; }
   });
   const [booted, setBooted] = useState(false);
+  const [open, setOpen]   = useState(false);
   const selectRef = useRef(null);
-  const btnRef = useRef(null);
+  const wrapRef   = useRef(null);
   const { pathname } = useLocation();
 
   /* ---- prevent duplicate button/host if component mounts twice ---- */
   useEffect(() => {
-    // remove duplicate toggle buttons (keep first)
     const btns = document.querySelectorAll("#lang-toggle-btn");
     btns.forEach((n, i) => { if (i > 0) n.remove(); });
-    // remove duplicate hidden host containers (keep first)
     const hosts = document.querySelectorAll("#google_translate_container");
     hosts.forEach((n, i) => { if (i > 0) n.remove(); });
   }, []);
 
   /* ---------------- utils ---------------- */
-  const setBtnLabel = (code) => {
-    if (!btnRef.current) return;
-    // EN page -> show Kannada pill; KN page -> show English pill
-    btnRef.current.textContent = code === "en" ? "ಕನ್ನಡ" : "English";
-  };
-
   const hideBanner = () => {
     try {
       const banner = document.querySelector(".goog-te-banner-frame");
@@ -39,7 +45,6 @@ export default function LanguageSwitch() {
         .querySelectorAll(".VIpgJd-ZVi9od-ORHb-OEVmcd,.goog-tooltip,.goog-te-balloon-frame")
         .forEach(n => (n.style.display = "none"));
 
-      // undo any scroll/top shift
       document.documentElement.style.top = "0";
       document.body.style.top = "0";
       document.documentElement.style.position = "static";
@@ -141,32 +146,74 @@ export default function LanguageSwitch() {
     }
     document.documentElement.classList.toggle("kn", target === "kn");
     document.documentElement.setAttribute("lang", target);
-    setBtnLabel(target === "kn" ? "kn" : "en");
+    document.documentElement.setAttribute("dir",  "ltr");
     hideBanner();
   };
 
-  /* --------------- persist across routes --------------- */
+  const handleSelect = (code) => {
+    setOpen(false);
+    apply(code);
+  };
+
+  /* --------------- close on outside click --------------- */
   useEffect(() => {
-    setBtnLabel(lang);
+    if (!open) return undefined;
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  /* --------------- close on route change --------------- */
+  useEffect(() => {
+    setOpen(false);
     if (lang === "kn") apply("kn", { silent: true });
     hideBanner();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  const current = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
+
   return (
-    <>
+    <div ref={wrapRef} className="lang-dropdown notranslate" translate="no">
       <div id="google_translate_container" style={{ display: "none" }} />
       <button
         id="lang-toggle-btn"
-        ref={btnRef}
-        className="btn secondary notranslate"
-        translate="no"
-        data-gt-ignore="true"
-        onClick={() => apply(lang === "en" ? "kn" : "en")}
+        type="button"
+        className="btn secondary"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
         title="Translate this page"
       >
-        {lang === "en" ? "ಕನ್ನಡ" : "English"}
+        <span aria-hidden="true" style={{ marginRight: 6 }}>🌐</span>
+        <span>{current.native}</span>
+        <span aria-hidden="true" style={{ marginLeft: 6, fontSize: 10 }}>▾</span>
       </button>
-    </>
+      {open && (
+        <ul role="listbox" aria-label="Select language" className="lang-dropdown-menu">
+          {LANGUAGES.map((l) => (
+            <li
+              key={l.code}
+              role="option"
+              aria-selected={l.code === lang}
+              tabIndex={0}
+              className={`lang-option ${l.code === lang ? "is-active" : ""}`}
+              onClick={() => handleSelect(l.code)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSelect(l.code);
+                }
+              }}
+            >
+              <span className="lang-native">{l.native}</span>
+              <span className="lang-english">{l.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

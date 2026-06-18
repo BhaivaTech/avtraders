@@ -8,8 +8,12 @@ import {
   MAPS_ADDRESS,
   SITE_TITLE,
 } from '../lib/config.js';
+import Seo from "../components/Seo.jsx";
 
 export default function Contact() {
+  return (
+    <>
+      <Seo pageKey="contact" />
   const phone = CONTACT_PHONE;
   const whatsapp = WHATSAPP_URL;
   const email = CONTACT_EMAIL;
@@ -560,5 +564,6 @@ export default function Contact() {
         }
       `}</style>
     </div>
+    </>
   );
 }

@@ -117,3 +117,33 @@ export const dealerDocUpload = multer({
 });
 
 export { DOCS_DIR, PRIVATE_UPLOAD_ROOT };
+
+/* ------------------------------------------------------------------ */
+/*  Announcement image upload                                            */
+/* ------------------------------------------------------------------ */
+
+const ANNOUNCEMENT_ALLOWED_MIME = new Map([
+  ['image/jpeg', '.jpg'],
+  ['image/png',  '.png'],
+  ['image/webp', '.webp'],
+  ['image/gif',  '.gif'],
+]);
+
+const announcementDir = path.join(process.cwd(), 'uploads', 'announcements');
+fs.mkdirSync(announcementDir, { recursive: true });
+
+const announcementStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, announcementDir),
+  filename:    (_req, file, cb) => cb(null, secureFilename(ANNOUNCEMENT_ALLOWED_MIME, file)),
+});
+
+export const announcementUpload = multer({
+  storage: announcementStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (_req, file, cb) => {
+    if (!ANNOUNCEMENT_ALLOWED_MIME.has(file.mimetype)) {
+      return cb(Object.assign(new Error('Only image files are allowed (jpg, png, webp, gif)'), { status: 400 }));
+    }
+    cb(null, true);
+  },
+});

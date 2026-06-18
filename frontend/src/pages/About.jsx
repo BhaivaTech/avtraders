@@ -1,8 +1,10 @@
 import React from "react";
+import Seo from "../components/Seo.jsx";
 
 export default function About() {
   return (
     <div className="cl-root">
+      <Seo pageKey="about" />
       
       {/* ── HERO ── */}
       <section className="cl-hero" style={{ textAlign: "center", paddingBottom: "2rem" }}>

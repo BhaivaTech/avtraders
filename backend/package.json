@@ -9,7 +9,10 @@
     "backup": "node scripts/backup.js",
     "backup:list": "node scripts/backup.js --list",
     "backup:verify": "node scripts/backup.js --verify",
-    "migrate:status": "node -e \"import('./src/utils/migrations.js').then(m => m.migrationStatus().then(s => { console.log(JSON.stringify(s, null, 2)); process.exit(0); }))\""
+    "migrate:status": "node -e \"import('./src/utils/migrations.js').then(m => m.migrationStatus().then(s => { console.log(JSON.stringify(s, null, 2)); process.exit(0); }))\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -40,6 +43,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "@vitest/coverage-v8": "^2.1.5",
+    "nodemon": "^3.1.4",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.5"
   }
 }

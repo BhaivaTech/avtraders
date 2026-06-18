@@ -5,27 +5,54 @@
 /* ---------- RESET / TOKENS ---------- */
 *{ box-sizing:border-box; }
 :root{
-  --bg:#f7fafc;
-  --ink:#222;
-  --muted:#6b7280;
+  /* Semantic color tokens. Anything that was a hard-coded color in the
+     codebase should reference one of these. Dark theme overrides live
+     under [data-theme="dark"] further down. */
+  --bg:        #f7fafc;
+  --bg-elev:   #ffffff;
+  --ink:       #222222;
+  --ink-soft:  #1f2937;
+  --muted:     #6b7280;
 
-  --brand:#48a43f;          /* header + primary buttons */
-  --brand-ink:#ffffff;
+  --brand:        #48a43f;        /* header + primary buttons */
+  --brand-strong: #1e5631;
+  --brand-soft:   #e9f8f1;
+  --brand-ink:    #ffffff;
 
-  --accent:#48a43f;
-  --danger:#ff3b30;
+  --accent:    #48a43f;
+  --danger:    #ef4444;
+  --warn:      #f59e0b;
+  --success:   #10b981;
 
-  --card:#ffffff;
-  --border:#e5e7eb;
-  --border-soft:#eee;
+  --card:        #ffffff;
+  --card-soft:   #e9f8f1;          /* soft-green section card */
+  --border:      #e5e7eb;
+  --border-soft: #eee;
+  --border-soft-2: #e9edf3;
 
-  --shadow:0 2px 12px rgba(0,0,0,.06);
-  --radius:12px;
-  --radius-lg:14px;
-  --radius-pill:999px;
+  --link:        #0f766e;
+  --link-strong: #0aa777;
 
-  --space:16px;
-  --font: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  --header-bg:   var(--brand);
+  --header-fg:   #ffffff;
+  --header-border: rgba(0,0,0,.08);
+
+  --input-bg:    #ffffff;
+  --input-fg:    var(--ink);
+  --input-border: #cbd5e1;
+  --input-placeholder: #94a3b8;
+
+  --focus-ring:  #48a43f;
+  --focus-ring-soft: rgba(72,164,63,.35);
+
+  --shadow:    0 2px 12px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+  --radius:    12px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --space:     16px;
+  --font:      system-ui, "Segoe UI", Roboto, Arial, "Noto Sans Kannada", sans-serif;
 }
 
 html,body{ height:100%; }
@@ -1109,4 +1136,243 @@ html, body {
   color: red;
   font-weight: 500;  /* optional */
 }
+
+/* =========================================================
+   DARK THEME
+   Activated by [data-theme="dark"] on <html>, set by useTheme().
+   Light values remain the default in :root; the overrides below
+   flip the semantic tokens, and the rest of the stylesheet (which
+   uses var(--bg), var(--ink), etc.) follows automatically.
+   ========================================================= */
+html[data-theme="dark"] {
+  --bg:         #0b1220;
+  --bg-elev:    #111a2c;
+  --ink:        #e6edf6;
+  --ink-soft:   #cbd5e1;
+  --muted:      #94a3b8;
+
+  --brand:        #48a43f;
+  --brand-strong: #6ecf68;
+  --brand-soft:   #14281d;
+  --brand-ink:    #ffffff;
+
+  --accent:    #6ecf68;
+  --danger:    #f87171;
+  --warn:      #fbbf24;
+  --success:   #34d399;
+
+  --card:        #111a2c;
+  --card-soft:   #14281d;
+  --border:      #1f2a44;
+  --border-soft: #18223a;
+  --border-soft-2: #1f2a44;
+
+  --link:        #6ee7b7;
+  --link-strong: #34d399;
+
+  --header-bg:   #0a1018;
+  --header-fg:   #e6edf6;
+  --header-border: #1f2a44;
+
+  --input-bg:        #0b1220;
+  --input-fg:        #e6edf6;
+  --input-border:    #334155;
+  --input-placeholder: #64748b;
+
+  --focus-ring:      #6ecf68;
+  --focus-ring-soft: rgba(110,207,104,.35);
+
+  --shadow:    0 2px 12px rgba(0,0,0,.5);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.6);
+}
+
+html[data-theme="dark"] body { background: var(--bg); color: var(--ink); }
+html[data-theme="dark"] .card { background: var(--card); border: 1px solid var(--border); }
+html[data-theme="dark"] .card.soft { background: var(--card-soft); border-color: var(--border-soft); }
+html[data-theme="dark"] .table th,
+html[data-theme="dark"] .table td { border-bottom-color: var(--border-soft); }
+html[data-theme="dark"] .stat,
+html[data-theme="dark"] .box,
+html[data-theme="dark"] .t { background: var(--card); border-color: var(--border-soft-2); }
+html[data-theme="dark"] .mobile-drawer { background: var(--bg-elev); border-right-color: var(--border); }
+html[data-theme="dark"] .drawer-links a { color: var(--ink); }
+html[data-theme="dark"] .drawer-close { background: var(--bg-elev); color: var(--ink); border-color: var(--border); }
+html[data-theme="dark"] .btn.ghost { background: var(--bg-elev); color: var(--ink); border-color: var(--border); }
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select { background: var(--input-bg); color: var(--input-fg); border-color: var(--input-border); }
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: var(--input-placeholder); }
+
+/* =========================================================
+   GLOBAL A11Y
+   - Skip-to-content link, off-screen until focused
+   - Visible :focus-visible ring on every interactive element
+   ========================================================= */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 800;
+  z-index: 9999;
+  transition: top 150ms ease;
+}
+.skip-link:focus { top: 8px; outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Don't double-draw the focus ring on the language dropdown's <ul> */
+.lang-dropdown-menu :focus-visible { outline-offset: 0; }
+
+main#main:focus { outline: none; }
+
+/* =========================================================
+   STICKY HEADER
+   ========================================================= */
+.site-header.is-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+}
+.site-header.is-sticky + .header-spacer { display: none; }
+
+/* =========================================================
+   LANGUAGE DROPDOWN
+   ========================================================= */
+.lang-dropdown { position: relative; display: inline-block; }
+.lang-dropdown .btn { display: inline-flex; align-items: center; gap: 2px; }
+.lang-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 1200;
+}
+.lang-option {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.lang-option:hover,
+.lang-option:focus-visible {
+  background: var(--brand-soft);
+  outline: none;
+}
+.lang-option.is-active { background: var(--brand); color: var(--brand-ink); }
+.lang-option .lang-native { font-weight: 800; font-size: 15px; }
+.lang-option .lang-english { font-size: 12px; opacity: .8; }
+
+/* Theme toggle button */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  padding: 0;
+  border-radius: 999px;
+}
+.theme-toggle:hover { filter: brightness(1.05); }
+
+/* =========================================================
+   SKELETON LOADERS
+   Pure-CSS shimmer. The class .skeleton can be used alone
+   (with width/height via inline style) or composed via the
+   <Skeleton/> building blocks in components/Skeleton.jsx.
+   ========================================================= */
+@keyframes skel-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.10) 50%,
+    rgba(0,0,0,0.06) 100%
+  );
+  background-size: 800px 100%;
+  animation: skel-shimmer 1.4s linear infinite;
+  border-radius: 8px;
+  display: block;
+}
+html[data-theme="dark"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 0%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.05) 100%
+  );
+  background-size: 800px 100%;
+}
+.skeleton-page { display: flex; flex-direction: column; gap: 16px; padding: 8px 0; }
+.skeleton-page .skeleton-hero  { width: 100%; height: 220px; border-radius: 14px; }
+.skeleton-page .skeleton-grid   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.skeleton-page .skeleton-card   { height: 160px; border-radius: 14px; }
+.skeleton-page .skeleton-text   { height: 12px; border-radius: 6px; }
+.skeleton-card-block { display: flex; flex-direction: column; padding: 12px; }
+.skeleton-text-block { width: 100%; }
+@media (max-width: 1024px) { .skeleton-page .skeleton-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .skeleton-page .skeleton-grid { grid-template-columns: 1fr; } }
+
+/* Admin shell skeleton */
+.skeleton-admin { display: grid; grid-template-columns: 240px 1fr; gap: 16px; min-height: 60vh; }
+.skeleton-admin-sidebar { height: 100%; min-height: 400px; border-radius: 14px; }
+.skeleton-admin-main { display: flex; flex-direction: column; gap: 12px; }
+.skeleton-admin-header { height: 56px; border-radius: 14px; }
+.skeleton-chat-row { height: 64px; border-radius: 12px; }
+@media (max-width: 768px) { .skeleton-admin { grid-template-columns: 1fr; } .skeleton-admin-sidebar { display: none; } }
+
+/* =========================================================
+   TOASTS (react-hot-toast)
+   ========================================================= */
+.toast-base {
+  background: var(--bg-elev) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-weight: 600;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+}
+
+/* =========================================================
+   PWA INSTALL PROMPT
+   ========================================================= */
+.pwa-install-prompt {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-elev);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1500;
+  flex-wrap: wrap;
+}
+.pwa-install-prompt .pwa-install-actions { display: flex; gap: 8px; }
+.pwa-install-prompt .btn { padding: 8px 14px; }
+.pwa-install-prompt .btn.ghost { background: transparent; }
+
 

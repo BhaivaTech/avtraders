@@ -4,6 +4,8 @@
 import path from 'path';
 import fsp from 'fs/promises';
 import { sendWA } from '../services/msg91.js';
+import { pool } from '../config/db.js';
+import { sendEmail } from '../utils/email.js';
 import {
   ensureChat,
   insertMessage,
@@ -102,6 +104,21 @@ export async function postMessage(req, res) {
 
     const newStatus = sender_role === 'farmer' ? 'UNREAD' : 'READ';
     await updateChatStatus(chat.id, newStatus);
+    
+    if (sender_role === 'farmer') {
+      const [msgCountRow] = await pool.query('SELECT COUNT(*) as cnt FROM messages WHERE chat_id = ?', [chat.id]);
+      if (msgCountRow[0].cnt === 1) {
+        // First message of the thread -> Send email to Admin
+        const adminEmail = String(process.env.ADMIN_EMAIL || '').trim();
+        if (adminEmail) {
+          sendEmail({
+            to: adminEmail,
+            subject: 'New Consultation Started!',
+            text: `A new farmer (Mobile: ${mobile}) has started a consultation thread.\n\nLogin to the admin dashboard to reply.`
+          }).catch(err => console.error('[Email] Failed to send new consultation alert:', err.message));
+        }
+      }
+    }
 
     ioRef?.emit('chat:new_message', { chat_id: chat.id });
     res.json({ ok: true, message: { id: messageId, chat_id: chat.id, file_path, mime_type, duration_seconds, kind } });
@@ -216,15 +233,22 @@ export async function deleteChat(req, res) {
 /* ------------------------------------------------------------------ */
 /*  GET /api/chat/all  (ADMIN ONLY)                                      */
 /* ------------------------------------------------------------------ */
-export async function getAllChats(_req, res) {
+export async function getAllChats(req, res) {
   try {
-    const rows = await getAllChatsForAdmin();
+    const { search, status, page = 1, limit = 100 } = req.query;
+    const rows = await getAllChatsForAdmin({
+      search: search?.trim() || undefined,
+      status: status || undefined,
+      page: Number(page),
+      limit: Math.min(Number(limit), 500),
+    });
     res.json(rows);
   } catch (e) {
     console.error('chat/all error:', e);
     res.status(500).json({ message: 'Failed to list chats' });
   }
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  POST /api/chat/status  (ADMIN ONLY)                                  */

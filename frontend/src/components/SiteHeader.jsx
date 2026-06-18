@@ -1,11 +1,18 @@
 // src/components/SiteHeader.jsx
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+// Public site header — brand, primary nav, mobile drawer, farmer
+// notifications, language switch, theme toggle. Sticky to the top of
+// the viewport; the existing .header-spacer (see styles.css) reserves
+// layout space below it.
+
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import LanguageSwitch from "./LanguageSwitch.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 import { socket } from "@/lib/socket";
 import { api } from "@/lib/api";
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const burgerRef = useRef(null);
 
   // keep unread in state + localStorage
   const [unread, setUnread] = useState(() => {
@@ -123,15 +130,37 @@ export default function SiteHeader() {
 
   const handleFarmersClick = () => saveUnread(0);
 
+  // Open/close handlers: set aria-expanded and manage focus.
+  const openDrawer  = useCallback(() => setOpen(true),  []);
+  const closeDrawer = useCallback(() => {
+    setOpen(false);
+    // Return focus to the burger button so keyboard users keep their place.
+    requestAnimationFrame(() => burgerRef.current?.focus());
+  }, []);
+
   return (
     <>
-      <header className="site-header">
-        <button className="burger" aria-label="Open menu" onClick={() => setOpen(true)}>
+      <header className="site-header is-sticky">
+        <button
+          ref={burgerRef}
+          className="burger"
+          aria-label="Open menu"
+          aria-expanded={open}
+          aria-controls="mobile-drawer"
+          onClick={openDrawer}
+        >
           <span></span><span></span><span></span>
         </button>
 
         <a className="brand" href="/">
-          <img className="brand-logo" src="/1234.png" alt="AV Traders logo" />
+          <img
+            className="brand-logo"
+            src="/1234.png"
+            alt="AV Traders logo"
+            width="40"
+            height="40"
+            decoding="async"
+          />
           <span className="brand-name">AV Traders Agri Clinic</span>
         </a>
 
@@ -159,42 +188,57 @@ export default function SiteHeader() {
         </div>
 
         <div className="right-tools">
+          <ThemeToggle />
           <div className="lang-switch"><LanguageSwitch /></div>
         </div>
       </header>
       <div className="header-spacer" />
 
       {/* Drawer (mobile) */}
-      <aside className={`mobile-drawer ${open ? "open" : ""}`} aria-hidden={!open}>
+      <aside
+        id="mobile-drawer"
+        className={`mobile-drawer ${open ? "open" : ""}`}
+        aria-hidden={!open}
+        aria-label="Mobile menu"
+        inert={!open ? "" : undefined}
+      >
         <div className="drawer-head">
           <div className="drawer-title">
-            <img src="/1234.png" alt="" />
+            <img src="/1234.png" alt="" width="32" height="32" decoding="async" />
             <strong>Menu</strong>
           </div>
-          <button className="drawer-close" aria-label="Close menu" onClick={() => setOpen(false)}>×</button>
+          <button className="drawer-close" aria-label="Close menu" onClick={closeDrawer}>×</button>
         </div>
-        <nav className="drawer-links">
-          <a href="/" onClick={() => setOpen(false)} className={isActive("/")}>Home</a>
-          <a href="/clinic" onClick={() => setOpen(false)} className={isActive("/clinic")}>Clinic</a>
-          <a href="/distribution" onClick={() => setOpen(false)} className={isActive("/distribution")}>Distribution</a>
-          <a href="/about" onClick={() => setOpen(false)} className={isActive("/about")}>About</a>
-          <a href="/contact" onClick={() => setOpen(false)} className={isActive("/contact")}>Contact</a>
-          <a href="/guide" onClick={() => setOpen(false)} className={isActive("/guide")}>Farmer’s Guide</a>
-          <a href="/admin" onClick={() => setOpen(false)} className={isActive("/admin")}>Admin</a>
+        <nav className="drawer-links" aria-label="Mobile primary">
+          <a href="/" onClick={closeDrawer} className={isActive("/")}>Home</a>
+          <a href="/clinic" onClick={closeDrawer} className={isActive("/clinic")}>Clinic</a>
+          <a href="/distribution" onClick={closeDrawer} className={isActive("/distribution")}>Distribution</a>
+          <a href="/about" onClick={closeDrawer} className={isActive("/about")}>About</a>
+          <a href="/contact" onClick={closeDrawer} className={isActive("/contact")}>Contact</a>
+          <a href="/guide" onClick={closeDrawer} className={isActive("/guide")}>Farmer’s Guide</a>
+          <a href="/admin" onClick={closeDrawer} className={isActive("/admin")}>Admin</a>
 
           <span className="notif-wrap">
             <a
               href="/farmers"
-              onClick={() => { handleFarmersClick(); setOpen(false); }}
+              onClick={() => { handleFarmersClick(); closeDrawer(); }}
               className={isActive("/farmers")}
             >
               Farmers
             </a>
             {unread > 0 && <span className="notif-badge">{unread > 99 ? "99+" : unread}</span>}
           </span>
+
+          <div className="drawer-tools">
+            <ThemeToggle />
+          </div>
         </nav>
       </aside>
-      <div className={`drawer-backdrop ${open ? "show" : ""}`} onClick={() => setOpen(false)} />
+      <div
+        className={`drawer-backdrop ${open ? "show" : ""}`}
+        onClick={closeDrawer}
+        aria-hidden="true"
+      />
 
       <style>{`
         .notif-wrap { position: relative; display: inline-flex; align-items: center; }
@@ -204,6 +248,7 @@ export default function SiteHeader() {
           text-align: center; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,.18); pointer-events: none;
         }
         .mobile-drawer .drawer-links .notif-wrap { margin: 6px 0; }
+        .drawer-tools { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
 
         .right-tools{ position: relative; z-index: 1101; display:flex; align-items:center; gap:10px; }
         .drawer-backdrop{

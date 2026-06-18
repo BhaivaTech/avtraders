@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useParams } from "react-router-dom";
+import Seo from "../components/Seo.jsx";
 
 /* ====================== ORDER OF CHAPTERS (pager uses this) ====================== */
 const order = [
@@ -2530,6 +2531,15 @@ const chapterMap = {
 
 /* ====================== PAGE COMPONENT ====================== */
 export default function GuideChapter() {
+  return (
+    <>
+      <Seo pageKey="guide" title={`${chapterTitleFor(slug)} — AV Traders`} />
+      <GuideChapterInner />
+    </>
+  );
+}
+
+function GuideChapterInner() {
   const { slug } = useParams();
   const idx = order.indexOf(slug);
   const prev = idx > 0 ? `/guide/chapter/${order[idx - 1]}` : null;
@@ -2621,6 +2631,17 @@ export default function GuideChapter() {
 
     </div>
   );
+}
+
+function chapterTitleFor(slug) {
+  if (!slug) return 'Guide';
+  const t = (typeof CHAPTERS !== 'undefined' && CHAPTERS) || null;
+  // Best effort: pull the human title from the local chapters list.
+  if (Array.isArray(t)) {
+    const found = t.find((c) => c.slug === slug);
+    if (found?.title) return found.title;
+  }
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 <style>

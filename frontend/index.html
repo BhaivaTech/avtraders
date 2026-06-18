@@ -1,30 +1,52 @@
-
 <!doctype html>
-<html>
+<html lang="en" data-theme="light">
   <head>
     <!-- Tell Chrome not to auto-offer its translation bar -->
-<meta name="google" content="notranslate">
-<meta http-equiv="Content-Language" content="en">
+    <meta name="google" content="notranslate">
+    <meta http-equiv="Content-Language" content="en">
 
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#48a43f" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="AV Traders Agri Clinic — agronomy advice, crop protection, and dealer distribution in Karnataka." />
+
     <title>AV Traders Agri Clinic</title>
+
+    <link rel="icon" type="image/png" href="/1234.png" />
+    <link rel="apple-touch-icon" href="/1234.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Synchronous theme bootstrap: runs before React paints to avoid
+         a flash of the wrong theme for users who chose dark. -->
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('site_theme');
+          var theme = stored === 'dark' || stored === 'light'
+            ? stored
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (_) { /* ignore */ }
+      })();
+    </script>
+
+    <style>
+      /* Hide the Google top bar + tooltip completely */
+      .goog-te-banner-frame.skiptranslate { display: none !important; }
+      #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+      body { top: 0 !important; }
+      .goog-te-gadget, .goog-te-gadget-icon, .goog-te-menu-value,
+      .goog-te-gadget-simple, .goog-logo-link { display: none !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-  /* Hide the Google top bar + tooltip completely */
-  .goog-te-banner-frame.skiptranslate { display: none !important; }
-  #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
-  /* Remove body offset that Google adds */
-  body { top: 0 !important; }
-  /* Hide the small default gadget if it appears */
-  .goog-te-gadget, .goog-te-gadget-icon, .goog-te-menu-value,
-  .goog-te-gadget-simple, .goog-logo-link { display: none !important; }
-
-</style>
-
 </html>

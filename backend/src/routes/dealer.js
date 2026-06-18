@@ -3,18 +3,44 @@ import express from 'express';
 import { dealerDocUpload } from '../middlewares/upload.js';
 import { authDealer } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
-import { otpVerifyLimiter } from '../middlewares/rateLimiter.js';
-import { dealerSendOtpSchema, dealerVerifyOtpSchema, dealerRegisterSchema } from '../validations/schemas.js';
+import {
+  otpVerifyLimiter,
+  dealerOtpSendByMobileLimiter,
+  dealerOtpVerifyByMobileLimiter,
+} from '../middlewares/rateLimiter.js';
+import { dealerSendOtpSchema, dealerVerifyOtpSchema } from '../validations/schemas.js';
 
-// Import from split dealer controller modules
-import { sendOtp, verifyOtp, sendOtpLimiter } from '../controllers/dealer/index.js';
+import { sendOtp, verifyOtp, simpleLogin, me, logout, sendOtpLimiter } from '../controllers/dealer/index.js';
 import { register } from '../controllers/dealer/register.js';
 import { getPricelist, downloadPricelist } from '../controllers/dealer/pricelist.js';
+import { placeOrder, getMyOrders } from '../controllers/dealer/orders.js';
 
 const router = express.Router();
 
-router.post('/send-otp', sendOtpLimiter, validateBody(dealerSendOtpSchema), sendOtp);
-router.post('/verify-otp', otpVerifyLimiter(), validateBody(dealerVerifyOtpSchema), verifyOtp);
+router.post('/simple-login', validateBody(dealerSendOtpSchema), simpleLogin);
+router.post(
+  '/send-otp',
+  sendOtpLimiter,
+  dealerOtpSendByMobileLimiter(),
+  validateBody(dealerSendOtpSchema),
+  sendOtp
+);
+router.post(
+  '/resend-otp',
+  sendOtpLimiter,
+  dealerOtpSendByMobileLimiter(),
+  validateBody(dealerSendOtpSchema),
+  sendOtp
+);
+router.post(
+  '/verify-otp',
+  otpVerifyLimiter(),
+  dealerOtpVerifyByMobileLimiter(),
+  validateBody(dealerVerifyOtpSchema),
+  verifyOtp
+);
+router.get('/me', authDealer, me);
+router.post('/logout', authDealer, logout);
 router.post(
   '/register',
   authDealer,
@@ -26,5 +52,9 @@ router.post(
 );
 router.get('/pricelist', authDealer, getPricelist);
 router.get('/pricelist/download', downloadPricelist);
+
+// Dealer orders
+router.get('/orders',  authDealer, getMyOrders);
+router.post('/orders', authDealer, placeOrder);
 
 export default router;

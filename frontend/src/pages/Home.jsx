@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { api } from "../lib/api.js";
 import { socket as sharedSocket } from "../lib/socket.js";
 import { CONTACT_PHONE, CONTACT_EMAIL, WHATSAPP_CHANNEL_URL } from '../lib/config.js';
+import Seo from '../components/Seo.jsx';
 
 /* ---------- Preloading helper ---------- */
 function preload(srcs = []) {
@@ -322,6 +323,10 @@ function WhatsAppChannelPopup() {
         <img
           src="/profile/R10.jpg"
           alt="Dr A Venugopal"
+          width="64"
+          height="64"
+          loading="lazy"
+          decoding="async"
           style={styles.img}
         />
         <div>
@@ -357,6 +362,15 @@ function WhatsAppChannelPopup() {
 
 /* ---------- HOME ---------- */
 export default function Home() {
+  return (
+    <>
+    <Seo pageKey="home" />
+    <HomeInner />
+    </>
+  );
+}
+
+function HomeInner() {
   const images = [
     "/banners/R4.png",
     "/banners/R1.jpg",
@@ -784,6 +798,10 @@ useEffect(() => {
               <img
                 src="/profile/R4.png"
                 alt="Dr. A. Venugopal"
+                width="160"
+                height="160"
+                loading="lazy"
+                decoding="async"
               />
               <div className="name">Dr. A. Venugopal</div>
             </div>

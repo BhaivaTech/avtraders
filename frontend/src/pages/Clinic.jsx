@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import { api } from "../lib/api.js";
 import { resolveApiOrigin } from "../lib/endpoint.js";
 import { WHATSAPP_URL } from "../lib/config.js";
+import Seo from "../components/Seo.jsx";
 
 /* ─────────────────────────────────────────────
    SVG Icons — stroke-based, tree-shakeable
@@ -201,6 +202,7 @@ export default function Clinic() {
 
   return (
     <>
+    <Seo pageKey="clinic" />
       <style>{`
         /* ══════════════════════════════════════════════
            @import: premium agricultural font pairing

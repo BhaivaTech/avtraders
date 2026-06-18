@@ -700,8 +700,24 @@ export default function Farmers() {
           localStorage.removeItem('farmerAuth');
           return;
         }
+
+        // Check if user was blocked since last session
+        const exRes = await api.get(`/auth/exists/${m}`, { withCredentials: true });
+        const userRow = exRes?.data?.user || null;
+        if (userRow?.blocked) {
+          setBlocked(true);
+          setExists(true);
+          setLogged(false);
+          localStorage.removeItem('farmerAuth');
+          try { await api.post('/auth/logout', {}, { withCredentials: true }); } catch {}
+          alert('Your account has been blocked from messaging.');
+          return;
+        }
+
         setMobile(m);
         setLogged(true);
+        setBlocked(false);
+        setExists(true);
         await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
       } catch (_) {
         localStorage.removeItem('farmerAuth');
@@ -766,6 +782,12 @@ export default function Farmers() {
         setChatId(null);
       }
     });
+    
+    s.on('chat:status', (p) => {
+      if (p.chat_id === chatId && p.status === 'READ') {
+        setThread(prev => prev.map(m => m.sender_role === 'farmer' ? { ...m, is_read: 1 } : m));
+      }
+    });
 
     const onQuotesChanged = async () => {
       if (!mobile) return;
@@ -782,6 +804,7 @@ export default function Farmers() {
       s.off('chat:delete', refreshIf);
       s.off('chat:cleared', refreshIf);
       s.off('chat:deleted');
+      s.off('chat:status');
       s.off('quotes:changed', onQuotesChanged);
       s.off('connect_error', onCE);
       s.off('error', onCE);

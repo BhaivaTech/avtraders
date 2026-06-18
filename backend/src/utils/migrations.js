@@ -5,7 +5,10 @@
 //   1. Creates a `schema_migrations` table to track applied migrations.
 //   2. Reads .sql files from the `migrations/` directory (sorted by filename).
 //   3. Applies any migrations not yet recorded in the tracking table.
-//   4. Each migration runs in a transaction (where supported).
+//   4. Each migration runs as a single multi-statement query (with
+//      `multipleStatements: true` on a dedicated connection) inside a
+//      transaction, so PREPARE / EXECUTE / user-variable blocks all
+//      see the same session state.
 //
 // Migration file naming:
 //   001_add_blocked_column.sql
@@ -18,6 +21,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import mysql from 'mysql2/promise';
 import { pool } from '../config/db.js';
 import logger from './logger.js';
 
@@ -65,7 +69,33 @@ export async function runMigrations() {
     return;
   }
 
-  const conn = await pool.getConnection();
+  // multipleStatements must be a CONNECTION-level option on mysql2 —
+  // it cannot be set per-query. We grab a dedicated connection from
+  // a fresh pool that has the flag enabled, so the rest of the app's
+  // pool stays single-statement.
+  const env = (() => {
+    const r = { multipleStatements: true };
+    for (const k of ['DB_HOST','DB_PORT','DB_USER','DB_PASS','DB_NAME','MYSQL_HOST','MYSQL_PORT','MYSQL_USER','MYSQL_PASSWORD','MYSQL_DATABASE']) {
+      if (process.env[k]) r[k] = process.env[k];
+    }
+    return r;
+  })();
+  const migPool = mysql.createPool({
+    host:                  env.DB_HOST || env.MYSQL_HOST,
+    port:                  Number(env.DB_PORT || env.MYSQL_PORT || 3306),
+    user:                  env.DB_USER || env.MYSQL_USER,
+    password:              env.DB_PASS || env.MYSQL_PASSWORD,
+    database:              env.DB_NAME || env.MYSQL_DATABASE,
+    multipleStatements:    true,
+    waitForConnections:    true,
+    connectionLimit:       1,
+    queueLimit:            0,
+    timezone:              'Z',
+    enableKeepAlive:       true,
+    keepAliveInitialDelay: 0,
+    connectTimeout:        20000,
+  });
+  const conn = await migPool.getConnection();
   try {
     await ensureTrackingTable(conn);
     const applied = await getAppliedMigrations(conn);
@@ -79,28 +109,27 @@ export async function runMigrations() {
 
       logger.info({ migration: file }, '[migrations] Applying...');
 
+      // Run the whole migration as a single unit — if any statement
+      // fails, roll back so the schema is never left half-applied.
+      // The migration row is only inserted on success.
+      await conn.beginTransaction();
       try {
-        // Split on semicolons to handle multi-statement SQL files.
-        // Note: This is a simple split. For complex SQL with embedded semicolons,
-        // use a proper parser or delimiter handling.
-        const statements = sql
-          .split(/;\s*$/m)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-        for (const stmt of statements) {
-          await conn.query(stmt);
-        }
+        await conn.query(sql);
 
         // Record successful migration
         await conn.query(
           'INSERT INTO schema_migrations (name) VALUES (?)',
           [file]
         );
+        await conn.commit();
         count++;
         logger.info({ migration: file }, '[migrations] ✅ Applied');
       } catch (err) {
-        logger.error({ migration: file, err: err.message }, '[migrations] ❌ Failed');
+        await conn.rollback();
+        logger.error(
+          { migration: file, err: err.message },
+          '[migrations] ❌ Failed — rolled back'
+        );
         throw new Error(`Migration ${file} failed: ${err.message}`);
       }
     }
@@ -112,6 +141,7 @@ export async function runMigrations() {
     }
   } finally {
     conn.release();
+    await migPool.end();
   }
 }
 
@@ -129,21 +159,37 @@ export async function rollbackMigration(name) {
   }
 
   const sql = fs.readFileSync(downPath, 'utf8');
-  const conn = await pool.getConnection();
-  try {
-    const statements = sql
-      .split(/;\s*$/m)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-    for (const stmt of statements) {
-      await conn.query(stmt);
+  const env = (() => {
+    const r = { multipleStatements: true };
+    for (const k of ['DB_HOST','DB_PORT','DB_USER','DB_PASS','DB_NAME','MYSQL_HOST','MYSQL_PORT','MYSQL_USER','MYSQL_PASSWORD','MYSQL_DATABASE']) {
+      if (process.env[k]) r[k] = process.env[k];
     }
-
-    await conn.query('DELETE FROM schema_migrations WHERE name = ?', [name]);
-    logger.info({ migration: name }, '[migrations] Rolled back');
+    return r;
+  })();
+  const migPool = mysql.createPool({
+    host: env.DB_HOST || env.MYSQL_HOST,
+    port: Number(env.DB_PORT || env.MYSQL_PORT || 3306),
+    user: env.DB_USER || env.MYSQL_USER,
+    password: env.DB_PASS || env.MYSQL_PASSWORD,
+    database: env.DB_NAME || env.MYSQL_DATABASE,
+    multipleStatements: true,
+    connectionLimit: 1,
+  });
+  const conn = await migPool.getConnection();
+  try {
+    await conn.beginTransaction();
+    try {
+      await conn.query(sql);
+      await conn.query('DELETE FROM schema_migrations WHERE name = ?', [name]);
+      await conn.commit();
+      logger.info({ migration: name }, '[migrations] Rolled back');
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    }
   } finally {
     conn.release();
+    await migPool.end();
   }
 }
 
