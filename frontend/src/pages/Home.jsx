@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { api } from "../lib/api.js";
 import { socket as sharedSocket } from "../lib/socket.js";
+import { CONTACT_PHONE, CONTACT_EMAIL, WHATSAPP_CHANNEL_URL } from '../lib/config.js';
+import Seo from '../components/Seo.jsx';
 
 /* ---------- Preloading helper ---------- */
 function preload(srcs = []) {
@@ -321,6 +323,10 @@ function WhatsAppChannelPopup() {
         <img
           src="/profile/R10.jpg"
           alt="Dr A Venugopal"
+          width="64"
+          height="64"
+          loading="lazy"
+          decoding="async"
           style={styles.img}
         />
         <div>
@@ -338,7 +344,7 @@ function WhatsAppChannelPopup() {
       </p>
       <div style={styles.row}>
         <a
-          href="https://whatsapp.com/channel/0029Va60pPt6GcGKrWQbRU33"
+          href={WHATSAPP_CHANNEL_URL}
           target="_blank"
           rel="noreferrer"
           style={styles.btn}
@@ -356,6 +362,15 @@ function WhatsAppChannelPopup() {
 
 /* ---------- HOME ---------- */
 export default function Home() {
+  return (
+    <>
+    <Seo pageKey="home" />
+    <HomeInner />
+    </>
+  );
+}
+
+function HomeInner() {
   const images = [
     "/banners/R4.png",
     "/banners/R1.jpg",
@@ -377,7 +392,7 @@ export default function Home() {
     try {
       setAnnLoading(true);
       setAnnError("");
-      const res = await api.get("/api/announcements", {
+      const res = await api.get("/announcements", {
         withCredentials: true,
       });
 
@@ -783,6 +798,10 @@ useEffect(() => {
               <img
                 src="/profile/R4.png"
                 alt="Dr. A. Venugopal"
+                width="160"
+                height="160"
+                loading="lazy"
+                decoding="async"
               />
               <div className="name">Dr. A. Venugopal</div>
             </div>
@@ -990,8 +1009,8 @@ useEffect(() => {
               >
                 Contact
               </div>
-              <div>📞 +91 9886371630</div>
-              <div>✉️ info.avtradersagriclinic@gmail.com</div>
+              <div>📞 {CONTACT_PHONE.replace('+91', '+91 ')}</div>
+              <div>✉️ {CONTACT_EMAIL}</div>
             </div>
             <div>
               <div

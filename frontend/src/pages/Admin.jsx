@@ -7,10 +7,13 @@ import './Admin.css';
 
 // Centralized endpoint helpers
 import { resolveApiOrigin, buildMediaUrl } from '@/lib/endpoint';
+import { ADMIN_EMAIL_ALLOWED } from '../lib/config.js';
+import Seo from '../components/Seo.jsx';
+import toast from '../lib/toast.js';
 
 /* ------------ constants ------------ */
 const DEFAULT_TRACK_LINK = 'http://www.vrlgroup.in/track_consignment.aspx';
-const ADMIN_EMAIL_ALLOWED = 'info.avtradersagriclinic@gmail.com';
+// ADMIN_EMAIL_ALLOWED is now imported from lib/config.js (reads VITE_ADMIN_EMAIL)
 const ADMIN_AUTH_KEY = 'adminAuth';
 const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
 const MAX_MEDIA_FILES = 15;
@@ -457,7 +460,7 @@ function LRChip({ lr, track }) {
           onClick={async () => {
             if (lr) {
               await copyText(lr);
-              alert('LR number copied');
+              toast.success('LR number copied');
             }
           }}
           disabled={!lr}
@@ -653,6 +656,8 @@ export default function Admin() {
 
   // data
   const [chats, setChats] = useState([]);
+  const [chatsPage, setChatsPage] = useState(1);
+  const [hasMoreChats, setHasMoreChats] = useState(true);
   const [sel, setSel] = useState(null);
   const [thread, setThread] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -806,15 +811,59 @@ export default function Admin() {
   const [annLink, setAnnLink] = useState('');
   const [annSaveMsg, setAnnSaveMsg] = useState('');
   const [annSaving, setAnnSaving] = useState(false);
+  const [annImage, setAnnImage] = useState(null);
+
+  // --- Products (admin CRUD) ---
+  const [products, setProducts] = useState([]);
+  const [prodLoading, setProdLoading] = useState(false);
+  const [prodForm, setProdForm] = useState({ name: '', unit: '', price: '' });
+  const [prodEditing, setProdEditing] = useState(null); // id being edited
+  const [prodMsg, setProdMsg] = useState('');
+
+  // --- Payments history ---
+  const [payments, setPayments] = useState([]);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payStatusFilter, setPayStatusFilter] = useState('all');
+
+  // --- Dealer orders ---
+  const [adminOrders, setAdminOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersStatusFilter, setOrdersStatusFilter] = useState('all');
+
+  // --- Audit log ---
+  const [auditTab, setAuditTab] = useState('auth');
+  const [auditRows, setAuditRows] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditActorFilter, setAuditActorFilter] = useState('all');
+
+  // --- Admin Stats ---
+  const [adminStats, setAdminStats] = useState({ totalFarmers: 0, chatsToday: 0, totalRevenue: 0 });
+
 
   /* ---------- loaders ---------- */
-  async function loadChats() {
+  async function loadChats(q = query, st = statusFilter, page = 1) {
     try {
-      const r = await api.get('/api/chat/all', {
+      const params = new URLSearchParams();
+      if (q) params.set('search', q);
+      if (st && st !== 'ALL') params.set('status', st);
+      params.set('page', page);
+      params.set('limit', 30); // Chunk size
+
+      const r = await api.get(`/chat/all?${params.toString()}`, {
         withCredentials: true,
       });
       const list = r.data || [];
-      setChats(list);
+      
+      if (page === 1) {
+        setChats(list);
+      } else {
+        setChats(prev => [...prev, ...list]);
+      }
+      
+      setHasMoreChats(list.length === 30);
+
+      // Also load stats since chats updated
+      loadAdminStats();
 
       const sentCount = list.filter((c) => c.status === 'SENT').length;
       try {
@@ -830,10 +879,34 @@ export default function Admin() {
       }
     }
   }
+
+  // Auto-refresh chats when search query or status changes (debounced)
+  useEffect(() => {
+    if (!authed) return;
+    const t = setTimeout(() => {
+      setChatsPage(1);
+      loadChats(query, statusFilter, 1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [query, statusFilter, authed]);
+
+  function handleLoadMoreChats() {
+    const nextPage = chatsPage + 1;
+    setChatsPage(nextPage);
+    loadChats(query, statusFilter, nextPage);
+  }
+
+  async function loadAdminStats() {
+    try {
+      const r = await api.get('/admin/stats', { withCredentials: true });
+      if (r.data?.stats) setAdminStats(r.data.stats);
+    } catch {}
+  }
+
   async function loadThread(chatId) {
     try {
       const r = await api.get(
-        `/api/chat/thread/${chatId}?role=admin`,
+        `/chat/thread/${chatId}?role=admin`,
         { withCredentials: true },
       );
       setThread(r.data || []);
@@ -850,7 +923,7 @@ export default function Admin() {
   async function markRead(chatId) {
     try {
       await api.post(
-        '/api/chat/status',
+        '/chat/status',
         { chat_id: chatId, status: 'READ' },
         { withCredentials: true },
       );
@@ -858,7 +931,7 @@ export default function Admin() {
   }
   async function loadSelectedChatExtras(c) {
     try {
-      const u = await api.get(`/api/auth/exists/${c.mobile}`, {
+      const u = await api.get(`/auth/exists/${c.mobile}`, {
         withCredentials: true,
       });
       setBlocked(!!u?.data?.user?.blocked);
@@ -1021,7 +1094,7 @@ export default function Admin() {
     try {
       setBusy(true);
       const r = await api.post(
-        '/api/admin/login-start',
+        '/admin/login-start',
         { email: loginEmail, password: loginPassword },
         { withCredentials: true },
       );
@@ -1052,7 +1125,7 @@ export default function Admin() {
     try {
       setBusy(true);
       const r = await api.post(
-        '/api/admin/verify-otp',
+        '/admin/verify-otp',
         { email: loginEmail, code: otpCode },
         { withCredentials: true },
       );
@@ -1075,7 +1148,7 @@ export default function Admin() {
     if (!confirm('Do you want to logout?')) return;
     try {
       await api.post(
-        '/api/admin/logout',
+        '/admin/logout',
         {},
         { withCredentials: true },
       );
@@ -1092,56 +1165,47 @@ export default function Admin() {
     } catch {}
   }
 
-   /* ---------- announcements: save ---------- */
- async function saveAnnouncement(e) {
-  e?.preventDefault?.();
-  setAnnSaveMsg('');
+  /* ---------- announcements: save --------- */
+  async function saveAnnouncement(e) {
+    e?.preventDefault?.();
+    setAnnSaveMsg('');
 
-  if (!annBody.trim()) {
-    setAnnSaveMsg('Please enter the announcement text.');
-    return;
-  }
-
-  try {
-    setAnnSaving(true);
-
-    const payload = {
-      // only message/body, backend will use default type + null title/link
-      body: annBody.trim(),
-    };
-
-    const res = await api.post('/api/announcements', payload, {
-      withCredentials: true,
-    });
-
-    const data = res?.data || {};
-    const ok =
-      data.ok === true ||
-      data.success === true ||
-      typeof data.id === 'number';
-
-    if (ok) {
-      setAnnSaveMsg('Announcement posted ✅');
-      setAnnBody('');
-
-      setTimeout(() => {
-        setPanel('none');
-        setAnnSaveMsg('');
-      }, 700);
-    } else {
-      console.warn('Unexpected announcement response:', data);
-      setAnnSaveMsg('Could not save (unknown error).');
+    if (!annBody.trim() && !annImage) {
+      setAnnSaveMsg('Please enter text or select an image.');
+      return;
     }
-  } catch (err) {
-    console.error('saveAnnouncement error:', err);
-    setAnnSaveMsg(
-      err?.response?.data?.message ||
-        'Could not save announcement.'
-    );
-  } finally {
-    setAnnSaving(false);
+
+    try {
+      setAnnSaving(true);
+      const fd = new FormData();
+      if (annBody.trim()) fd.append('body', annBody.trim());
+      if (annImage) fd.append('image', annImage);
+
+      const res = await api.post('/announcements', fd, {
+        withCredentials: true,
+      });
+
+      const data = res?.data || {};
+      const ok = data.ok === true || data.success === true || typeof data.id === 'number';
+
+      if (ok) {
+        setAnnSaveMsg('Announcement posted ✅');
+        setAnnBody('');
+        setAnnImage(null);
+
+        setTimeout(() => {
+          setPanel('none');
+          setAnnSaveMsg('');
+        }, 700);
+      } else {
+        setAnnSaveMsg('Could not save (unknown error).');
+      }
+    } catch (err) {
+      setAnnSaveMsg(err?.response?.data?.message || 'Could not save announcement.');
+    } finally {
+      setAnnSaving(false);
+    }
   }
-}
 
 
   /* ---------- UI helpers ---------- */
@@ -1158,6 +1222,90 @@ export default function Admin() {
         (c.last_message || '').toLowerCase().includes(q),
     );
   }
+
+  /* ---------- product loaders / actions ---------- */
+  async function loadProducts() {
+    setProdLoading(true);
+    try {
+      const r = await api.get('/products/admin', { withCredentials: true });
+      setProducts(r.data?.products || []);
+    } catch { setProducts([]); } finally { setProdLoading(false); }
+  }
+  async function saveProduct(e) {
+    e?.preventDefault?.();
+    setProdMsg('');
+    const { name, unit, price } = prodForm;
+    if (!name || !price) { setProdMsg('Name and price required'); return; }
+    try {
+      if (prodEditing) {
+        await api.put(`/products/admin/${prodEditing}`, { ...prodForm, is_active: true }, { withCredentials: true });
+        setProdMsg('Updated ✅');
+      } else {
+        await api.post('/products/admin', { name, unit, price }, { withCredentials: true });
+        setProdMsg('Added ✅');
+      }
+      setProdForm({ name: '', unit: '', price: '' }); setProdEditing(null);
+      await loadProducts();
+    } catch (err) { setProdMsg(err?.response?.data?.message || 'Error'); }
+  }
+  async function deleteProduct(id) {
+    if (!confirm('Remove this product?')) return;
+    try { await api.delete(`/products/admin/${id}`, { withCredentials: true }); await loadProducts(); }
+    catch { alert('Failed to remove'); }
+  }
+  async function toggleProductActive(p) {
+    try {
+      await api.put(`/products/admin/${p.id}`, { name: p.name, unit: p.unit, price: p.price, is_active: !p.is_active }, { withCredentials: true });
+      await loadProducts();
+    } catch { alert('Failed'); }
+  }
+
+  /* ---------- payment loader ---------- */
+  async function loadPayments() {
+    setPayLoading(true);
+    try {
+      const r = await api.get('/admin/payments', { params: { status: payStatusFilter, limit: 100 }, withCredentials: true });
+      setPayments(r.data?.rows || []);
+    } catch { setPayments([]); } finally { setPayLoading(false); }
+  }
+
+  /* ---------- orders loader ---------- */
+  async function loadAdminOrders() {
+    setOrdersLoading(true);
+    try {
+      const r = await api.get('/admin/orders', { params: { status: ordersStatusFilter, limit: 100 }, withCredentials: true });
+      setAdminOrders(r.data?.orders || []);
+    } catch { setAdminOrders([]); } finally { setOrdersLoading(false); }
+  }
+  async function updateOrderStatus(orderId, status) {
+    try {
+      await api.patch(`/admin/orders/${orderId}/status`, { status }, { withCredentials: true });
+      await loadAdminOrders();
+    } catch { alert('Failed to update status'); }
+  }
+
+  /* ---------- audit loader ---------- */
+  async function loadAudit() {
+    setAuditLoading(true);
+    try {
+      const endpoint = auditTab === 'auth' ? '/admin/audit/auth' : '/admin/audit/dealer';
+      const params = auditTab === 'auth' ? { actorType: auditActorFilter, limit: 100 } : { limit: 100 };
+      const r = await api.get(endpoint, { params, withCredentials: true });
+      setAuditRows(r.data?.rows || []);
+    } catch { setAuditRows([]); } finally { setAuditLoading(false); }
+  }
+
+  /* ---------- farmer block toggle (from chat) ---------- */
+  async function toggleBlockFarmer() {
+    if (!userId) return;
+    const newBlocked = !blocked;
+    if (!confirm(newBlocked ? 'Block this farmer from messaging?' : 'Unblock this farmer?')) return;
+    try {
+      await api.patch(`/admin/farmers/${userId}/block`, { blocked: newBlocked }, { withCredentials: true });
+      setBlocked(newBlocked);
+    } catch (err) { alert(err?.response?.data?.message || 'Failed to update'); }
+  }
+
   function toggleSelect(id) {
     setSelectedIds((prev) => {
       const n = new Set(prev);
@@ -1307,7 +1455,7 @@ export default function Admin() {
     if (!confirm('Delete this message for you?')) return;
     try {
       await api.delete(
-        `/api/chat/message/${id}?role=admin&mode=me`,
+        `/chat/message/${id}?role=admin&mode=me`,
         { withCredentials: true },
       );
     } catch {}
@@ -1324,7 +1472,7 @@ export default function Admin() {
       return;
     try {
       await api.delete(
-        `/api/chat/message/${id}?role=admin&mode=everyone`,
+        `/chat/message/${id}?role=admin&mode=everyone`,
         { withCredentials: true },
       );
     } catch {}
@@ -1342,7 +1490,7 @@ export default function Admin() {
       return;
     try {
       await api.post(
-        '/api/chat/clear',
+        '/chat/clear',
         { chat_id: chatId, role: 'admin', scope: 'me' },
         { withCredentials: true },
       );
@@ -1361,7 +1509,7 @@ export default function Admin() {
       return;
     try {
       await api.post(
-        '/api/chat/delete',
+        '/chat/delete',
         { chat_id: chatId, role: 'admin' },
         { withCredentials: true },
       );
@@ -1390,6 +1538,28 @@ export default function Admin() {
     // this send is only for text + single file (doc / any single attach)
     if (!text && !file) return;
 
+    // Optimistic UI: push the message into the local thread immediately
+    // with a "pending" marker, then reconcile with the server response.
+    const optimisticId = `tmp-${Date.now()}`;
+    const optimisticText = text || '';
+    const optimisticFile = file
+      ? { name: file.name, size: file.size, type: file.type, url: fileUrl, pending: true }
+      : null;
+    const previousThread = thread;
+    setThread((prev) => [
+      ...(Array.isArray(prev) ? prev : []),
+      {
+        id: optimisticId,
+        chat_id: sel.id,
+        sender_role: 'admin',
+        text: optimisticText,
+        file_path: optimisticFile?.url || null,
+        original_name: optimisticFile?.name || null,
+        created_at: new Date().toISOString(),
+        pending: true,
+      },
+    ]);
+
     const fd = new FormData();
     fd.append('mobile', sel.mobile);
     fd.append('sender_role', 'admin');
@@ -1407,7 +1577,7 @@ export default function Admin() {
         setUploadProgress(0);
       }
 
-      await api.post('/api/chat/message', fd, {
+      await api.post('/chat/message', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true,
       });
@@ -1418,7 +1588,9 @@ export default function Admin() {
       }
     } catch (err) {
       console.error('admin sendMessage error:', err);
-      alert('Could not send message. Please try again.');
+      // Roll back the optimistic message.
+      setThread(previousThread || []);
+      toast.error('Could not send message. Please try again.');
     } finally {
       if (file) {
         // small timeout so 100% is visible for a moment
@@ -1458,7 +1630,7 @@ export default function Admin() {
         fdText.append('sender_role', 'admin');
         fdText.append('text', text.trim());
         if (replyTo?.id) fdText.append('reply_to', replyTo.id);
-        await api.post('/api/chat/message', fdText, {
+        await api.post('/chat/message', fdText, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -1473,7 +1645,7 @@ export default function Admin() {
         fd.append('file', item.file);
         fd.append('original_name', item.file.name);
 
-        await api.post('/api/chat/message', fd, {
+        await api.post('/chat/message', fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -1492,7 +1664,7 @@ export default function Admin() {
       await loadChats();
     } catch (err) {
       console.error('media batch send error:', err);
-      alert('Could not upload media. Please try again.');
+      toast.error('Could not upload media. Please try again.');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -1547,7 +1719,7 @@ export default function Admin() {
         Math.round(audioDraft.duration || 0),
       ),
     );
-    await api.post('/api/chat/message', fd, {
+    await api.post('/chat/message', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       withCredentials: true,
     });
@@ -1558,30 +1730,43 @@ export default function Admin() {
   }
 
   async function uploadQuote() {
-    if (!sel || !file) return alert('Choose a PDF/JPG/PNG first');
+    if (!sel) {
+      toast.error('Select a chat first.');
+      return;
+    }
+    if (!file) {
+      toast.error('Choose a PDF/JPG/PNG first.');
+      return;
+    }
     const fd = new FormData();
     fd.append('chat_id', sel.id);
     fd.append('amount', amount || 0);
     fd.append('file', file);
     fd.append('original_name', file.name);
-    await api.post('/api/quotes/upload', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      withCredentials: true,
-    });
-    setAmount('');
-    if (fileUrl) URL.revokeObjectURL(fileUrl);
-    setFile(null);
-    setFileName('');
-    setFileUrl('');
-    await loadThread(sel.id);
-    await loadChats();
+    try {
+      await api.post('/quotes/upload', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      });
+      toast.success('Quotation uploaded.');
+      setAmount('');
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      setFile(null);
+      setFileName('');
+      setFileUrl('');
+      await loadThread(sel.id);
+      await loadChats();
+    } catch (err) {
+      console.error('uploadQuote error:', err);
+      toast.error('Could not upload quotation.');
+    }
   }
 
   async function sendLR() {
     if (!sel || !lr) return;
     const link = track || DEFAULT_TRACK_LINK;
     await api.post(
-      '/api/chat/lr',
+      '/chat/lr',
       { chat_id: sel.id, lr_number: lr, tracking_link: link },
       { withCredentials: true },
     );
@@ -1858,6 +2043,30 @@ export default function Admin() {
 
           <button
             className="icon-btn ghost"
+            title="Products"
+            onClick={() => { setPanel('products'); loadProducts(); }}
+          >🛒</button>
+
+          <button
+            className="icon-btn ghost"
+            title="Payments"
+            onClick={() => { setPanel('payments'); loadPayments(); }}
+          >💳</button>
+
+          <button
+            className="icon-btn ghost"
+            title="Dealer Orders"
+            onClick={() => { setPanel('orders'); loadAdminOrders(); }}
+          >📦</button>
+
+          <button
+            className="icon-btn ghost"
+            title="Audit Log"
+            onClick={() => { setPanel('audit'); loadAudit(); }}
+          >🔍</button>
+
+          <button
+            className="icon-btn ghost"
             title="Logout"
             onClick={logoutNow}
           >
@@ -1879,6 +2088,20 @@ export default function Admin() {
       >
         {/* left list */}
         <aside className="list">
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Farmers</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{adminStats.totalFarmers}</div>
+            </div>
+            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Chats Today</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{adminStats.chatsToday}</div>
+            </div>
+            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Revenue</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a' }}>₹{adminStats.totalRevenue}</div>
+            </div>
+          </div>
           <div className="list-head">
             <div className="tabs">
               {['ALL', 'UNREAD', 'READ', 'SENT'].map((t) => (
@@ -1917,7 +2140,7 @@ export default function Admin() {
             </div>
           </div>
           <div className="list-inner">
-            {filtered().map((c) => {
+            {chats.map((c) => {
               const active = sel && sel.id === c.id;
               const initials = (c.name || 'U')
                 .trim()
@@ -1996,6 +2219,41 @@ export default function Admin() {
 
         {/* thread */}
         <section className="thread">
+          {sel && (
+            <div className="thread-head" style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  className="icon-btn ghost"
+                  style={{ display: isNarrow ? 'flex' : 'none' }}
+                  onClick={() => setSel(null)}
+                >
+                  <Icon.Left />
+                </button>
+                <div
+                  className="avatar"
+                  style={{ width: 36, height: 36, cursor: 'pointer' }}
+                  onClick={() => showProfileFor(sel)}
+                >
+                  {(sel.name || 'U').trim()[0]?.toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{sel.name || '—'}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>+91 {sel.mobile}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {userId && (
+                  <button
+                    className={`btn ${blocked ? 'primary' : 'ghost danger'}`}
+                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    onClick={toggleBlockFarmer}
+                  >
+                    {blocked ? 'Unblock' : 'Block'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="thread-body" ref={chatBodyRef}>
             {!sel && (
               <div className="empty">
@@ -3081,6 +3339,14 @@ export default function Admin() {
                 ? 'Dispatch (VRL/LR)'
                 : panel === 'announcement'
                 ? 'Announcements'
+                : panel === 'products'
+                ? '🛒 Products'
+                : panel === 'payments'
+                ? '💳 Payment History'
+                : panel === 'orders'
+                ? '📦 Dealer Orders'
+                : panel === 'audit'
+                ? '🔍 Audit Log'
                 : ''}
             </div>
 
@@ -3178,7 +3444,7 @@ export default function Admin() {
                       title="Copy LR"
                       onClick={async () => {
                         await copyText(lr || '');
-                        if (lr) alert('LR number copied');
+                        if (lr) toast.success('LR number copied');
                       }}
                       disabled={!lr}
                     >
@@ -3232,6 +3498,13 @@ export default function Admin() {
                   placeholder="Short announcement to show at top (e.g. offers, holidays, important notes)…"
                 />
 
+                <label>Image (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setAnnImage(e.target.files?.[0] || null)}
+                />
+
                 <button
                   type="submit"
                   className="btn primary"
@@ -3251,6 +3524,167 @@ export default function Admin() {
                   mobile and laptop views.
                 </div>
               </form>
+            )}
+
+            {/* ============ PRODUCTS PANEL ============ */}
+            {panel === 'products' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <form onSubmit={saveProduct} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <b>{prodEditing ? 'Edit Product' : 'Add Product'}</b>
+                  <input className="input" placeholder="Name *" value={prodForm.name}
+                    onChange={e => setProdForm(f => ({ ...f, name: e.target.value }))} />
+                  <input className="input" placeholder="Unit (e.g. 2 kg pack)" value={prodForm.unit}
+                    onChange={e => setProdForm(f => ({ ...f, unit: e.target.value }))} />
+                  <input className="input" placeholder="Price (₹) *" type="number" value={prodForm.price}
+                    onChange={e => setProdForm(f => ({ ...f, price: e.target.value }))} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="submit" className="btn primary" style={{ flex: 1 }}>
+                      {prodEditing ? 'Update' : 'Add'}
+                    </button>
+                    {prodEditing && (
+                      <button type="button" className="btn ghost" onClick={() => { setProdEditing(null); setProdForm({ name: '', unit: '', price: '' }); }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                  {prodMsg && <div className="hint">{prodMsg}</div>}
+                </form>
+                <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '4px 0' }} />
+                {prodLoading ? <div className="muted">Loading…</div> : products.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>{p.unit} · ₹{p.price}</div>
+                    </div>
+                    <button className="btn ghost" style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => toggleProductActive(p)}>
+                      {p.is_active ? 'Active' : 'Hidden'}
+                    </button>
+                    <button className="btn ghost" style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => { setProdEditing(p.id); setProdForm({ name: p.name, unit: p.unit || '', price: p.price }); setProdMsg(''); }}>
+                      Edit
+                    </button>
+                    <button className="btn danger" style={{ fontSize: 11, padding: '3px 8px' }}
+                      onClick={() => deleteProduct(p.id)}>Del</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ============ PAYMENTS PANEL ============ */}
+            {panel === 'payments' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['all', 'pending', 'success', 'failed'].map(s => (
+                    <button key={s} className={'chip ' + (payStatusFilter === s ? 'active' : '')}
+                      onClick={() => { setPayStatusFilter(s); }}>{s}</button>
+                  ))}
+                  <button className="btn ghost" style={{ fontSize: 12 }} onClick={loadPayments}>Refresh</button>
+                </div>
+                {payLoading ? <div className="muted">Loading…</div> : payments.length === 0
+                  ? <div className="muted">No payments found.</div>
+                  : payments.map(p => (
+                    <div key={p.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 600 }}>{p.farmer_name || p.farmer_mobile || '—'}</span>
+                        <span style={{
+                          color: p.status === 'success' ? '#16a34a' : p.status === 'failed' ? '#dc2626' : '#d97706',
+                          fontWeight: 600, fontSize: 11
+                        }}>{p.status?.toUpperCase()}</span>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+                        ₹{p.amount} · {p.provider} · {p.txn_id || 'No TxnID'} · {new Date(p.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            )}
+
+            {/* ============ ORDERS PANEL ============ */}
+            {panel === 'orders' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['all', 'placed', 'paid', 'shipped', 'completed', 'cancelled'].map(s => (
+                    <button key={s} className={'chip ' + (ordersStatusFilter === s ? 'active' : '')}
+                      onClick={() => setOrdersStatusFilter(s)}>{s}</button>
+                  ))}
+                  <button className="btn ghost" style={{ fontSize: 12 }} onClick={loadAdminOrders}>Refresh</button>
+                </div>
+                {ordersLoading ? <div className="muted">Loading…</div> : adminOrders.length === 0
+                  ? <div className="muted">No orders found.</div>
+                  : adminOrders.map(o => (
+                    <div key={o.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{o.firm_name || o.dealer_name || '—'}</span>
+                          <span style={{ color: '#64748b', fontSize: 11, marginLeft: 6 }}>{o.dealer_phone}</span>
+                        </div>
+                        <select
+                          style={{ fontSize: 11, padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}
+                          value={o.status}
+                          onChange={e => updateOrderStatus(o.id, e.target.value)}
+                        >
+                          {['placed', 'paid', 'shipped', 'completed', 'cancelled'].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: 11, marginTop: 3 }}>
+                        ₹{o.total} · {o.items?.length || 0} item(s) · {new Date(o.created_at).toLocaleDateString()}
+                      </div>
+                      {o.items?.length > 0 && (
+                        <div style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>
+                          {o.items.map(i => `${i.product_name} ×${i.qty}`).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
+            )}
+
+            {/* ============ AUDIT LOG PANEL ============ */}
+            {panel === 'audit' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['auth', 'dealer'].map(t => (
+                    <button key={t} className={'chip ' + (auditTab === t ? 'active' : '')}
+                      onClick={() => { setAuditTab(t); setAuditRows([]); }}>
+                      {t === 'auth' ? 'Auth Events' : 'Dealer Events'}
+                    </button>
+                  ))}
+                  <button className="btn ghost" style={{ fontSize: 12 }} onClick={loadAudit}>Load / Refresh</button>
+                </div>
+                {auditTab === 'auth' && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['all', 'farmer', 'dealer', 'admin'].map(a => (
+                      <button key={a} className={'chip ' + (auditActorFilter === a ? 'active' : '')}
+                        style={{ fontSize: 11 }}
+                        onClick={() => setAuditActorFilter(a)}>{a}</button>
+                    ))}
+                  </div>
+                )}
+                {auditLoading ? <div className="muted">Loading…</div> : auditRows.length === 0
+                  ? <div className="muted">No events. Press Load to fetch.</div>
+                  : auditRows.map(r => (
+                    <div key={r.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 600 }}>{r.action}</span>
+                        <span style={{ color: r.success ? '#16a34a' : '#dc2626', fontWeight: 700 }}>
+                          {r.success ? '✓' : '✗'}
+                        </span>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: 11 }}>
+                        {r.actor_type} · {r.identifier || r.dealer_name || r.dealer_phone || '—'} · {r.ip || ''}
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: 10 }}>
+                        {new Date(r.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
             )}
           </div>
         </div>

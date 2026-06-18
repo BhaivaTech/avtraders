@@ -1,6 +1,8 @@
 // src/pages/Checkout.jsx
 import React, { useMemo, useState } from "react";
- import "../components/buynow.css";
+import "../components/buynow.css";
+import { UPI_ID, UPI_NAME } from '../lib/config.js';
+import Seo from "../components/Seo.jsx";
 
 function qp(name, price, sku) {
   const params = new URLSearchParams(window.location.search);
@@ -8,13 +10,22 @@ function qp(name, price, sku) {
 }
 
 export default function Checkout() {
+  return (
+    <>
+      <Seo pageKey="checkout" />
+      <CheckoutInner />
+    </>
+  );
+}
+
+function CheckoutInner() {
   const name = useMemo(() => qp("name", null, null) || "Item", []);
   const price = useMemo(() => Number(qp("price", 0, null) || 0), []);
   const sku = useMemo(() => qp("sku", null, "GEN-001"), []);
   const [busy, setBusy] = useState(false);
 
-  const vpa = import.meta.env.VITE_UPI_ID || "test@upi"; // set your real UPI ID in .env
-  const payee = import.meta.env.VITE_UPI_NAME || "AV Traders Agri Clinic";
+  const vpa   = UPI_ID   || 'test@upi';
+  const payee = UPI_NAME || 'AV%20Traders%20Agri%20Clinic';
 
   // Universal UPI deep link (works for PhonePe/GPay/Paytm apps)
   const upiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${payee}&am=${price}&tn=${encodeURIComponent(

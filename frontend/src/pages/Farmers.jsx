@@ -675,14 +675,17 @@ export default function Farmers() {
     const z = (n) => String(n).padStart(2, '0');
     return `${z(d.getDate())}-${z(d.getMonth() + 1)}-${d.getFullYear()}`;
   };
-  const linkify = (t = '') =>
-    (t || '').replace(
-      /(https?:\/\/[^\s]+|www\.[^\s]+)/gi,
-      (url) => {
-        const href = url.startsWith('www.') ? `http://${url}` : url;
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-      }
-    );
+  const linkify = (text = '') => {
+    const esc = (s) =>
+      s.replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+      );
+    const re = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    return esc(text).replace(re, (m) => {
+      const href = m.startsWith('www.') ? `http://${m}` : m;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${m}</a>`;
+    });
+  };
 
   /* -------- login persistence -------- */
   useEffect(() => {
@@ -691,11 +694,34 @@ export default function Farmers() {
     (async () => {
       try {
         const m = saved.mobile;
-        await api.post('/auth/login', { mobile: m }, { withCredentials: true });
+        // Verify session is still valid before marking as logged in
+        const meRes = await api.get('/auth/me', { withCredentials: true });
+        if (!meRes.data?.ok || !meRes.data?.farmer?.id) {
+          localStorage.removeItem('farmerAuth');
+          return;
+        }
+
+        // Check if user was blocked since last session
+        const exRes = await api.get(`/auth/exists/${m}`, { withCredentials: true });
+        const userRow = exRes?.data?.user || null;
+        if (userRow?.blocked) {
+          setBlocked(true);
+          setExists(true);
+          setLogged(false);
+          localStorage.removeItem('farmerAuth');
+          try { await api.post('/auth/logout', {}, { withCredentials: true }); } catch {}
+          alert('Your account has been blocked from messaging.');
+          return;
+        }
+
         setMobile(m);
         setLogged(true);
+        setBlocked(false);
+        setExists(true);
         await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
-      } catch (_) {}
+      } catch (_) {
+        localStorage.removeItem('farmerAuth');
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -756,6 +782,12 @@ export default function Farmers() {
         setChatId(null);
       }
     });
+    
+    s.on('chat:status', (p) => {
+      if (p.chat_id === chatId && p.status === 'READ') {
+        setThread(prev => prev.map(m => m.sender_role === 'farmer' ? { ...m, is_read: 1 } : m));
+      }
+    });
 
     const onQuotesChanged = async () => {
       if (!mobile) return;
@@ -772,6 +804,7 @@ export default function Farmers() {
       s.off('chat:delete', refreshIf);
       s.off('chat:cleared', refreshIf);
       s.off('chat:deleted');
+      s.off('chat:status');
       s.off('quotes:changed', onQuotesChanged);
       s.off('connect_error', onCE);
       s.off('error', onCE);
@@ -907,7 +940,7 @@ export default function Farmers() {
       alert(data.error || 'Could not start payment. Please try again.');
     } catch (err) {
       console.error('phonepe create error', err);
-      console.log('phonepe error response data:', err?.response?.data);
+      if (import.meta.env.DEV) console.log('[Farmers] phonepe error response data:', err?.response?.data);
 
       const server = err?.response?.data || {};
       const msg =
@@ -1014,7 +1047,7 @@ export default function Farmers() {
       alert(r?.data?.message || 'OTP sent');
       setStep('otp');
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] sendOtp failed:', e);
       alert(e?.response?.data?.message || 'Failed to send OTP');
     }
   }
@@ -1037,7 +1070,7 @@ export default function Farmers() {
       alert(r?.data?.message || 'OTP sent');
       setStep('otp');
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] sendOtpWithDetails failed:', e);
       alert(e?.response?.data?.message || 'Failed to send OTP');
     }
   }
@@ -1057,24 +1090,23 @@ export default function Farmers() {
     const payload = { mobile: m, code: otp, role: 'farmer' };
 
     try {
-      // 1) verify OTP
+      // 1) verify OTP (creates session via verifyOtp controller)
       await api.post('/auth/verify-otp', payload, { withCredentials: true });
 
-      // 2) create login session (sets req.session.farmer)
-      await api.post('/auth/login', { mobile: m }, { withCredentials: true });
-
-      // 3) If this was a NEW number (exists === false)
+      // 2) If this was a NEW number (exists === false)
       //    save the details they entered into farmer_profiles + users
       if (!exists) {
         await saveProfileAfterLogin(m);
       }
 
-      // 4) mark as logged in and load chat context
+      // 3) Load chat context to confirm session is valid
+      await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
+
+      // 4) Only persist auth AFTER session is confirmed working
       localStorage.setItem('farmerAuth', JSON.stringify({ mobile: m }));
       setLogged(true);
-      await Promise.all([refreshLatestContext(m), loadQuotes(m)]);
     } catch (e) {
-      console.error(e);
+      console.error('[Farmers] verifyOtp failed:', e);
       alert(e?.response?.data?.message || 'OTP verification failed');
     }
   }

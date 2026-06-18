@@ -1,538 +1,828 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+/* ─────────────────────────────────────────────
+   SVG Icons
+───────────────────────────────────────────── */
 const IconStore = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M4 4h16l1 4H3l1-4zm0 6h16v10H4V10zm3 2v6h10v-6H7z" />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M4 4h16l1 4H3l1-4zm0 6h16v10H4V10zm3 2v6h10v-6H7z" />
   </svg>
 );
 
 const IconPrice = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path
-      fill="currentColor"
-      d="M21 7.5 12.5 16a2 2 0 0 1-2.8 0L3 9.3V3h6.3l6.7 6.7L21 7.5zM7 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
-    />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M21 7.5 12.5 16a2 2 0 0 1-2.8 0L3 9.3V3h6.3l6.7 6.7L21 7.5zM7 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
   </svg>
 );
 
 const IconCatalog = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M4 3h12a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3V3zm3 6h8v2H7V9zm0 4h8v2H7v-2z" />
-  </svg>
-);
-
-const IconCart = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM3 4h2l2 10h10l2-6H8" />
-  </svg>
-);
-
-const IconCard = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M2 5h20v14H2zM2 9h20v2H2z" />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M4 3h12a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3V3zm3 6h8v2H7V9zm0 4h8v2H7v-2z" />
   </svg>
 );
 
 const IconTruck = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M3 6h11v7h2.5l2 2H21V9h-3l-2-3H14V4H3v2zm2 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm12 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <rect x="1" y="3" width="15" height="13" rx="1" />
+    <path d="M16 8h4l3 4v4h-7V8z" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
   </svg>
 );
 
 const IconShield = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3z" />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="M9 12l2 2 4-4" />
   </svg>
 );
 
 const IconLogin = (props) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" {...props}>
-    <path fill="currentColor" d="M10 17v-3H3v-4h7V7l5 5-5 5zm2-15h8v20h-8v-3h5V5h-5V2z" />
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <path d="M10 17v-3H3v-4h7V7l5 5-5 5zm2-15h8v20h-8v-3h5V5h-5V2z" />
   </svg>
 );
 
+const IconCard = (props) => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <rect x="1" y="4" width="22" height="16" rx="2" />
+    <line x1="1" y1="10" x2="23" y2="10" />
+  </svg>
+);
+
+const IconCheck = (props) => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+/* ─────────────────────────────────────────────
+   Sub-components
+───────────────────────────────────────────── */
+
+function TrustCard({ icon, title, description }) {
+  return (
+    <div className="cl-trust-card">
+      <div className="cl-trust-icon">{icon}</div>
+      <div className="cl-trust-title">{title}</div>
+      <div className="cl-trust-desc">{description}</div>
+    </div>
+  );
+}
+
+function StepCard({ number, label, detail, accent }) {
+  return (
+    <div className="cl-step-card">
+      <div className="cl-step-number" style={{ color: `var(${accent})` }}>{number}</div>
+      <div className="cl-step-label">{label}</div>
+      <div className="cl-step-detail">{detail}</div>
+    </div>
+  );
+}
+
+function ServiceCard({ icon, accentVar, tag, title, subtitle, items }) {
+  return (
+    <div className="cl-svc-card" style={{ "--svc-accent": `var(${accentVar})` }}>
+      <div className="cl-svc-tag">{tag}</div>
+      <div className="cl-svc-icon-wrap">{icon}</div>
+      <div className="cl-svc-title">{title}</div>
+      <div className="cl-svc-subtitle">{subtitle}</div>
+      <ul className="cl-svc-list">
+        {items.map((item, i) => (
+          <li key={i}>
+            <span className="cl-svc-check"><IconCheck /></span>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+/* ─────────────────────────────────────────────
+   Main component
+───────────────────────────────────────────── */
 export default function Distribution() {
   return (
-    <div className="distribution-page">
-      <section className="distribution-hero">
-        <div className="distribution-hero-inner">
-          <div className="dist-badge">AV Traders / AV Agro Distribution</div>
+    <div className="cl-root">
 
-          <h1>Dealer Portal & Distribution Network</h1>
+      {/* ── HERO ── */}
+      <section className="cl-hero" aria-labelledby="dist-hero-heading">
+        <div className="cl-hero-left">
+          <div className="cl-hero-eyebrow">
+            <span className="cl-hero-pulse" aria-hidden="true" />
+            AV Traders · Distribution
+          </div>
 
-          <p>
+          <h1 id="dist-hero-heading" className="cl-hero-title">
+            Dealer Portal &amp;<br />
+            <em>Distribution Network</em>
+          </h1>
+
+          <p className="cl-hero-sub">
             A secure dealer-only portal for registration, document verification and protected
             access to the latest wholesale price list. Dealer ordering, quotations and dispatch
             tracking will be enabled in the next phase.
           </p>
 
-          <div className="dist-actions">
-            <Link className="dist-btn primary" to="/dealers">
-              Open Dealer Portal
-            </Link>
-            <Link className="dist-btn secondary" to="/contact">
-              Dealer Enquiry
-            </Link>
+          <div className="cl-cta-row">
+            <Link className="cl-btn-primary" to="/dealers">Open Dealer Portal</Link>
+            <Link className="cl-btn-ghost" to="/contact">Dealer Enquiry</Link>
           </div>
 
-          <div className="dist-secure-line">
-            <IconShield />
-            <span>
-              Protected access: registered and approved dealers only. WhatsApp OTP connection is
-              kept ready for future activation.
-            </span>
+          <div className="cl-hero-proof">
+            <div className="cl-hero-proof-tag">Secure Access</div>
+            <div className="cl-hero-proof-divider" aria-hidden="true" />
+            <div className="cl-hero-proof-text">JWT-secured &amp; Document-verified</div>
           </div>
         </div>
-      </section>
 
-      <section className="dist-stats">
-        <div className="dist-stat">
-          <div className="dist-stat-title">
-            <IconLogin /> Mobile Login
-          </div>
-          <p>Simple mobile login enabled now. OTP-ready setup for future WhatsApp activation.</p>
-        </div>
-
-        <div className="dist-stat">
-          <div className="dist-stat-title">
-            <IconStore /> Dealer Verification
-          </div>
-          <p>GST certificate and Insecticide licence verification by admin.</p>
-        </div>
-
-        <div className="dist-stat">
-          <div className="dist-stat-title">
-            <IconCatalog /> Price List Excel
-          </div>
-          <p>Latest protected dealer price list available only after approval.</p>
-        </div>
-
-        <div className="dist-stat">
-          <div className="dist-stat-title">
-            <IconCard /> Orders Next
-          </div>
-          <p>Online orders, quotation and invoice workflow will be added later.</p>
-        </div>
-      </section>
-
-      <section className="dist-card">
-        <div className="dist-section-head">
-          <h2>Designed for a standard dealer approval workflow</h2>
-          <p>
-            The portal is built to keep dealer onboarding clean, verified and secure before giving
-            access to business price lists.
-          </p>
-        </div>
-
-        <div className="dist-feature-grid">
-          <div className="dist-feature">
-            <div className="dist-feature-title">
-              <IconLogin /> Step 1: Dealer Login
+        {/* Portal status widget — mirrors the chat widget from homepage */}
+        <div className="cl-hero-panel" aria-hidden="true">
+          <div className="cl-panel-bar">
+            <div className="cl-panel-avatar">DP</div>
+            <div>
+              <div className="cl-panel-name">Dealer Portal</div>
+              <div className="cl-panel-status">
+                <span className="cl-panel-status-dot" /> Secure Connect
+              </div>
             </div>
-            <p>
-              Dealer enters mobile number and continues. Later, the same flow can be changed to
-              WhatsApp OTP after MSG91/Meta is corrected.
-            </p>
-            <ul>
-              <li>Mobile-based entry</li>
-              <li>OTP-ready frontend structure</li>
-              <li>JWT/session-ready backend connection</li>
-            </ul>
           </div>
-
-          <div className="dist-feature">
-            <div className="dist-feature-title">
-              <IconStore /> Step 2: Registration
+          <div className="cl-panel-body">
+            <div className="cl-bubble">
+              <b>1. Mobile Login</b><br />
+              Enter mobile number to continue.
             </div>
-            <p>
-              New dealers submit firm details and required documents for admin approval.
-            </p>
-            <ul>
-              <li>Dealer name, firm name and GST</li>
-              <li>Village/Post, Taluk, District and Pin Code</li>
-              <li>GST certificate and Insecticide licence upload</li>
-            </ul>
+            <div className="cl-bubble cl-bubble-user">
+              <b>2. Document Upload</b><br />
+              GST certificate + Insecticide licence.
+            </div>
+            <div className="cl-typing">
+              <span className="cl-typing-dot" />
+              <span className="cl-typing-dot" />
+              <span className="cl-typing-dot" />
+            </div>
+            <div className="cl-rx-card">
+              <div className="cl-rx-icon">✓</div>
+              <div>
+                <div className="cl-rx-label">Verification in Progress</div>
+                <div className="cl-rx-sub">Admin review pending.</div>
+              </div>
+            </div>
           </div>
-
-          <div className="dist-feature">
-            <div className="dist-feature-title">
-              <IconPrice /> Step 3: Approved Access
+          <div className="cl-panel-metrics">
+            <div className="cl-panel-metric">
+              <div className="cl-panel-metric-val">1</div>
+              <div className="cl-panel-metric-label">Login</div>
             </div>
-            <p>
-              After admin approval, dealers can securely access and download the latest wholesale
-              price list.
-            </p>
-            <ul>
-              <li>Approved dealers only</li>
-              <li>Protected download link</li>
-              <li>Latest uploaded price list visible immediately</li>
-            </ul>
+            <div className="cl-panel-metric">
+              <div className="cl-panel-metric-val">2</div>
+              <div className="cl-panel-metric-label">Verify</div>
+            </div>
+            <div className="cl-panel-metric">
+              <div className="cl-panel-metric-val">3</div>
+              <div className="cl-panel-metric-label">Access</div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="dist-card">
-        <h2>How it works</h2>
-
-        <ol className="dist-steps">
-          <li>
-            Dealer opens <b>Dealer Portal</b> and enters mobile number.
-          </li>
-          <li>
-            If dealer is new, registration form opens with firm, GST, address and document upload.
-          </li>
-          <li>
-            Dealer submits GST certificate and Insecticide licence.
-          </li>
-          <li>
-            Admin reviews the registration and documents.
-          </li>
-          <li>
-            Admin can <b>Approve</b> or <b>Reject</b> with reason.
-          </li>
-          <li>
-            Approved dealer logs in and downloads the latest protected price list.
-          </li>
-        </ol>
-
-        <div className="dist-actions left">
-          <Link className="dist-btn primary" to="/dealers">
-            Open Dealer Portal
-          </Link>
-          <Link className="dist-btn secondary-dark" to="/contact">
-            Contact Support
-          </Link>
+      {/* ── STAT STRIP / TRUST CARDS ── */}
+      <section className="cl-section" aria-label="Portal features at a glance">
+        <div className="cl-trust-grid">
+          <TrustCard
+            icon={<IconLogin />}
+            title="Mobile Login"
+            description="Simple mobile entry. OTP-ready for future WhatsApp activation."
+          />
+          <TrustCard
+            icon={<IconStore />}
+            title="Dealer Verification"
+            description="GST certificate and Insecticide licence verified by admin."
+          />
+          <TrustCard
+            icon={<IconCatalog />}
+            title="Protected Price List"
+            description="Latest wholesale rates available only after approval."
+          />
+          <TrustCard
+            icon={<IconCard />}
+            title="Orders — Next Phase"
+            description="Online orders, quotation and invoice workflow coming soon."
+          />
         </div>
       </section>
 
-      <section className="dist-card">
-        <h2>
-          <IconTruck /> Future Distribution Features
+      {/* ── APPROVAL WORKFLOW ── */}
+      <section className="cl-section" aria-labelledby="dist-workflow-heading">
+        <div className="cl-eyebrow">Dealer Workflow</div>
+        <h2 id="dist-workflow-heading" className="cl-h2">
+          Designed for a standard <em>dealer approval workflow</em>
         </h2>
-
-        <p>
-          After dealer onboarding and price list access, the next phase can include full wholesale
-          ordering and dispatch management.
+        <p className="cl-lead">
+          The portal is built to keep dealer onboarding clean, verified and secure before giving
+          access to business price lists.
         </p>
 
-        <div className="dist-next-grid">
-          <div>🛒 Dealer product catalog</div>
-          <div>📦 Cart and order confirmation</div>
-          <div>🧾 GST invoice generation</div>
-          <div>🚚 Dispatch and LR tracking</div>
-          <div>💬 Dealer support chat</div>
-          <div>📣 Price list update notification</div>
+        <div className="cl-svc-grid">
+          <ServiceCard
+            icon={<IconLogin />}
+            accentVar="--g500"
+            tag="Step 01"
+            title="Dealer Login"
+            subtitle="Mobile-based entry"
+            items={[
+               "Dealer enters mobile number and continues",
+               "OTP-ready frontend structure",
+               "JWT/session-ready backend connection"
+            ]}
+          />
+          <ServiceCard
+            icon={<IconStore />}
+            accentVar="--a400"
+            tag="Step 02"
+            title="Registration"
+            subtitle="New dealers submit firm details"
+            items={[
+               "Dealer name, firm name and GST",
+               "Village/Post, Taluk, District and Pin Code",
+               "GST certificate and Insecticide licence upload"
+            ]}
+          />
+          <ServiceCard
+            icon={<IconPrice />}
+            accentVar="--sky-400"
+            tag="Step 03"
+            title="Approved Access"
+            subtitle="Secure wholesale lists"
+            items={[
+               "Approved dealers only",
+               "Protected download link",
+               "Latest uploaded price list visible immediately"
+            ]}
+          />
         </div>
       </section>
 
-      <section className="dist-final-cta">
-        <div>
-          <h2>Want access to the dealer price list?</h2>
-          <p>
-            Open the Dealer Portal, complete registration and upload your documents. Admin approval
-            is required before price list access.
-          </p>
-        </div>
+      {/* ── HOW IT WORKS ── */}
+      <section className="cl-section" aria-labelledby="dist-hiw-heading">
+        <div className="cl-eyebrow">Step by Step</div>
+        <h2 id="dist-hiw-heading" className="cl-h2">How it <em>works</em></h2>
+        <p className="cl-lead">
+          From first login to price list download — the full dealer onboarding flow in six
+          straightforward steps.
+        </p>
 
-        <div className="dist-actions">
-          <Link className="dist-btn primary" to="/dealers">
-            Dealer Portal
-          </Link>
-          <Link className="dist-btn secondary" to="/contact">
-            Become a Dealer
-          </Link>
+        <div className="cl-trust-grid">
+          <StepCard number="01" label="Login" detail="Dealer opens Dealer Portal and enters mobile number." accent="--g500" />
+          <StepCard number="02" label="Register Form" detail="Registration form opens with firm, GST, address." accent="--a400" />
+          <StepCard number="03" label="Documents" detail="Dealer submits GST certificate and Insecticide licence." accent="--sky-400" />
+          <StepCard number="04" label="Review" detail="Admin reviews the registration and documents." accent="--earth-400" />
+          <StepCard number="05" label="Approval" detail="Admin can Approve or Reject with reason." accent="--g600" />
+          <StepCard number="06" label="Access" detail="Approved dealer logs in and downloads the latest protected price list." accent="--g700" />
+        </div>
+      </section>
+
+      {/* ── FUTURE FEATURES ── */}
+      <section className="cl-section" aria-labelledby="dist-future-heading">
+        <div className="cl-eyebrow">Roadmap</div>
+        <h2 id="dist-future-heading" className="cl-h2">
+          Future Distribution <em>Features</em>
+        </h2>
+        <p className="cl-lead">
+          After dealer onboarding and price list access, the next phase will include full
+          wholesale ordering and dispatch management.
+        </p>
+
+        <div className="cl-trust-grid">
+          <TrustCard icon={<span style={{fontSize: "24px"}}>🛒</span>} title="Dealer product catalog" description="View available products" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>📦</span>} title="Cart & Order" description="Cart and order confirmation" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>🧾</span>} title="GST Invoice" description="GST invoice generation" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>🚚</span>} title="Dispatch" description="Dispatch and LR tracking" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>💬</span>} title="Support" description="Dealer support chat" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>📣</span>} title="Notifications" description="Price list update notification" />
         </div>
       </section>
 
       <style>{`
-        .distribution-page {
-          display: grid;
-          gap: 22px;
+        /* ══════════════════════════════════════════════
+           @import: premium agricultural font pairing
+        ══════════════════════════════════════════════ */
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        /* ══════════════════════════════════════════════
+           Design tokens — Shared with Clinic
+        ══════════════════════════════════════════════ */
+        .cl-root {
+          /* Green ramp — primary brand */
+          --g50:  #EAF3DE;
+          --g100: #C0DD97;
+          --g200: #97C459;
+          --g400: #639922;
+          --g500: #4E7F18;
+          --g600: #3B6D11;
+          --g700: #2F5A0D;
+          --g800: #27500A;
+          --g900: #173404;
+
+          /* Amber ramp — warmth / treatment */
+          --a50:  #FAEEDA;
+          --a100: #FAC775;
+          --a200: #EF9F27;
+          --a400: #BA7517;
+          --a600: #854F0B;
+          --a800: #633806;
+
+          /* Earth / soil accent */
+          --earth-50:  #F5F0E8;
+          --earth-100: #E3D5BC;
+          --earth-400: #9C7A4A;
+          --earth-600: #6B5030;
+
+          /* Sky blue — trust */
+          --sky-50:  #EBF5FB;
+          --sky-100: #BAD9F1;
+          --sky-400: #3A8DC5;
+          --sky-600: #1E5F8A;
+
+          /* Layout */
+          --max-w: 1180px;
+          --r-sm:  8px;
+          --r-md:  14px;
+          --r-lg:  20px;
+          --r-xl:  28px;
+          --r-2xl: 36px;
+
+          /* Motion */
+          --ease: cubic-bezier(0.4, 0, 0.2, 1);
+          --dur:  220ms;
+
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+          color: var(--color-text-primary);
         }
 
-        .distribution-hero {
-          border-radius: 26px;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 15% 15%, rgba(255,255,255,.25), transparent 24%),
-            linear-gradient(135deg, #0f766e, #2563eb 48%, #1e3a8a);
-          color: white;
-          box-shadow: 0 20px 50px rgba(15, 23, 42, .2);
-        }
-
-        .distribution-hero-inner {
-          padding: 42px 24px;
-          text-align: center;
-          display: grid;
-          gap: 16px;
-          justify-items: center;
-        }
-
-        .dist-badge {
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: rgba(255,255,255,.16);
-          border: 1px solid rgba(255,255,255,.24);
-          font-weight: 900;
-          font-size: 13px;
-          letter-spacing: .3px;
-        }
-
-        .distribution-hero h1 {
-          margin: 0;
-          font-size: clamp(30px, 5vw, 54px);
-          line-height: 1.05;
-          font-weight: 950;
-          max-width: 980px;
-        }
-
-        .distribution-hero p {
-          margin: 0;
-          max-width: 920px;
-          line-height: 1.75;
-          opacity: .96;
-        }
-
-        .dist-actions {
+        .cl-root {
           display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          justify-content: center;
-          align-items: center;
+          flex-direction: column;
+          max-width: var(--max-w);
+          margin: 0 auto;
+          padding: 0 1.5rem 5rem;
         }
 
-        .dist-actions.left {
-          justify-content: flex-start;
+        .cl-section {
+          padding: 5rem 0;
+        }
+        .cl-section + .cl-section {
+          border-top: 1px solid var(--color-border-tertiary);
         }
 
-        .dist-btn {
-          min-height: 44px;
-          padding: 11px 16px;
-          border-radius: 14px;
-          text-decoration: none;
-          font-weight: 950;
+        .cl-eyebrow {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          transition: transform .2s ease, box-shadow .2s ease;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.13em;
+          text-transform: uppercase;
+          color: var(--g600);
+          background: var(--g50);
+          border: 1px solid var(--g100);
+          border-radius: 100px;
+          padding: 5px 14px;
+          margin-bottom: 1.5rem;
         }
 
-        .dist-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 22px rgba(15, 23, 42, .16);
+        .cl-h2 {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(1.75rem, 4vw, 2.5rem);
+          font-weight: 400;
+          line-height: 1.2;
+          letter-spacing: -0.01em;
+          color: var(--color-text-primary);
+          margin: 0 0 0.75rem;
+        }
+        .cl-h2 em {
+          font-style: italic;
+          color: var(--g500);
         }
 
-        .dist-btn.primary {
-          background: #111827;
-          color: white;
-        }
-
-        .dist-btn.secondary {
-          background: rgba(255,255,255,.14);
-          border: 1px solid rgba(255,255,255,.28);
-          color: white;
-        }
-
-        .dist-btn.secondary-dark {
-          background: #f8fafc;
-          color: #111827;
-          border: 1px solid #e5e7eb;
-        }
-
-        .dist-secure-line {
-          margin-top: 4px;
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 14px;
-          border-radius: 999px;
-          background: rgba(255,255,255,.12);
-          border: 1px solid rgba(255,255,255,.18);
-          line-height: 1.5;
-        }
-
-        .dist-stats {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .dist-stat,
-        .dist-card,
-        .dist-final-cta {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
-        }
-
-        .dist-stat {
-          padding: 18px;
-          display: grid;
-          gap: 8px;
-        }
-
-        .dist-stat-title {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-          font-weight: 950;
-          color: #0f172a;
-          text-align: center;
-        }
-
-        .dist-stat p {
-          margin: 0;
-          color: #64748b;
-          text-align: center;
-          line-height: 1.6;
-          font-size: 14px;
-        }
-
-        .dist-card {
-          padding: 22px;
-        }
-
-        .dist-card h2,
-        .dist-final-cta h2 {
-          margin: 0 0 10px;
-          color: #0f172a;
-          font-weight: 950;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .dist-card p,
-        .dist-final-cta p,
-        .dist-section-head p,
-        .dist-feature p {
-          color: #64748b;
+        .cl-lead {
+          font-size: 1rem;
+          color: var(--color-text-secondary);
           line-height: 1.75;
-          margin: 0 0 12px;
+          margin: 0 0 3rem;
+          max-width: 560px;
         }
 
-        .dist-section-head {
-          text-align: center;
-          max-width: 900px;
-          margin: 0 auto 18px;
-        }
-
-        .dist-section-head h2 {
-          justify-content: center;
-        }
-
-        .dist-feature-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .dist-feature {
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          padding: 18px;
-          background: #f8fafc;
-        }
-
-        .dist-feature-title {
-          display: flex;
+        .cl-btn-primary {
+          display: inline-flex;
           align-items: center;
           gap: 9px;
-          color: #0f172a;
-          font-weight: 950;
-          margin-bottom: 10px;
+          padding: 15px 30px;
+          background: var(--g600);
+          color: #fff;
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.95rem;
+          font-weight: 700;
+          border-radius: var(--r-md);
+          border: none;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background var(--dur) var(--ease),
+                      transform var(--dur) var(--ease),
+                      box-shadow var(--dur) var(--ease);
+          position: relative;
+          letter-spacing: 0.01em;
         }
-
-        .dist-feature ul,
-        .dist-steps {
-          margin: 0;
-          padding-left: 20px;
-          color: #334155;
-          line-height: 1.85;
+        .cl-btn-primary:hover {
+          background: var(--g800);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(59, 109, 17, 0.35);
         }
+        .cl-btn-primary:active { transform: translateY(0); box-shadow: none; }
 
-        .dist-feature li {
-          margin: 4px 0;
-        }
-
-        .dist-steps {
-          margin-bottom: 16px;
-        }
-
-        .dist-next-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
-          margin-top: 14px;
-        }
-
-        .dist-next-grid div {
-          padding: 13px 14px;
-          border-radius: 16px;
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          font-weight: 850;
-          color: #0f172a;
-        }
-
-        .dist-final-cta {
-          padding: 22px;
-          display: flex;
-          justify-content: space-between;
-          gap: 18px;
+        .cl-btn-ghost {
+          display: inline-flex;
           align-items: center;
-          background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+          gap: 8px;
+          padding: 14px 26px;
+          background: transparent;
+          color: var(--color-text-primary);
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          border-radius: var(--r-md);
+          border: 1.5px solid var(--color-border-secondary);
+          cursor: pointer;
+          text-decoration: none;
+          transition: border-color var(--dur) var(--ease),
+                      background var(--dur) var(--ease),
+                      transform var(--dur) var(--ease);
+        }
+        .cl-btn-ghost:hover {
+          border-color: var(--g400);
+          background: var(--g50);
+          transform: translateY(-2px);
         }
 
-        .dist-final-cta .dist-btn.secondary {
-          background: white;
-          color: #111827;
-          border: 1px solid #e5e7eb;
+        .cl-cta-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
         }
 
-        @media (max-width: 1050px) {
-          .dist-stats,
-          .dist-feature-grid,
-          .dist-next-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
+        .cl-hero {
+          padding: 5.5rem 0 4.5rem;
+          display: grid;
+          grid-template-columns: 1fr 440px;
+          gap: 4rem;
+          align-items: center;
+          position: relative;
+        }
+        .cl-hero::before {
+          content: "";
+          position: absolute;
+          top: -60px;
+          right: -80px;
+          width: 520px;
+          height: 520px;
+          border-radius: 50%;
+          background: radial-gradient(circle, var(--g50) 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 0;
+        }
+        @media (max-width: 900px) {
+          .cl-hero { grid-template-columns: 1fr; gap: 3rem; padding: 3.5rem 0 2.5rem; }
+          .cl-hero::before { display: none; }
         }
 
-        @media (max-width: 700px) {
-          .distribution-hero-inner {
-            padding: 30px 16px;
-          }
+        .cl-hero-left { position: relative; z-index: 1; }
 
-          .dist-stats,
-          .dist-feature-grid,
-          .dist-next-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .dist-final-cta {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .dist-actions,
-          .dist-actions.left {
-            width: 100%;
-            justify-content: stretch;
-          }
-
-          .dist-btn {
-            width: 100%;
-          }
-
-          .dist-secure-line {
-            border-radius: 18px;
-            align-items: flex-start;
-          }
+        .cl-hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--g600);
+          margin-bottom: 1.5rem;
         }
+
+        .cl-hero-pulse {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: var(--g400);
+          display: inline-block;
+          animation: cl-pulse 2.6s ease-in-out infinite;
+        }
+        @keyframes cl-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.45; transform: scale(0.7); }
+        }
+
+        .cl-hero-title {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+          font-weight: 400;
+          line-height: 1.15;
+          letter-spacing: -0.01em;
+          color: var(--color-text-primary);
+          margin: 0 0 1.5rem;
+        }
+        .cl-hero-title em {
+          font-style: italic;
+          color: var(--g500);
+        }
+
+        .cl-hero-sub {
+          font-size: 1.05rem;
+          line-height: 1.8;
+          color: var(--color-text-secondary);
+          margin: 0 0 2rem;
+          max-width: 500px;
+        }
+
+        .cl-hero-proof {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-top: 1.75rem;
+          flex-wrap: wrap;
+        }
+        .cl-hero-proof-text {
+          font-size: 0.8rem;
+          color: var(--color-text-secondary);
+          font-weight: 500;
+        }
+        .cl-hero-proof-divider {
+          width: 1px;
+          height: 16px;
+          background: var(--color-border-tertiary);
+        }
+        .cl-hero-proof-tag {
+          font-size: 0.8rem;
+          color: var(--g600);
+          font-weight: 600;
+        }
+
+        .cl-hero-panel {
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: var(--r-2xl);
+          padding: 0;
+          overflow: hidden;
+          position: relative;
+          z-index: 1;
+        }
+        @media (max-width: 900px) { .cl-hero-panel { display: none; } }
+
+        .cl-panel-bar {
+          background: var(--g600);
+          padding: 1rem 1.25rem;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .cl-panel-avatar {
+          width: 38px; height: 38px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.25);
+          color: #fff;
+          font-size: 13px;
+          font-weight: 800;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          letter-spacing: 0.03em;
+        }
+        .cl-panel-name {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #fff;
+          line-height: 1.3;
+        }
+        .cl-panel-status {
+          font-size: 11.5px;
+          color: rgba(255,255,255,0.75);
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .cl-panel-status-dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: #6EE7B7;
+          flex-shrink: 0;
+        }
+
+        .cl-panel-body {
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          background: var(--color-background-secondary);
+          min-height: 260px;
+        }
+
+        .cl-bubble {
+          max-width: 88%;
+          padding: 10px 14px;
+          font-size: 0.8rem;
+          line-height: 1.55;
+          color: var(--color-text-primary);
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: 16px 16px 16px 4px;
+        }
+        .cl-bubble-user {
+          align-self: flex-end;
+          background: var(--g600);
+          color: #fff;
+          border-color: transparent;
+          border-radius: 16px 16px 4px 16px;
+        }
+
+        .cl-typing {
+          display: flex;
+          gap: 4px;
+          align-items: center;
+          padding: 8px 12px;
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: 16px 16px 16px 4px;
+          width: fit-content;
+        }
+        .cl-typing-dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: var(--g400);
+          animation: cl-bounce 1.4s ease-in-out infinite;
+        }
+        .cl-typing-dot:nth-child(2) { animation-delay: 0.16s; }
+        .cl-typing-dot:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes cl-bounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+          30%            { transform: translateY(-5px); opacity: 1; }
+        }
+
+        .cl-rx-card {
+          background: var(--a50);
+          border: 1px solid var(--a100);
+          border-left: 3px solid var(--a200);
+          border-radius: var(--r-md);
+          padding: 12px 14px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          margin-top: 2px;
+        }
+        .cl-rx-icon {
+          font-size: 18px;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .cl-rx-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--a800);
+          margin-bottom: 2px;
+        }
+        .cl-rx-sub {
+          font-size: 11px;
+          color: var(--color-text-secondary);
+          line-height: 1.4;
+        }
+
+        .cl-panel-metrics {
+          padding: 1rem 1.25rem;
+          border-top: 1px solid var(--color-border-tertiary);
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          background: var(--color-background-primary);
+        }
+        .cl-panel-metric {
+          text-align: center;
+          padding: 0.5rem;
+        }
+        .cl-panel-metric + .cl-panel-metric {
+          border-left: 1px solid var(--color-border-tertiary);
+        }
+        .cl-panel-metric-val {
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: var(--g600);
+          line-height: 1;
+          margin-bottom: 3px;
+        }
+        .cl-panel-metric-label {
+          font-size: 10.5px;
+          color: var(--color-text-secondary);
+        }
+
+        .cl-trust-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+        }
+        .cl-trust-card {
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: var(--r-lg);
+          padding: 1.6rem 1.4rem;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          position: relative;
+          overflow: hidden;
+          transition: transform var(--dur) var(--ease);
+        }
+        .cl-trust-card::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 0;
+          width: 40px; height: 3px;
+          background: var(--g400);
+          border-radius: 0 0 4px 0;
+        }
+        .cl-trust-card:hover { transform: translateY(-3px); }
+        .cl-trust-icon { color: var(--g600); margin-bottom: 4px; }
+        .cl-trust-title { font-size: 0.94rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.3; }
+        .cl-trust-desc { font-size: 0.82rem; color: var(--color-text-secondary); line-height: 1.6; }
+
+        .cl-svc-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 22px;
+        }
+        .cl-svc-card {
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: var(--r-xl);
+          padding: 2.25rem 2rem;
+          position: relative;
+          overflow: hidden;
+          transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+        }
+        .cl-svc-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+        }
+        .cl-svc-card::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 4px;
+          background: var(--svc-accent);
+        }
+        .cl-svc-tag {
+          display: inline-block;
+          font-size: 10.5px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--svc-accent);
+          margin-bottom: 1.25rem;
+        }
+        .cl-svc-icon-wrap {
+          width: 52px; height: 52px;
+          border-radius: var(--r-md);
+          background: color-mix(in srgb, var(--svc-accent) 15%, transparent);
+          color: var(--svc-accent);
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 1.5rem;
+        }
+        .cl-svc-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.5rem; color: var(--color-text-primary); margin-bottom: 0.5rem; }
+        .cl-svc-subtitle { font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 1.5rem; }
+        .cl-svc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .cl-svc-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.5; }
+        .cl-svc-check { color: var(--svc-accent); margin-top: 2px; flex-shrink: 0; }
+
+        .cl-step-card {
+          background: var(--color-background-primary);
+          border: 1px solid var(--color-border-tertiary);
+          border-radius: var(--r-lg);
+          padding: 1.6rem 1.4rem;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .cl-step-number { font-weight: 800; font-size: 12px; margin-bottom: 8px; }
+        .cl-step-label { font-size: 1rem; font-weight: 700; color: var(--color-text-primary); }
+        .cl-step-detail { font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6; }
       `}</style>
     </div>
   );
-}
+}

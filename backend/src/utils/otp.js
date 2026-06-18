@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import axios from "axios";
 import https from "https";
 import dayjs from "dayjs";
@@ -27,7 +28,8 @@ export async function sendOTP(rawMobile) {
   await ensureOtpTable();
 
   const mobile = normalizeMobile10(rawMobile);
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  // Use crypto.randomInt — cryptographically secure (replaces Math.random)
+  const code = String(crypto.randomInt(100000, 1000000));
   const expiresAt = dayjs().add(EXPIRY_S, "second").format("YYYY-MM-DD HH:mm:ss");
 
   await pool.query(

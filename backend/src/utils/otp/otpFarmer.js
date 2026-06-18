@@ -1,4 +1,5 @@
 // src/utils/otp/farmerOtp.js
+import crypto from "crypto";
 import axios from "axios";
 import https from "https";
 import dayjs from "dayjs";
@@ -28,7 +29,7 @@ export async function sendFarmerOTP(rawMobile) {
   await ensureOtpTable();
 
   const mobile = normalizeMobile10(rawMobile);
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(crypto.randomInt(100000, 1000000)); // cryptographically secure
   const expiresAt = dayjs().add(EXPIRY_S, "second").format("YYYY-MM-DD HH:mm:ss");
 
   await pool.query(
@@ -175,6 +176,9 @@ export async function verifyFarmerOTP(rawMobile, rawCode) {
     return { ok: false, message: "OTP expired" };
   }
 
+  // Mark this OTP as verified
   await pool.query("UPDATE farmer_otps SET verified=1 WHERE id=?", [row.id]);
+  // Invalidate all other unverified OTPs for this mobile
+  await pool.query("DELETE FROM farmer_otps WHERE mobile=? AND verified=0 AND id != ?", [mobile, row.id]);
   return { ok: true };
 }

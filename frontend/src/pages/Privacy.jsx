@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Policy.css";
+import { CONTACT_EMAIL, CONTACT_PHONE, SITE_URL } from '../lib/config.js';
 
 export default function Privacy() {
   const navigate = useNavigate();
@@ -49,8 +50,8 @@ export default function Privacy() {
         <p className="muted">
           This Privacy Policy explains how <b>AV Traders Agri Clinic</b> (“Company”, “we”, “us”, “our”)
           collects, uses, discloses and safeguards your information when you use
-          <a href="https://www.avtradersagriclinic.com/" target="_blank" rel="noopener noreferrer">
-            {" "}https://www.avtradersagriclinic.com/
+          <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
+            {" "}{SITE_URL}
           </a>. All prices shown on our website are in <b>INR (₹)</b>.
         </p>
 
@@ -129,8 +130,8 @@ export default function Privacy() {
           <b>AV Traders Agri Clinic</b><br />
           Kurubarahally, Tumkur Road, Doddaballapura,<br />
           Bengaluru Rural, Karnataka – 561203<br />
-          Phone: <a href="tel:+919886371630">+91 9886371630</a><br />
-          Email: <a href="mailto:info.avtradersagriclinic@gmail.com">info.avtradersagriclinic@gmail.com</a>
+          Phone: <a href={`tel:${CONTACT_PHONE}`}>{CONTACT_PHONE.replace('+91', '+91 ')}</a><br />
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
         <div className="kv">
           <p><b>Grievance Officer:</b> Dr. A. Venugopal (Proprietor)</p>

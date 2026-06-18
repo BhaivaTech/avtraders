@@ -1,0 +1,141 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# ========================
+# Environment Variables
+# ========================
+# Ignore real env files, but keep .env.example checked in
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# ========================
+# Build Output
+# ========================
+dist/
+build/
+out/
+*.tsbuildinfo
+.next/
+.nuxt/
+.vite/
+
+# ========================
+# Uploads / User Files
+# ========================
+backend/uploads/
+backend/uploads_private/
+uploads/
+uploads_private/
+backend/storage/
+
+# ========================
+# Database Backups & Dumps
+# ========================
+backend/backups/
+*.sql.gz
+*.sql.bak
+*.dump
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ========================
+# Testing & Coverage
+# ========================
+coverage/
+*.lcov
+.nyc_output/
+backend/coverage/
+backend/.vitest/
+
+# ========================
+# Cache & Temp
+# ========================
+.cache/
+.tmp/
+tmp/
+.temp/
+*.tgz
+*.zip
+*.pid
+*.seed
+*.pid.lock
+
+# ========================
+# OS & Editor Files
+# ========================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# ========================
+# Session / Auth artifacts
+# ========================
+*.session
+*.pem
+*.key
+secrets/
+
+# ========================
+# Misc
+# ========================
+.history/
+.eslintcache
+.parcel-cache/
+.service-worker.js
+.grunt/
+.bower_components/
+.lock-wscript
+.module-cache/
+.yarn-integrity
+
+# ========================
+# Local AI Agent Config (per-developer)
+# ========================
+# These hold personal agent settings and global skill symlinks.
+# They are environment-specific and should not be committed.
+AGENTS.md
+CLAUDE.md
+.claude/
+
+# Global agent kit symlinks (point to ~/.ai-agents/*)
+# Git already skips symlink targets, but entries document intent
+# and protect against accidental real directories in the future.
+.agents/
+.codex/
+.opencode/
+.pi/
