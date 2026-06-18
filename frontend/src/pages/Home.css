@@ -1,0 +1,625 @@
+/* ═══════════════════════════════════════════════════
+   Home.css — Scroll-driven animation system
+   AV Traders Agri Clinic — Living Farm Design
+   ═══════════════════════════════════════════════════ */
+
+/* ── DEFAULT: all animated elements visible ── */
+.anim-fade-up,
+.anim-fade-left,
+.anim-fade-right,
+.anim-scale-in,
+.anim-word,
+.anim-cta-child,
+.anim-star,
+.anim-check-item,
+.anim-topic-card,
+.anim-footer-col,
+.anim-ticker-bar,
+.anim-carousel-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── HERO WORD STAGGER ── */
+.anim-word {
+  display: inline-block;
+  will-change: opacity, transform;
+}
+.anim-word.prosperous {
+  color: var(--g500);
+}
+
+/* ── CTA CHILDREN STAGGER ── */
+.anim-cta-child {
+  will-change: opacity, transform;
+}
+
+/* ── STAR STAGGER ── */
+.anim-star {
+  display: inline-flex;
+  will-change: opacity, transform;
+}
+
+/* ── TRUST CARD ENTRANCE ── */
+.anim-trust-card {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+.anim-trust-card .cl-trust-icon {
+  will-change: transform;
+}
+
+/* ── SERVICE CARD ENTRANCE ── */
+.anim-svc-card {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+.anim-svc-card .cl-svc-icon-wrap {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.anim-svc-card:hover .cl-svc-icon-wrap {
+  transform: rotate(-8deg) scale(1.1);
+}
+
+/* ── FOUNDER ENTRANCE ── */
+.anim-founder-quote {
+  position: relative;
+  opacity: 1;
+  transform: none;
+}
+.anim-founder-quote::before {
+  content: "\201C";
+  position: absolute;
+  top: -0.6em;
+  left: -0.1em;
+  font-size: 5rem;
+  color: var(--g100);
+  opacity: 0.25;
+  pointer-events: none;
+  line-height: 1;
+  animation: h-quote-deco-pulse 4s ease-in-out infinite;
+}
+@keyframes h-quote-deco-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.anim-founder-name,
+.anim-founder-bio {
+  opacity: 1;
+  transform: none;
+}
+.anim-founder-photo img {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+
+/* ── TESTIMONIAL CARD ENTRANCE ── */
+.anim-testimonial-card {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+.anim-testimonial-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--g200);
+}
+.h-testimonial-quote-mark {
+  animation: h-quote-pulse 3.5s ease-in-out infinite;
+}
+@keyframes h-quote-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.15; }
+  50% { transform: scale(1.08); opacity: 0.25; }
+}
+
+/* ── EDUCATION ENTRANCE ── */
+.anim-edu-item {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+.anim-edu-item .cl-svc-check svg polyline {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.4s ease-in-out;
+}
+.anim-edu-item.draw-check .cl-svc-check svg polyline {
+  stroke-dashoffset: 20;
+}
+
+.anim-topic-card {
+  will-change: opacity, transform;
+}
+
+.anim-edu-video {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+
+.anim-edu-cta {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+
+/* ── CTA BANNER ENTRANCE ── */
+.anim-cta-kicker,
+.anim-cta-heading,
+.anim-cta-sub,
+.anim-cta-actions {
+  opacity: 1;
+  transform: none;
+  will-change: opacity, transform;
+}
+
+/* ── FOOTER ENTRANCE ── */
+.anim-footer-col {
+  will-change: opacity, transform;
+}
+.anim-footer-brand {
+  transition: letter-spacing 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.anim-footer-copy {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+/* ── CROP SVG SECTION ── */
+.crop-interlude {
+  background: var(--g800);
+  padding: 5rem 0;
+  position: relative;
+  overflow: hidden;
+}
+.crop-interlude::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--g700) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.crop-interlude-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 3rem;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.crop-interlude-text {
+  color: #fff;
+}
+.crop-interlude-text .h-eyebrow {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  color: var(--g100);
+}
+.crop-interlude-text h2 {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: #fff;
+  margin: 0 0 1rem;
+}
+.crop-interlude-text h2 em {
+  font-style: italic;
+  color: var(--g200);
+}
+.crop-interlude-text p {
+  color: rgba(255,255,255,0.8);
+  line-height: 1.75;
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+}
+.crop-interlude-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.crop-interlude-bullets li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: rgba(255,255,255,0.85);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.crop-interlude-bullets li span {
+  color: var(--g200);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.crop-svg-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+/* ── CHAT FAB ENTRANCE ── */
+.h-chat-fab.fab-enter {
+  animation: h-fab-pop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes h-fab-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ── HERO BACKGROUND BREATHING ── */
+.h-hero::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 60% 40%, var(--g50) 0%, transparent 70%);
+  animation: h-breath 7s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+@keyframes h-breath {
+  from { opacity: 0.3; }
+  to { opacity: 0.6; }
+}
+
+/* ── ANNOUNCEMENT LABEL GLOW ── */
+.h-announce-label {
+  animation: h-label-glow 2s ease-in-out infinite;
+}
+@keyframes h-label-glow {
+  0%, 100% { text-shadow: none; }
+  50% { text-shadow: 0 0 8px var(--g400); }
+}
+
+/* ── CTA BANNER BLOB FLOAT ── */
+.h-cta-banner::before {
+  animation: h-blob-float 9s ease-in-out infinite;
+}
+.h-cta-banner::after {
+  animation: h-blob-float 11s ease-in-out infinite reverse;
+}
+@keyframes h-blob-float {
+  0%, 100% { transform: scale(1) translate(0,0); }
+  50% { transform: scale(1.15) translate(-10px, 8px); }
+}
+
+/* ── BADGE RING PULSE ── */
+.h-chat-fab-badge.badge-ring {
+  animation: h-badge-ring 1.8s ease-out infinite;
+}
+@keyframes h-badge-ring {
+  0% { box-shadow: 0 0 0 0 rgba(229,62,62,0.5); }
+  100% { box-shadow: 0 0 0 10px rgba(229,62,62,0); }
+}
+
+/* ── WHATSAPP POPUP ENTRANCE ── */
+.wa-popup {
+  animation: h-popup-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes h-popup-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── TRUST CARD HOVER ACCENT BAR ── */
+.cl-trust-card::before {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cl-trust-card:hover::before {
+  width: 70px;
+}
+
+/* ── FOUNDER PHOTO RING ── */
+.anim-founder-photo-ring {
+  animation: h-photo-ring 1s ease-out forwards;
+}
+@keyframes h-photo-ring {
+  0% { box-shadow: 0 0 0 0 rgba(99,153,34,0.4); }
+  100% { box-shadow: 0 0 0 20px rgba(99,153,34,0); }
+}
+
+/* ═══════════════════════════════════════════════════
+   REDUCED MOTION — respect user preference
+   ═══════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* Hero word stagger */
+  .anim-word {
+    opacity: 0;
+    transform: translateY(28px);
+    animation: h-word-in 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-word-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .anim-word.prosperous {
+    animation: h-word-in-color 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-word-in-color {
+    to { opacity: 1; transform: translateY(0); color: var(--g500); }
+  }
+
+  /* CTA children */
+  .anim-cta-child {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: h-cta-child-in 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-cta-child-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Stars */
+  .anim-star {
+    opacity: 0;
+    transform: scale(0);
+    animation: h-star-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes h-star-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Announcement bar */
+  .anim-ticker-bar {
+    opacity: 0;
+    transform: translateY(-100%);
+    animation: h-ticker-bar-in 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-ticker-bar-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Carousel reveal */
+  .anim-carousel-reveal {
+    opacity: 0;
+    transform: scale(0.98);
+    animation: h-carousel-in 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-carousel-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Trust card entrance */
+  .anim-trust-card {
+    opacity: 0;
+    transform: translateY(36px) scale(0.95);
+  }
+  .anim-trust-card.card-visible {
+    animation: h-trust-in 560ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes h-trust-in {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Trust icon spin */
+  .anim-trust-card.card-visible .cl-trust-icon {
+    animation: h-icon-spin 600ms ease-out forwards;
+  }
+  @keyframes h-icon-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Service card entrance */
+  .anim-svc-card {
+    opacity: 0;
+    transform: translateY(44px);
+  }
+  .anim-svc-card.card-visible {
+    animation: h-svc-in 560ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes h-svc-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Founder entrance */
+  .anim-founder-quote {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  .anim-founder-quote.el-visible {
+    animation: h-founder-quote-in 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-founder-quote-in {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .anim-founder-name {
+    opacity: 0;
+  }
+  .anim-founder-name.el-visible {
+    animation: h-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 100ms forwards;
+  }
+
+  .anim-founder-bio {
+    opacity: 0;
+  }
+  .anim-founder-bio.el-visible {
+    animation: h-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 200ms forwards;
+  }
+
+  .anim-founder-photo img {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  .anim-founder-photo.el-visible img {
+    animation: h-photo-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes h-photo-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Testimonial cards */
+  .anim-testimonial-card {
+    opacity: 0;
+  }
+  .anim-testimonial-card.from-left {
+    transform: translateX(-60px);
+  }
+  .anim-testimonial-card.from-bottom {
+    transform: translateY(50px);
+  }
+  .anim-testimonial-card.from-right {
+    transform: translateX(60px);
+  }
+  .anim-testimonial-card.card-visible {
+    animation: h-testimonial-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes h-testimonial-in {
+    to { opacity: 1; transform: translateX(0) translateY(0); }
+  }
+
+  /* Education items */
+  .anim-edu-item {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .anim-edu-item.item-visible {
+    animation: h-edu-item-in 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-edu-item-in {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .anim-topic-card {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  .anim-topic-card.card-visible {
+    animation: h-topic-in 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-topic-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .anim-edu-video {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  .anim-edu-video.el-visible {
+    animation: h-video-in 600ms cubic-bezier(0.4, 0, 0.2, 1) 300ms forwards;
+  }
+  @keyframes h-video-in {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .anim-edu-cta {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .anim-edu-cta.el-visible {
+    animation: h-edu-cta-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 500ms forwards;
+  }
+  @keyframes h-edu-cta-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* CTA Banner */
+  .anim-cta-kicker {
+    opacity: 0;
+  }
+  .anim-cta-kicker.el-visible {
+    animation: h-fade-in 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .anim-cta-heading {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  .anim-cta-heading.el-visible {
+    animation: h-cta-heading-in 450ms cubic-bezier(0.4, 0, 0.2, 1) 100ms forwards;
+  }
+  @keyframes h-cta-heading-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim-cta-sub {
+    opacity: 0;
+  }
+  .anim-cta-sub.el-visible {
+    animation: h-fade-in 500ms cubic-bezier(0.4, 0, 0.2, 1) 200ms forwards;
+  }
+
+  .anim-cta-actions {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .anim-cta-actions.el-visible {
+    animation: h-cta-actions-in 500ms cubic-bezier(0.4, 0, 0.2, 1) 350ms forwards;
+  }
+  @keyframes h-cta-actions-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Footer */
+  .anim-footer-col {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  .anim-footer-col.col-visible {
+    animation: h-footer-col-in 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-footer-col-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim-footer-copy {
+    width: 0;
+  }
+  .anim-footer-copy.el-visible {
+    width: 100%;
+  }
+
+  /* Fade utilities */
+  .anim-fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  .anim-fade-up.el-visible {
+    animation: h-fade-up-in 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes h-fade-up-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes h-fade-in {
+    to { opacity: 1; }
+  }
+
+  /* Crop sway */
+  .crop-sway {
+    transform-origin: center bottom;
+    animation: h-crop-sway 3s ease-in-out infinite;
+  }
+  @keyframes h-crop-sway {
+    0%, 100% { transform: rotate(-1.5deg); }
+    50% { transform: rotate(1.5deg); }
+  }
+
+  /* FAB hover icon rotate */
+  .h-chat-fab:hover .h-chat-fab-icon {
+    transform: rotate(12deg);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ── MOBILE: hide crop SVG, faster staggers ── */
+@media (max-width: 540px) {
+  .crop-svg-wrap {
+    display: none;
+  }
+  .crop-interlude-inner {
+    grid-template-columns: 1fr;
+  }
+}

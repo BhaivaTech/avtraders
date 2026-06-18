@@ -8,6 +8,24 @@ const order = [
   "11-weeds","12-irrigation","13-soil-health","14-soil-test","15-faq"
 ];
 
+const chapterTitles = {
+  "1-insecticides": "Insecticides: Classification & Groups",
+  "2-fungicides": "Fungicides: Groups & Practical Use",
+  "3-biofertilizers": "Bio-fertilizers & Microbial Roles",
+  "4-tank-mixing": "Tank Mixing Process",
+  "5-nutrition": "Nutritional Management in Crops",
+  "6-biostimulants": "Bio-Stimulants",
+  "7-soil-carbon": "Soil Health & Organic Carbon",
+  "8-bio-inputs": "Bio-fertilizers / Bio-fungicides / Bio-pesticides",
+  "9-mulching": "Mulching & Its Advantages",
+  "10-ipm": "Integrated Pest Management (IPM)",
+  "11-weeds": "Weed Management",
+  "12-irrigation": "Irrigation & Water Management",
+  "13-soil-health": "Soil Health Management",
+  "14-soil-test": "Basics of Soil Testing",
+  "15-faq": "Farmer's FAQ Corner",
+};
+
 /* ====================== CHAPTER CONTENT COMPONENTS ====================== */
 /* 👉 Pattern to follow:
    function Chapter2() { return (<> …your content for Chapter 2… </>); }
@@ -2538,101 +2556,213 @@ export default function GuideChapter() {
   const niceTitle = (s) =>
     (s || "").split("-").slice(1).join(" ").replace(/\b\w/g, (m) => m.toUpperCase());
 
-  // pick the chapter component if available
   const ChapterComp = chapterMap[slug];
+  const chapterNum = idx >= 0 ? idx + 1 : 0;
 
   return (
-    <div className="guide-chapter">
-      <header className="chapter-head">
-        <h1>{`Chapter ${idx >= 0 ? idx + 1 : "–"}`}</h1>
-        <p className="muted">{niceTitle(slug)}</p>
-      </header>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-      <article className="chapter-body">
-        {ChapterComp ? (
-          <ChapterComp />
-        ) : (
-          <p>Content will be added soon.</p>
-        )}
-      </article>
+        .gc-root {
+          --g50:#EAF3DE;--g100:#C0DD97;--g200:#97C459;--g400:#639922;--g500:#4E7F18;
+          --g600:#3B6D11;--g700:#2F5A0D;--g800:#27500A;--g900:#173404;
+          --a50:#FAEEDA;--a100:#FAC775;--a200:#EF9F27;
+          --sky-50:#EBF5FB;--sky-400:#3A8DC5;
+          --max-w:1180px;--r-sm:8px;--r-md:14px;--r-lg:20px;--r-xl:28px;--r-2xl:36px;
+          --ease:cubic-bezier(0.4,0,0.2,1);--dur:220ms;
+          font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+          color:#222;
+          display:flex;flex-direction:column;
+          max-width:var(--max-w);margin:0 auto;padding:0 clamp(1rem,3vw,2.5rem) 5rem;
+        }
 
-{/* --- Sliding pager (1=Index, 2=Chap1, ... , 16=Last) --- */}
-<nav className="pager-shelf">
-  {(() => {
-    const totalPages = order.length + 1; // 15 chapters + index = 16
-    const currentPage = idx >= 0 ? idx + 2 : 1; // chap1->2, chap2->3, ...; index->1
+        /* ── HERO ── */
+        .gc-hero{padding:4.5rem 0 2.5rem;text-align:center}
+        .gc-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+          letter-spacing:0.13em;text-transform:uppercase;color:var(--g600);background:var(--g50);
+          border:1px solid var(--g100);border-radius:100px;padding:5px 14px;margin-bottom:1.5rem}
+        .gc-eyebrow-dot{width:7px;height:7px;border-radius:50%;background:var(--g400);display:inline-block;
+          animation:gc-pulse 2.6s ease-in-out infinite}
+        @keyframes gc-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+        .gc-title{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(2rem,5vw,3.2rem);
+          font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin:0 0 .75rem;color:#222}
+        .gc-title em{font-style:italic;color:var(--g500)}
+        .gc-subtitle{font-family:'DM Serif Display',Georgia,serif;font-size:1.15rem;font-weight:400;
+          font-style:italic;color:var(--g500);margin:0}
+        .gc-chapter-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;
+          background:var(--g600);color:#fff;border-radius:100px;font-size:.78rem;font-weight:700;
+          letter-spacing:.03em;margin-bottom:1.25rem}
 
-    const pageToHref = (p) =>
-      p === 1 ? "/guide" : `/guide/chapter/${order[p - 2]}`;
+        /* ── SIDEBAR LAYOUT ── */
+        .gc-layout{display:grid;grid-template-columns:1fr 260px;gap:3rem;align-items:start}
+        @media(max-width:900px){.gc-layout{grid-template-columns:1fr;gap:2rem}}
 
-    const renderBtn = (p, extra = "") => (
-      <Link
-        key={p}
-        to={pageToHref(p)}
-        className={`page-btn ${extra} ${p === currentPage ? "active" : ""}`}
-        onClick={() => window.scrollTo(0, 0)}   // 🔥 scroll to top
-      >
-        {p}
-      </Link>
-    );
+        /* ── ARTICLE ── */
+        .gc-article{min-width:0}
+        .gc-article p{margin:0 0 1rem;line-height:1.8;color:#334155;font-size:.95rem}
+        .gc-article h3{font-family:'DM Serif Display',Georgia,serif;font-size:1.3rem;font-weight:400;
+          color:#222;margin:2.25rem 0 .75rem;line-height:1.3;
+          padding-bottom:.5rem;border-bottom:1px solid #f1f5f9}
+        .gc-article h4{font-size:1rem;font-weight:700;color:#222;margin:1.5rem 0 .5rem}
+        .gc-article ul,.gc-article ol{padding-left:1.25rem;margin:0 0 1.25rem;display:flex;
+          flex-direction:column;gap:6px}
+        .gc-article li{line-height:1.75;color:#475569}
+        .gc-article li b{color:#222}
+        .gc-article strong{color:#222}
 
-    // --- window of 3 numbers, centered on current when possible ---
-    const WIN = 3;
-    let start = Math.max(1, currentPage - Math.floor(WIN / 2));
-    let end = start + WIN - 1;
-    if (end > totalPages) {
-      end = totalPages;
-      start = Math.max(1, end - WIN + 1);
-    }
+        /* Tables */
+        .gc-article .table-wrap{overflow-x:auto;margin:1rem 0 1.5rem;border-radius:var(--r-md);
+          border:1px solid #e5e7eb}
+        .gc-article table{width:100%;border-collapse:collapse;font-size:.85rem}
+        .gc-article th{background:var(--g50);color:var(--g700);font-weight:700;text-align:left;
+          padding:10px 14px;border-bottom:2px solid var(--g100);white-space:nowrap}
+        .gc-article td{padding:10px 14px;border-bottom:1px solid #f1f5f9;color:#475569}
+        .gc-article tbody tr:nth-child(even){background:#f8fafc}
+        .gc-article tbody tr:hover{background:var(--g50)}
 
-    const pages = [];
-    for (let p = start; p <= end; p++) pages.push(p);
+        /* YouTube */
+        .gc-article .yt-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#000;
+          border-radius:var(--r-lg);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.1);margin:1rem 0 1.5rem}
+        .gc-article .yt-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 
-    const showLast = pages[pages.length - 1] !== totalPages;
+        /* ── SIDEBAR TOC ── */
+        .gc-sidebar{position:sticky;top:80px}
+        .gc-sidebar-card{background:#fff;border:1px solid #e5e7eb;border-radius:var(--r-xl);
+          padding:1.5rem;overflow:hidden}
+        .gc-sidebar-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+          color:var(--g600);margin-bottom:1rem}
+        .gc-sidebar-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:1px}
+        .gc-sidebar-link{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
+          text-decoration:none;color:#64748b;font-size:.82rem;font-weight:500;
+          transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
+        .gc-sidebar-link:hover{color:var(--g600);background:var(--g50)}
+        .gc-sidebar-link.active{color:var(--g700);background:var(--g50);font-weight:700}
+        .gc-sidebar-num{width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;
+          display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;
+          color:var(--g600);flex-shrink:0;transition:all var(--dur) var(--ease)}
+        .gc-sidebar-link.active .gc-sidebar-num{background:var(--g600);color:#fff;border-color:var(--g600)}
+        .gc-sidebar-link:hover .gc-sidebar-num{border-color:var(--g400);color:var(--g600)}
+        @media(max-width:900px){.gc-sidebar{position:static}.gc-sidebar-card{padding:1.25rem}}
 
-    const hasNext = currentPage < totalPages;
-    const nextHref = hasNext ? pageToHref(currentPage + 1) : null;
+        /* ── CHAPTER NAVIGATION ── */
+        .gc-nav{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;margin-top:3rem;
+          padding-top:2rem;border-top:1px solid #e5e7eb;align-items:stretch}
+        .gc-nav-link{display:flex;align-items:center;gap:14px;padding:18px 20px;
+          background:#fff;border:1px solid #e5e7eb;border-radius:var(--r-lg);text-decoration:none;
+          color:inherit;transition:all var(--dur) var(--ease)}
+        .gc-nav-link:hover{border-color:var(--g400);background:var(--g50);transform:translateY(-2px);
+          box-shadow:0 6px 15px rgba(59,109,17,.08)}
+        .gc-nav-next{justify-content:flex-end;text-align:right}
+        .gc-nav-center{flex-direction:column;justify-content:center;text-align:center;gap:6px;padding:14px 24px}
+        .gc-nav-icon{color:var(--g600);margin-bottom:2px}
+        .gc-nav-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+          color:var(--g600);margin-bottom:2px}
+        .gc-nav-title{font-family:'DM Serif Display',Georgia,serif;font-size:.95rem;color:#222;line-height:1.35}
+        .gc-nav-link:hover .gc-nav-title{color:var(--g700)}
+        .gc-nav-arrow{font-size:1.3rem;color:#94a3b8;font-weight:600;flex-shrink:0;
+          transition:transform var(--dur) var(--ease),color var(--dur) var(--ease)}
+        .gc-nav-link:hover .gc-nav-arrow{color:var(--g600)}
+        .gc-nav-prev:hover .gc-nav-arrow{transform:translateX(-4px)}
+        .gc-nav-next:hover .gc-nav-arrow{transform:translateX(4px)}
 
-    return (
-      <>
-        {hasNext && (
-          <Link
-            to={nextHref}
-            className="next-cta"
-            onClick={() => window.scrollTo(0, 0)}   // 🔥 scroll to top
-          >
-            Next page →
-          </Link>
-        )}
+        /* ── MOBILE ── */
+        @media(max-width:900px){
+          .gc-hero{padding:3rem 0 2rem}
+          .gc-nav{grid-template-columns:1fr;gap:10px}
+          .gc-nav-next{justify-content:flex-start;text-align:left}
+          .gc-nav-next .gc-nav-arrow{order:-1}
+          .gc-nav-center{flex-direction:row;gap:10px}
+        }
 
-        <div className="page-nums">
-          {pages.map((p) => renderBtn(p))}
-          {showLast && (
-            <>
-              <span className="dots">…</span>
-              {renderBtn(totalPages, "last")}
-            </>
-          )}
+        /* Hide old guide-chapter styles from styles.css */
+        .guide-chapter{max-width:none!important;margin:0!important;padding:0!important;background:none!important;box-shadow:none!important}
+        .chapter-head{display:none!important}
+        .chapter-body{background:none!important;box-shadow:none!important;padding:0!important;margin:0!important}
+      `}</style>
+
+      <div className="gc-root">
+
+        {/* ── HERO ── */}
+        <section className="gc-hero" aria-label="Chapter header">
+          <div className="gc-eyebrow">
+            <span className="gc-eyebrow-dot" aria-hidden="true" />
+            Farmer's Guide
+          </div>
+          <div className="gc-chapter-badge">
+            Chapter {chapterNum}
+          </div>
+          <h1 className="gc-title">
+            {niceTitle(slug)}
+          </h1>
+        </section>
+
+        {/* ── CONTENT + SIDEBAR ── */}
+        <div className="gc-layout">
+
+          {/* Article */}
+          <article className="gc-article">
+            {ChapterComp ? <ChapterComp /> : <p>Content will be added soon.</p>}
+          </article>
+
+          {/* Sidebar TOC */}
+          <aside className="gc-sidebar" aria-label="Table of contents">
+            <div className="gc-sidebar-card">
+              <div className="gc-sidebar-title">Chapters</div>
+              <ul className="gc-sidebar-list">
+                {order.map((s, i) => (
+                  <li key={s}>
+                    <Link
+                      to={`/guide/chapter/${s}`}
+                      className={`gc-sidebar-link ${s === slug ? "active" : ""}`}
+                      onClick={() => window.scrollTo(0, 0)}
+                    >
+                      <span className="gc-sidebar-num">{i + 1}</span>
+                      {chapterTitles[s] || niceTitle(s)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+
         </div>
-      </>
-    );
-  })()}
-</nav>
 
-    </div>
+        {/* ── CHAPTER NAVIGATION ── */}
+        <nav className="gc-nav" aria-label="Chapter navigation">
+          {prev ? (
+            <Link to={prev} className="gc-nav-link gc-nav-prev" onClick={() => window.scrollTo(0, 0)}>
+              <div className="gc-nav-arrow">←</div>
+              <div>
+                <div className="gc-nav-label">Previous</div>
+                <div className="gc-nav-title">{chapterTitles[order[idx - 1]]}</div>
+              </div>
+            </Link>
+          ) : <div />}
+
+          <Link to="/guide" className="gc-nav-link gc-nav-center" onClick={() => window.scrollTo(0, 0)}>
+            <div className="gc-nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </div>
+            <div className="gc-nav-label">All Chapters</div>
+            <div className="gc-nav-title">Table of Contents</div>
+          </Link>
+
+          {next ? (
+            <Link to={next} className="gc-nav-link gc-nav-next" onClick={() => window.scrollTo(0, 0)}>
+              <div>
+                <div className="gc-nav-label">Next</div>
+                <div className="gc-nav-title">{chapterTitles[order[idx + 1]]}</div>
+              </div>
+              <div className="gc-nav-arrow">→</div>
+            </Link>
+          ) : <div />}
+        </nav>
+
+      </div>
+    </>
   );
 }
-
-<style>
-{`
-  /* Make the built-in chapter subtitle red & a bit larger across all chapters */
-  .chapter-header .sub,
-  .chapter-card .sub,
-  .chapter-hero .sub {
-    color: #d32f2f !important;   /* red */
-    font-size: 1.25rem;          /* a bit bigger */
-    font-weight: 600;            /* semi-bold */
-    margin-top: .25rem;
-  }
-`}
-</style>

@@ -57,17 +57,24 @@ export default function Guide() {
         </div>
       </section>
 
-      {/* ── PAGER ── */}
-      <nav className="cl-pager" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
-        <div className="cl-cta-row">
-          <Link to="/guide" className="cl-btn-primary" style={{ padding: "8px 16px" }}>1</Link>
-          <Link to="/guide/chapter/1-insecticides" className="cl-btn-ghost" style={{ padding: "8px 16px" }}>2</Link>
-          <span style={{ color: "var(--g600)", fontWeight: 700 }}>…</span>
-          <Link to="/guide/chapter/15-faq" className="cl-btn-ghost" style={{ padding: "8px 16px" }}>16</Link>
-        </div>
-
-        <Link to="/guide/chapter/1-insecticides" className="cl-btn-ghost">
-          Next page →
+      {/* ── CHAPTER NAV ── */}
+      <nav className="ch-nav" aria-label="Chapter navigation">
+        <div />
+        <Link to="/guide" className="ch-nav-link ch-nav-center" onClick={() => window.scrollTo(0, 0)}>
+          <div className="ch-nav-toc-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </div>
+          <div className="ch-nav-label">All Chapters</div>
+          <div className="ch-nav-title">Table of Contents</div>
+        </Link>
+        <Link to="/guide/chapter/1-insecticides" className="ch-nav-link ch-nav-next" onClick={() => window.scrollTo(0, 0)}>
+          <div>
+            <div className="ch-nav-label">Next Chapter</div>
+            <div className="ch-nav-title">Insecticides: Classification & Groups</div>
+          </div>
+          <div className="ch-nav-arrow">→</div>
         </Link>
       </nav>
 
@@ -324,11 +331,85 @@ export default function Guide() {
           color: var(--g600);
         }
 
-        @media (max-width: 600px) {
+        /* Chapter navigation */
+        .ch-nav {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          gap: 16px;
+          margin-top: 2.5rem;
+          padding-top: 2rem;
+          border-top: 1px solid #e5e7eb;
+          align-items: stretch;
+        }
+        .ch-nav-link {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 18px 20px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          text-decoration: none;
+          color: inherit;
+          transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+        }
+        .ch-nav-link:hover {
+          border-color: #639922;
+          background: #EAF3DE;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 15px rgba(59,109,17,0.08);
+        }
+        .ch-nav-next {
+          justify-content: flex-end;
+          text-align: right;
+        }
+        .ch-nav-center {
+          flex-direction: column;
+          justify-content: center;
+          text-align: center;
+          gap: 6px;
+          padding: 14px 24px;
+        }
+        .ch-nav-toc-icon {
+          color: #3B6D11;
+          margin-bottom: 2px;
+        }
+        .ch-nav-label {
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #3B6D11;
+          margin-bottom: 2px;
+        }
+        .ch-nav-title {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: 0.95rem;
+          color: #1a2e1a;
+          line-height: 1.35;
+        }
+        .ch-nav-link:hover .ch-nav-title {
+          color: #2F5A0D;
+        }
+        .ch-nav-arrow {
+          font-size: 1.3rem;
+          color: #94a3b8;
+          font-weight: 600;
+          flex-shrink: 0;
+          transition: transform 0.22s ease, color 0.22s ease;
+        }
+        .ch-nav-link:hover .ch-nav-arrow {
+          color: #3B6D11;
+        }
+        .ch-nav-next:hover .ch-nav-arrow { transform: translateX(4px); }
+
+        @media (max-width: 768px) {
           .cl-svc-card { padding: 1.5rem !important; }
           .cl-guide-grid { grid-template-columns: 1fr; }
-          .cl-pager { flex-direction: column; align-items: stretch !important; gap: 1.5rem; }
-          .cl-pager .cl-cta-row { justify-content: center; }
+          .ch-nav { grid-template-columns: 1fr; gap: 10px; }
+          .ch-nav-next { justify-content: flex-start; text-align: left; }
+          .ch-nav-next .ch-nav-arrow { order: -1; }
+          .ch-nav-center { flex-direction: row; gap: 10px; }
         }
       `}</style>
     </div>

@@ -3,6 +3,96 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { socket as sharedSocket } from "../lib/socket.js";
 import { CONTACT_PHONE, CONTACT_EMAIL, WHATSAPP_CHANNEL_URL, WHATSAPP_URL } from '../lib/config.js';
+import './Home.css';
+
+/* ─────────────────────────────────────────────
+   Animation Hooks
+───────────────────────────────────────────── */
+function useScrollReveal(ref, { threshold = 0.18, once = true } = {}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (once) observer.disconnect();
+        } else if (!once) {
+          setIsVisible(false);
+        }
+      },
+      { threshold }
+    );
+    observer.observe(el);
+
+    const handleScroll = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const p = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)));
+      setProgress(p);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [ref, threshold, once]);
+
+  return { isVisible, progress };
+}
+
+function useCountUp(target, duration = 1200, trigger = false) {
+  const [display, setDisplay] = useState(target);
+  const hasRun = useRef(false);
+
+  useEffect(() => {
+    if (!trigger || hasRun.current) return;
+    hasRun.current = true;
+
+    const str = String(target);
+    const match = str.match(/^(\d+)(.*)$/);
+    if (!match) { setDisplay(target); return; }
+
+    const num = parseInt(match[1], 10);
+    const suffix = match[2] || "";
+    const start = performance.now();
+
+    const tick = (now) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const current = Math.round(eased * num);
+      setDisplay(current + suffix);
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [trigger, target, duration]);
+
+  return display;
+}
+
+function useStagger(isVisible, count, delay = 80) {
+  const [revealed, setRevealed] = useState(Array(count).fill(false));
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const timers = [];
+    for (let i = 0; i < count; i++) {
+      timers.push(setTimeout(() => {
+        setRevealed(prev => { const n = [...prev]; n[i] = true; return n; });
+      }, i * delay));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [isVisible, count, delay]);
+
+  return revealed;
+}
 
 /* ─────────────────────────────────────────────
    SVG Icons — stroke-based, tree-shakeable
@@ -342,8 +432,73 @@ function WhatsAppChannelPopup() {
 }
 
 /* ─────────────────────────────────────────────
-   HOME — main export
+   CropGrowthSVG — scroll-driven plant animation
 ───────────────────────────────────────────── */
+function CropGrowthSVG({ progress = 0 }) {
+  const VH = 400;
+  const stageReveal = (start, end) => {
+    const r = Math.max(0, Math.min(1, (progress - start) / (end - start)));
+    return VH * (1 - r);
+  };
+
+  return (
+    <svg viewBox={`0 0 300 ${VH}`} width="300" height={VH} aria-hidden="true" role="presentation" style={{ overflow: "visible" }}>
+      <defs>
+        <clipPath id="stage0"><rect x="0" y="0" width="300" height={VH} /></clipPath>
+        <clipPath id="stage1"><rect x="0" y={stageReveal(0.2, 0.4)} width="300" height={VH} /></clipPath>
+        <clipPath id="stage2"><rect x="0" y={stageReveal(0.4, 0.6)} width="300" height={VH} /></clipPath>
+        <clipPath id="stage3"><rect x="0" y={stageReveal(0.6, 0.8)} width="300" height={VH} /></clipPath>
+        <clipPath id="stage4"><rect x="0" y={stageReveal(0.8, 1.0)} width="300" height={VH} /></clipPath>
+      </defs>
+
+      {/* Stage 0 — Soil */}
+      <g clipPath="url(#stage0)">
+        <rect x="0" y={VH * 0.8} width="300" height={VH * 0.2} fill="#6B5030" />
+        <rect x="0" y={VH * 0.76} width="300" height={VH * 0.06} fill="#9C7A4A" rx="2" />
+        <ellipse cx="150" cy={VH * 0.78} rx="4" ry="3" fill="#EF9F27" />
+      </g>
+
+      {/* Stage 1 — Sprout */}
+      <g clipPath="url(#stage1)">
+        <rect x="148" y={VH * 0.78 - 60} width="4" height="60" rx="2" fill="#3B6D11" />
+        <path d={`M150,${VH * 0.78 - 55} Q140,${VH * 0.78 - 65} 148,${VH * 0.78 - 50}`} fill="#639922" />
+        <path d={`M150,${VH * 0.78 - 55} Q160,${VH * 0.78 - 65} 152,${VH * 0.78 - 50}`} fill="#639922" />
+      </g>
+
+      {/* Stage 2 — Young plant */}
+      <g clipPath="url(#stage2)">
+        <rect x="147" y={VH * 0.78 - 140} width="6" height="140" rx="3" fill="#4E7F18" />
+        <ellipse cx="135" cy={VH * 0.78 - 100} rx="18" ry="8" fill="#639922" transform={`rotate(-20 135 ${VH * 0.78 - 100})`} />
+        <ellipse cx="165" cy={VH * 0.78 - 110} rx="18" ry="8" fill="#97C459" transform={`rotate(20 165 ${VH * 0.78 - 110})`} />
+        <ellipse cx="130" cy={VH * 0.78 - 70} rx="16" ry="7" fill="#639922" transform={`rotate(-15 130 ${VH * 0.78 - 70})`} />
+        <ellipse cx="168" cy={VH * 0.78 - 80} rx="16" ry="7" fill="#97C459" transform={`rotate(15 168 ${VH * 0.78 - 80})`} />
+      </g>
+
+      {/* Stage 3 — Mature crop */}
+      <g clipPath="url(#stage3)" className="crop-sway">
+        <rect x="146" y={VH * 0.78 - 220} width="8" height="220" rx="4" fill="#3B6D11" />
+        {[[-40, -180, -25, 20, 8], [40, -190, 25, 20, 8], [-50, -150, -30, 22, 9], [48, -160, 28, 22, 9], [-35, -120, -20, 18, 7], [42, -130, 22, 18, 7]].map(([cx, cy, rot, rx, ry], i) => (
+          <ellipse key={i} cx={150 + cx} cy={VH * 0.78 + cy} rx={rx} ry={ry} fill={i % 2 === 0 ? "#4E7F18" : "#639922"} transform={`rotate(${rot} ${150 + cx} ${VH * 0.78 + cy})`} />
+        ))}
+        <ellipse cx="145" cy={VH * 0.78 - 220} rx="6" ry="10" fill="#FAC775" />
+        <ellipse cx="155" cy={VH * 0.78 - 218} rx="5" ry="9" fill="#FAC775" />
+      </g>
+
+      {/* Stage 4 — Golden harvest */}
+      <g clipPath="url(#stage4)" className="crop-sway">
+        <rect x="145" y={VH * 0.78 - 300} width="10" height="300" rx="5" fill="#2F5A0D" />
+        {[[-45, -260, -30, 24, 10], [50, -270, 28, 24, 10], [-55, -220, -35, 26, 11], [52, -230, 32, 26, 11], [-40, -180, -22, 20, 8], [44, -190, 24, 20, 8], [-30, -140, -18, 18, 7], [36, -150, 20, 18, 7]].map(([cx, cy, rot, rx, ry], i) => (
+          <ellipse key={i} cx={150 + cx} cy={VH * 0.78 + cy} rx={rx} ry={ry} fill={i < 4 ? "#3B6D11" : "#4E7F18"} transform={`rotate(${rot} ${150 + cx} ${VH * 0.78 + cy})`} />
+        ))}
+        <ellipse cx="140" cy={VH * 0.78 - 290} rx="8" ry="14" fill="#EF9F27" />
+        <ellipse cx="155" cy={VH * 0.78 - 285} rx="7" ry="12" fill="#FAC775" />
+        <ellipse cx="148" cy={VH * 0.78 - 295} rx="6" ry="11" fill="#EF9F27" />
+        <line x1="140" y1={VH * 0.78} x2="130" y2={VH * 0.8} stroke="#9C7A4A" strokeWidth="1.5" opacity="0.5" />
+        <line x1="160" y1={VH * 0.78} x2="170" y2={VH * 0.8} stroke="#9C7A4A" strokeWidth="1.5" opacity="0.5" />
+      </g>
+    </svg>
+  );
+}
 export default function Home() {
   const bannerImages = [
     "/banners/R4.png", "/banners/R1.jpg", "/banners/R2.png",
@@ -456,6 +611,63 @@ export default function Home() {
       tickerNode = <>{fullText}</>;
     }
   }
+
+  /* ═══════════════════════════════════════════
+     ANIMATION: refs, reveals, staggers
+  ═══════════════════════════════════════════ */
+  const heroPanelRef = useRef(null);
+  const trustGridRef = useRef(null);
+  const svcGridRef = useRef(null);
+  const cropRef = useRef(null);
+  const founderRef = useRef(null);
+  const testimonialRef = useRef(null);
+  const eduRef = useRef(null);
+  const ctaRef = useRef(null);
+  const footerRef = useRef(null);
+
+  const heroPanel = useScrollReveal(heroPanelRef, { threshold: 0.3 });
+  const trustReveal = useScrollReveal(trustGridRef, { threshold: 0.15 });
+  const svcReveal = useScrollReveal(svcGridRef, { threshold: 0.15 });
+  const cropReveal = useScrollReveal(cropRef, { threshold: 0.1 });
+  const founderReveal = useScrollReveal(founderRef, { threshold: 0.2 });
+  const testimonialReveal = useScrollReveal(testimonialRef, { threshold: 0.15 });
+  const eduReveal = useScrollReveal(eduRef, { threshold: 0.15 });
+  const ctaReveal = useScrollReveal(ctaRef, { threshold: 0.25 });
+  const footerReveal = useScrollReveal(footerRef, { threshold: 0.1 });
+
+  const trustCards = useStagger(trustReveal.isVisible, 4, 90);
+  const svcCards = useStagger(svcReveal.isVisible, 3, 110);
+  const testimonialCards = useStagger(testimonialReveal.isVisible, 3, 130);
+  const eduItems = useStagger(eduReveal.isVisible, 6, 110);
+  const topicCards = useStagger(eduReveal.isVisible, 4, 90);
+  const footerCols = useStagger(footerReveal.isVisible, 4, 100);
+
+  const count30 = useCountUp("30+", 1400, heroPanel.isVisible);
+  const count6000 = useCountUp("6000+", 1400, heroPanel.isVisible);
+  const count200 = useCountUp("200+", 1400, heroPanel.isVisible);
+  const count90 = useCountUp("90%", 1400, heroPanel.isVisible);
+
+  const [heroMounted, setHeroMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setHeroMounted(true), 100); return () => clearTimeout(t); }, []);
+
+  const [fabReady, setFabReady] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setFabReady(true), 1500); return () => clearTimeout(t); }, []);
+
+  const [cropProgress, setCropProgress] = useState(0);
+  useEffect(() => {
+    const el = cropRef.current;
+    if (!el) return;
+    const handle = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      setCropProgress(Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height))));
+    };
+    window.addEventListener("scroll", handle, { passive: true });
+    handle();
+    return () => window.removeEventListener("scroll", handle);
+  }, []);
+
+  const heroWords = "Healthy plants, prosperous farmers.".split(" ");
 
   return (
     <>
@@ -1782,8 +1994,22 @@ export default function Home() {
             </div>
 
             <h1 className="h-hero-title">
-              Healthy plants,<br />
-              <em>prosperous</em> farmers.
+              {heroWords.map((word, i) => {
+                const clean = word.replace(/[^a-zA-Z]/g, "");
+                const isProsperous = clean.toLowerCase() === "prosperous";
+                return (
+                  <span
+                    key={i}
+                    className={`anim-word${isProsperous ? " prosperous" : ""}`}
+                    style={{
+                      animationDelay: heroMounted ? `${i * 70}ms` : undefined,
+                      marginRight: "0.3em",
+                    }}
+                  >
+                    {word}
+                  </span>
+                );
+              })}
             </h1>
 
             <p className="h-hero-sub">
@@ -1793,17 +2019,18 @@ export default function Home() {
             </p>
 
             <div className="h-cta-row">
-              <Link className="cl-btn-primary" to="/farmers" aria-label="Explore solutions">
+              <Link className="cl-btn-primary anim-cta-child" to="/farmers" aria-label="Explore solutions" style={{ animationDelay: "600ms" }}>
                 Explore Solutions
                 <IconArrow />
               </Link>
-              <Link className="cl-btn-ghost" to="/contact">Contact us</Link>
+              <Link className="cl-btn-ghost anim-cta-child" to="/contact" style={{ animationDelay: "690ms" }}>Contact us</Link>
               <a
-                className="cl-btn-wa"
+                className="cl-btn-wa anim-cta-child"
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Contact us on WhatsApp"
+                style={{ animationDelay: "780ms" }}
               >
                 <IconWhatsapp /> WhatsApp
               </a>
@@ -1812,7 +2039,11 @@ export default function Home() {
             {/* Social proof strip */}
             <div className="h-hero-proof" aria-label="Farmer trust indicators">
               <div className="h-hero-proof-stars" aria-label="5 stars">
-                {[1, 2, 3, 4, 5].map(i => <IconStar key={i} />)}
+                {[1, 2, 3, 4, 5].map(i => (
+                  <span key={i} className="anim-star" style={{ animationDelay: `${900 + i * 60}ms` }}>
+                    <IconStar />
+                  </span>
+                ))}
               </div>
               <span className="h-hero-proof-text">6000+ satisfied customers</span>
               <span className="h-hero-proof-divider" aria-hidden="true" />
@@ -1821,7 +2052,7 @@ export default function Home() {
           </div>
 
           {/* Right: stats panel */}
-          <div className="h-hero-panel" aria-hidden="true" role="presentation">
+          <div className="h-hero-panel" ref={heroPanelRef} aria-hidden="true" role="presentation">
             <div className="h-panel-bar">
               <div className="h-panel-avatar">AV</div>
               <div>
@@ -1834,10 +2065,10 @@ export default function Home() {
             </div>
             <div className="h-panel-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "1rem 1.25rem" }}>
               {[
-                { num: "30+", label: "Years Experience" },
-                { num: "6000+", label: "Farmers Helped" },
-                { num: "200+", label: "Training Sessions" },
-                { num: "90%", label: "Success Rate" },
+                { num: count30, label: "Years Experience" },
+                { num: count6000, label: "Farmers Helped" },
+                { num: count200, label: "Training Sessions" },
+                { num: count90, label: "Success Rate" },
               ].map((s, idx) => (
                 <div key={idx} style={{ textAlign: "center", padding: "0.75rem 0.5rem", borderRadius: "var(--r-md)", background: "var(--g50)", border: "1px solid var(--g100)" }}>
                   <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: "1.5rem", fontWeight: 400, color: "var(--g600)", lineHeight: 1 }}>{s.num}</div>
@@ -1869,7 +2100,7 @@ export default function Home() {
         {/* ══════════════════════════════════════════════
             ANNOUNCEMENT TICKER
         ══════════════════════════════════════════════ */}
-        <div className="h-announce-bar" id="announcements">
+        <div className="h-announce-bar anim-ticker-bar" id="announcements">
           <div className="h-announce-label">📢 Latest</div>
           {annLoading && <div className="h-announce-status">Loading latest updates…</div>}
           {!annLoading && annError && <div className="h-announce-status">{annError}</div>}
@@ -1894,6 +2125,7 @@ export default function Home() {
           interval={5000}
           ratio="36%"
           fit="cover"
+          wrapClassName="anim-carousel-reveal"
         />
 
         {/* ══════════════════════════════════════════════
@@ -1914,27 +2146,23 @@ export default function Home() {
             practical experience, and farmer-centric care for sustainable results.
           </p>
 
-          <div className="h-trust-grid">
-            <TrustCard
-              icon={<IconChat />}
-              title="Real-time expert chat"
-              description="Connect with agronomists instantly — share photos, get diagnosis, and receive treatment plans in English or Kannada."
-            />
-            <TrustCard
-              icon={<IconShield />}
-              title="Genuine products only"
-              description="Every product we supply is verified for quality and authenticity — no compromises on your crop's health."
-            />
-            <TrustCard
-              icon={<IconFlask />}
-              title="Science-backed advice"
-              description="Standardized spray schedules with crop-stage precision, soil testing, and nutrient management."
-            />
-            <TrustCard
-              icon={<IconTruck />}
-              title="Pan-India delivery"
-              description="Reliable logistics with LR tracking, secure payments, and GST invoicing for every order."
-            />
+          <div className="h-trust-grid" ref={trustGridRef}>
+            {[
+              { icon: <IconChat />, title: "Real-time expert chat", desc: "Connect with agronomists instantly — share photos, get diagnosis, and receive treatment plans in English or Kannada." },
+              { icon: <IconShield />, title: "Genuine products only", desc: "Every product we supply is verified for quality and authenticity — no compromises on your crop's health." },
+              { icon: <IconFlask />, title: "Science-backed advice", desc: "Standardized spray schedules with crop-stage precision, soil testing, and nutrient management." },
+              { icon: <IconTruck />, title: "Pan-India delivery", desc: "Reliable logistics with LR tracking, secure payments, and GST invoicing for every order." },
+            ].map((c, i) => (
+              <div
+                key={i}
+                className={`cl-trust-card anim-trust-card${trustCards[i] ? " card-visible" : ""}`}
+                style={{ animationDelay: `${i * 90}ms` }}
+              >
+                <div className="cl-trust-icon">{c.icon}</div>
+                <div className="cl-trust-title">{c.title}</div>
+                <div className="cl-trust-desc">{c.desc}</div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -1956,48 +2184,61 @@ export default function Home() {
             crop's health journey is covered by our expert team.
           </p>
 
-          <div className="h-svc-grid">
-            <ServiceCard
-              icon={<IconCamera />}
-              accentVar="--g400"
-              tag="01 · Diagnosis"
-              title="Plant health management"
-              subtitle="Advanced disease diagnosis, integrated pest management, and nutrient deficiency detection with customized treatment plans."
-              items={[
-                "Photo-based disease identification",
-                "Integrated pest management strategies",
-                "Nutrient deficiency detection & correction",
-              ]}
-              note="Reduce unnecessary chemical usage while protecting crops."
-            />
-            <ServiceCard
-              icon={<IconFlask />}
-              accentVar="--a200"
-              tag="02 · Soil care"
-              title="Soil & fertility solutions"
-              subtitle="Comprehensive soil testing, fertility enhancement, and sustainable soil & water management for long-term productivity."
-              items={[
-                "Comprehensive soil testing & analysis",
-                "Fertility enhancement programs",
-                "Micronutrient optimization",
-              ]}
-              note="Improve soil health today for better harvests tomorrow."
-            />
-            <ServiceCard
-              icon={<IconTruck />}
-              accentVar="--sky-400"
-              tag="03 · Consultancy"
-              title="Agricultural consultancy"
-              subtitle="From crop planning and scientific rotation to market strategy and wholesale input supply — guidance you can trust."
-              items={[
-                "Crop planning & scientific rotation",
-                "Smart technology integration",
-                "Market strategy & price guidance",
-              ]}
-              note="We stand with farmers at every step — production, protection, and profit."
-            />
+          <div className="h-svc-grid" ref={svcGridRef}>
+            {[
+              { icon: <IconCamera />, accentVar: "--g400", tag: "01 · Diagnosis", title: "Plant health management", subtitle: "Advanced disease diagnosis, integrated pest management, and nutrient deficiency detection with customized treatment plans.", items: ["Photo-based disease identification", "Integrated pest management strategies", "Nutrient deficiency detection & correction"], note: "Reduce unnecessary chemical usage while protecting crops." },
+              { icon: <IconFlask />, accentVar: "--a200", tag: "02 · Soil care", title: "Soil & fertility solutions", subtitle: "Comprehensive soil testing, fertility enhancement, and sustainable soil & water management for long-term productivity.", items: ["Comprehensive soil testing & analysis", "Fertility enhancement programs", "Micronutrient optimization"], note: "Improve soil health today for better harvests tomorrow." },
+              { icon: <IconTruck />, accentVar: "--sky-400", tag: "03 · Consultancy", title: "Agricultural consultancy", subtitle: "From crop planning and scientific rotation to market strategy and wholesale input supply — guidance you can trust.", items: ["Crop planning & scientific rotation", "Smart technology integration", "Market strategy & price guidance"], note: "We stand with farmers at every step — production, protection, and profit." },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className={`cl-svc-card anim-svc-card${svcCards[i] ? " card-visible" : ""}`}
+                style={{ "--svc-accent": `var(${s.accentVar})`, animationDelay: `${i * 110}ms` }}
+              >
+                <div className="cl-svc-tag">{s.tag}</div>
+                <div className="cl-svc-icon-wrap">{s.icon}</div>
+                <div className="cl-svc-title">{s.title}</div>
+                <div className="cl-svc-subtitle">{s.subtitle}</div>
+                <ul className="cl-svc-list">
+                  {s.items.map((item, j) => (
+                    <li key={j}>
+                      <span className="cl-svc-check"><IconCheck /></span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                {s.note && <div className="cl-svc-note">{s.note}</div>}
+              </div>
+            ))}
           </div>
         </section>
+
+        {/* ══════════════════════════════════════════════
+            CROP GROWTH SVG INTERLUDE
+        ══════════════════════════════════════════════ */}
+        <div className="crop-interlude" ref={cropRef} aria-label="How crops grow with expert guidance">
+          <div className="crop-interlude-inner">
+            <div className="crop-interlude-text">
+              <div className="h-eyebrow">
+                <IconLeaf />
+                Grown with science
+              </div>
+              <h2>Watch your farm <em>come alive</em></h2>
+              <p>
+                From a single seed to a golden harvest — AV Traders guides every
+                stage of your crop's journey with precision agronomy.
+              </p>
+              <ul className="crop-interlude-bullets">
+                <li><span><IconCheck /></span> Photo-based diagnosis catches problems early</li>
+                <li><span><IconCheck /></span> Genuine products protect without harming soil</li>
+                <li><span><IconCheck /></span> Training sessions empower farmers with knowledge</li>
+              </ul>
+            </div>
+            <div className="crop-svg-wrap">
+              <CropGrowthSVG progress={cropReveal.isVisible ? 1 : cropProgress} />
+            </div>
+          </div>
+        </div>
 
         {/* ══════════════════════════════════════════════
             FOUNDER
@@ -2016,15 +2257,15 @@ export default function Home() {
             the lives of thousands of farmers.
           </p>
 
-          <div className="h-founder-layout">
+          <div className="h-founder-layout" ref={founderRef}>
             <div>
-              <blockquote className="h-founder-quote">
+              <blockquote className={`h-founder-quote anim-founder-quote${founderReveal.isVisible ? " el-visible" : ""}`}>
                 "When plants grow healthy, farmers grow wealthy."
               </blockquote>
-              <p className="h-founder-name">
+              <p className={`h-founder-name anim-founder-name${founderReveal.isVisible ? " el-visible" : ""}`}>
                 Dr. A. Venugopal — Founder &amp; Chief Plant Doctor
               </p>
-              <p className="h-founder-bio">
+              <p className={`h-founder-bio anim-founder-bio${founderReveal.isVisible ? " el-visible" : ""}`}>
                 With over <strong>30 years</strong> of experience in agricultural
                 sciences, Dr. Venugopal has transformed the lives of thousands
                 of farmers through innovative training programs, diagnostic
@@ -2032,8 +2273,8 @@ export default function Home() {
                 wisdom and modern agri-tech.
               </p>
             </div>
-            <div className="h-founder-photo">
-              <img src="/profile/R4.png" alt="Dr. A. Venugopal" />
+            <div className={`h-founder-photo anim-founder-photo${founderReveal.isVisible ? " el-visible" : ""}`}>
+              <img src="/profile/R4.png" alt="Dr. A. Venugopal" className={founderReveal.isVisible ? "anim-founder-photo-ring" : ""} />
               <div className="h-founder-photo-name">Dr. A. Venugopal</div>
             </div>
           </div>
@@ -2056,7 +2297,7 @@ export default function Home() {
             farmers who trust us.
           </p>
 
-          <div className="h-testimonial-grid">
+          <div className="h-testimonial-grid" ref={testimonialRef}>
             {[
               {
                 quote:
@@ -2073,13 +2314,20 @@ export default function Home() {
                   "I was struggling with soil that had lost fertility due to excessive chemical use. After consulting Dr. Venugopal Sir and following eco-friendly practices suggested by AV Traders, I not only revived my soil but also saw a bumper yield in paddy and vegetables. Today, I save on costs, earn better profits, and farm with confidence again.",
                 author: "Ramesh Gowda – Hassan",
               },
-            ].map((t, idx) => (
-              <div className="h-testimonial-card" key={idx}>
-                <div className="h-testimonial-quote-mark">"</div>
-                <p className="h-testimonial-text">{t.quote}</p>
-                <div className="h-testimonial-author">{t.author}</div>
-              </div>
-            ))}
+            ].map((t, idx) => {
+              const direction = idx === 0 ? "from-left" : idx === 2 ? "from-right" : "from-bottom";
+              return (
+                <div
+                  className={`h-testimonial-card anim-testimonial-card ${direction}${testimonialCards[idx] ? " card-visible" : ""}`}
+                  key={idx}
+                  style={{ animationDelay: `${idx * 130}ms` }}
+                >
+                  <div className="h-testimonial-quote-mark">"</div>
+                  <p className="h-testimonial-text">{t.quote}</p>
+                  <div className="h-testimonial-author">{t.author}</div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -2101,39 +2349,32 @@ export default function Home() {
             practical guidance you can adopt in your fields.
           </p>
 
-          <div className="h-edu-layout">
+          <div className="h-edu-layout" ref={eduRef}>
             <div>
               <div style={{ fontWeight: 700, fontSize: "0.92rem", marginBottom: 8 }}>
                 🎥 What you'll find
               </div>
               <ul className="h-edu-list">
-                <li>
-                  <span><IconCheck /></span>
-                  Step-by-step crop management videos <span className="h-edu-highlight">(in local language)</span>
-                </li>
-                <li>
-                  <span><IconCheck /></span>
-                  Soil health tips — maintain fertility &amp; long-term productivity
-                </li>
-                <li>
-                  <span><IconCheck /></span>
-                  Water management techniques — save water, improve yield
-                </li>
-                <li>
-                  <span><IconCheck /></span>
-                  Crop rotation planning — increase soil life &amp; reduce pests
-                </li>
-                <li>
-                  <span><IconCheck /></span>
-                  Market insights — strategies for better pricing &amp; profit
-                </li>
-                <li>
-                  <span><IconCheck /></span>
-                  Farmer Success Stories — higher yields with less cost &amp; chemicals
-                </li>
+                {[
+                  <>Step-by-step crop management videos <span className="h-edu-highlight">(in local language)</span></>,
+                  "Soil health tips — maintain fertility & long-term productivity",
+                  "Water management techniques — save water, improve yield",
+                  "Crop rotation planning — increase soil life & reduce pests",
+                  "Market insights — strategies for better pricing & profit",
+                  "Farmer Success Stories — higher yields with less cost & chemicals",
+                ].map((text, i) => (
+                  <li
+                    key={i}
+                    className={`anim-edu-item${eduItems[i] ? " item-visible" : ""}${eduItems[i] ? "" : " draw-check"}`}
+                    style={{ animationDelay: `${i * 110}ms` }}
+                  >
+                    <span><IconCheck /></span>
+                    {text}
+                  </li>
+                ))}
               </ul>
 
-              <div className="h-cta-row" style={{ marginTop: "1.25rem" }}>
+              <div className={`h-cta-row anim-edu-cta${eduReveal.isVisible ? " el-visible" : ""}`} style={{ marginTop: "1.25rem" }}>
                 <a
                   className="cl-btn-primary"
                   href="https://youtube.com/@dravenugopal"
@@ -2151,7 +2392,7 @@ export default function Home() {
                   { icon: "🔁", title: "Crop Rotation Planning", sub: "Scientific rotations to protect soil life" },
                   { icon: "📈", title: "Market Pricing Strategies", sub: "Sell better with data-driven guidance" },
                 ].map((k, i) => (
-                  <div className="h-edu-topic" key={i}>
+                  <div className={`h-edu-topic anim-topic-card${topicCards[i] ? " card-visible" : ""}`} key={i} style={{ animationDelay: `${i * 90}ms` }}>
                     <div className="h-edu-topic-icon">{k.icon}</div>
                     <div>
                       <div className="h-edu-topic-title">{k.title}</div>
@@ -2162,7 +2403,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="h-edu-video">
+            <div className={`h-edu-video anim-edu-video${eduReveal.isVisible ? " el-visible" : ""}`}>
               <iframe
                 src="https://www.youtube-nocookie.com/embed/nn6O27lkbrQ?si=SSVfdZJ9l8JqkDmH"
                 title="YouTube video player"
@@ -2177,18 +2418,18 @@ export default function Home() {
         {/* ══════════════════════════════════════════════
             FINAL CTA BANNER
         ══════════════════════════════════════════════ */}
-        <div className="h-cta-banner" role="complementary" aria-label="Get started">
+        <div className="h-cta-banner" ref={ctaRef} role="complementary" aria-label="Get started">
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div className="h-cta-banner-kicker">Ready when you are</div>
-            <h3 className="h-cta-banner-h">
+            <div className={`h-cta-banner-kicker anim-cta-kicker${ctaReveal.isVisible ? " el-visible" : ""}`}>Ready when you are</div>
+            <h3 className={`h-cta-banner-h anim-cta-heading${ctaReveal.isVisible ? " el-visible" : ""}`}>
               Start your farming journey today.
             </h3>
-            <p className="h-cta-banner-sub">
+            <p className={`h-cta-banner-sub anim-cta-sub${ctaReveal.isVisible ? " el-visible" : ""}`}>
               Expert guidance, genuine products, and reliable<br />
               doorstep delivery — all in one place.
             </p>
           </div>
-          <div className="h-cta-banner-actions">
+          <div className={`h-cta-banner-actions anim-cta-actions${ctaReveal.isVisible ? " el-visible" : ""}`}>
             <Link className="cl-btn-white" to="/farmers">
               Get solutions
               <IconArrow />
@@ -2203,26 +2444,26 @@ export default function Home() {
             FOOTER
         ══════════════════════════════════════════════ */}
         <footer className="h-footer" role="contentinfo">
-          <div className="h-footer-grid">
-            <div>
-              <div className="h-footer-brand">AV Traders Agri Clinic</div>
+          <div className="h-footer-grid" ref={footerRef}>
+            <div className={`anim-footer-col${footerCols[0] ? " col-visible" : ""}`}>
+              <div className={`h-footer-brand anim-footer-brand${footerCols[0] ? " col-visible" : ""}`}>AV Traders Agri Clinic</div>
               <div className="h-footer-tagline">Healthy Plants, Prosperous Farmers.</div>
             </div>
-            <div>
+            <div className={`anim-footer-col${footerCols[1] ? " col-visible" : ""}`}>
               <div className="h-footer-heading">Contact</div>
               <div className="h-footer-text">
                 📞 {CONTACT_PHONE.replace('+91', '+91 ')}<br />
                 ✉️ {CONTACT_EMAIL}
               </div>
             </div>
-            <div>
+            <div className={`anim-footer-col${footerCols[2] ? " col-visible" : ""}`}>
               <div className="h-footer-heading">Address</div>
               <div className="h-footer-text">
                 AV Traders Agri Clinic, Kurubarahally, Tumkur road,
                 Doddaballapura, Bengaluru Rural, Karnataka, 561203
               </div>
             </div>
-            <div>
+            <div className={`anim-footer-col${footerCols[3] ? " col-visible" : ""}`}>
               <div className="h-footer-heading">Policies</div>
               <ul className="h-footer-link-list">
                 <li><a href="/terms-and-conditions">Terms &amp; Conditions</a></li>
@@ -2233,7 +2474,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          <div className="h-footer-copy">
+          <div className={`h-footer-copy anim-footer-copy${footerReveal.isVisible ? " el-visible" : ""}`}>
             © {new Date().getFullYear()} AV Traders Agri Clinic. All rights reserved.
           </div>
         </footer>
@@ -2241,13 +2482,13 @@ export default function Home() {
         {/* Floating Chat FAB */}
         <button
           type="button"
-          className="h-chat-fab"
+          className={`h-chat-fab${fabReady ? " fab-enter" : ""}`}
           onClick={openChat}
           aria-label="Open Farmer Chat"
         >
           <span className="h-chat-fab-icon">💬</span>
           {chatCount > 0 && (
-            <span className="h-chat-fab-badge">
+            <span className={`h-chat-fab-badge${chatCount > 0 ? " badge-ring" : ""}`}>
               {chatCount > 99 ? "99+" : chatCount}
             </span>
           )}
