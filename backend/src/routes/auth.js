@@ -11,7 +11,13 @@ import {
   logout,
 } from '../controllers/authController.js';
 import { validateBody } from '../middlewares/validate.js';
-import { otpSendLimiter, otpVerifyLimiter, loginLimiter } from '../middlewares/rateLimiter.js';
+import {
+  otpSendLimiter,
+  otpVerifyLimiter,
+  loginLimiter,
+  farmerOtpSendByMobileLimiter,
+  farmerOtpVerifyByMobileLimiter,
+} from '../middlewares/rateLimiter.js';
 import {
   sendOtpSchema,
   verifyOtpSchema,
@@ -22,8 +28,28 @@ import {
 const router = express.Router();
 
 router.get('/exists/:mobile', checkExists);
-router.post('/send-otp', otpSendLimiter(), validateBody(sendOtpSchema), sendOtp);
-router.post('/verify-otp', otpVerifyLimiter(), validateBody(verifyOtpSchema), verifyOtp);
+// IP-based limiter (outer) + per-mobile counter (inner) — defence in depth.
+router.post(
+  '/send-otp',
+  otpSendLimiter(),
+  farmerOtpSendByMobileLimiter(),
+  validateBody(sendOtpSchema),
+  sendOtp
+);
+router.post(
+  '/resend-otp',
+  otpSendLimiter(),
+  farmerOtpSendByMobileLimiter(),
+  validateBody(sendOtpSchema),
+  sendOtp
+);
+router.post(
+  '/verify-otp',
+  otpVerifyLimiter(),
+  farmerOtpVerifyByMobileLimiter(),
+  validateBody(verifyOtpSchema),
+  verifyOtp
+);
 router.post('/login', loginLimiter(), validateBody(loginSchema), login);
 router.get('/farmer-profile', getFarmerProfileSelf);
 router.post('/farmer-profile', validateBody(saveFarmerProfileSchema), saveFarmerProfileSelf);

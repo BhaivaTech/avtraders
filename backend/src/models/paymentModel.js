@@ -45,3 +45,35 @@ export async function findPaymentByMerchantOrderId(merchantOrderId) {
   );
   return rows[0] || null;
 }
+
+export async function getAllPayments({ page = 1, limit = 50, status } = {}) {
+  const offset = (Math.max(1, page) - 1) * limit;
+  const conditions = [];
+  const params = [];
+
+  if (status && status !== 'all') {
+    conditions.push('p.status = ?');
+    params.push(status);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [rows] = await pool.query(
+    `SELECT p.id, p.chat_id, p.provider, p.status, p.amount, p.txn_id, p.created_at,
+            u.name AS farmer_name, u.mobile AS farmer_mobile
+     FROM payments p
+     LEFT JOIN chats c ON c.id = p.chat_id
+     LEFT JOIN users u ON u.id = c.user_id
+     ${where}
+     ORDER BY p.id DESC
+     LIMIT ? OFFSET ?`,
+    [...params, Number(limit), offset]
+  );
+
+  const [[{ total }]] = await pool.query(
+    `SELECT COUNT(*) AS total FROM payments p ${where}`,
+    params
+  );
+
+  return { rows, total: Number(total), page: Number(page), limit: Number(limit) };
+}
+

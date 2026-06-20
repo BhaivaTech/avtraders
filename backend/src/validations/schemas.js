@@ -102,6 +102,10 @@ export const adminVerifyOtpSchema = z.object({
   code: otpCodeSchema,
 });
 
+export const adminResendOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
+});
+
 /* ------------------------------------------------------------------ */
 /*  Chat endpoints                                                       */
 /* ------------------------------------------------------------------ */
@@ -194,12 +198,66 @@ export const dealerRegisterSchema = z.object({
 /*  Announcement endpoints                                               */
 /* ------------------------------------------------------------------ */
 
-export const postAnnouncementSchema = z.object({
-  type: z.enum(['UPDATE', 'ALERT', 'INFO', 'PROMO']).default('UPDATE'),
-  title: z.string().max(200).optional().nullable(),
-  body: z.string().trim().min(1, 'Message body is required').max(5000),
-  link_url: z.string().url().max(500).optional().or(z.literal('')).transform((v) => v || null),
+// Announcement type chips the admin page uses. We accept the historic
+// four-letter codes (UPDATE/ALERT/INFO/PROMO) plus the friendlier
+// values the React form sends (general/holiday/timing/video/alert).
+// The controller normalises these to a single canonical enum.
+export const ANNOUNCEMENT_TYPES = [
+  'general', 'holiday', 'timing', 'video', 'alert',
+  'update',  'info',    'promo',
+];
+
+const announcementBody = z.object({
+  type:      z.enum(ANNOUNCEMENT_TYPES).default('general'),
+  title:     z.string().trim().max(200).optional().nullable(),
+  body:      z.string().trim().min(1, 'Message body is required').max(5000),
+  // The React form posts `message`; accept it as an alias and copy
+  // it into `body` so we always have a single source of truth.
+  message:   z.string().trim().max(5000).optional().nullable(),
+  link_url:  z.string().url().max(500).optional().or(z.literal('')).transform((v) => v || null),
+  image_url: z.string().url().max(500).optional().or(z.literal('')).transform((v) => v || null),
+  active:    z.boolean().optional().default(true),
+  pinned:    z.boolean().optional().default(false),
+  starts_at: z.string().datetime({ offset: true }).optional().nullable()
+              .transform((v) => (v ? new Date(v).toISOString().slice(0, 19).replace('T', ' ') : null)),
+  ends_at:   z.string().datetime({ offset: true }).optional().nullable()
+              .transform((v) => (v ? new Date(v).toISOString().slice(0, 19).replace('T', ' ') : null)),
 });
+
+/**
+ * Normalise a parsed announcement body. Folds `message` into `body`,
+ * coerces booleans, and validates that starts_at < ends_at.
+ */
+export function normalizeAnnouncement(input) {
+  const body = (input.body && String(input.body).trim())
+            || (input.message && String(input.message).trim());
+  if (!body) {
+    const err = new Error('Message body is required');
+    err.status = 400;
+    throw err;
+  }
+  const startsAt = input.starts_at || null;
+  const endsAt   = input.ends_at   || null;
+  if (startsAt && endsAt && new Date(startsAt) >= new Date(endsAt)) {
+    const err = new Error('ends_at must be after starts_at');
+    err.status = 400;
+    throw err;
+  }
+  return {
+    type:      String(input.type || 'general'),
+    title:     input.title || null,
+    body,
+    link_url:  input.link_url  || null,
+    image_url: input.image_url || null,
+    active:    input.active === false ? 0 : 1,
+    pinned:    input.pinned === true  ? 1 : 0,
+    starts_at: startsAt,
+    ends_at:   endsAt,
+  };
+}
+
+export const postAnnouncementSchema = announcementBody;
+export const putAnnouncementSchema  = announcementBody;
 
 /* ------------------------------------------------------------------ */
 /*  Farmer profile endpoints                                             */

@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import "../components/buynow.css";
 import { UPI_ID, UPI_NAME } from '../lib/config.js';
+import Seo from "../components/Seo.jsx";
 
 function qp(name, price, sku) {
   const params = new URLSearchParams(window.location.search);
@@ -9,6 +10,15 @@ function qp(name, price, sku) {
 }
 
 export default function Checkout() {
+  return (
+    <>
+      <Seo pageKey="checkout" />
+      <CheckoutInner />
+    </>
+  );
+}
+
+function CheckoutInner() {
   const name = useMemo(() => qp("name", null, null) || "Item", []);
   const price = useMemo(() => Number(qp("price", 0, null) || 0), []);
   const sku = useMemo(() => qp("sku", null, "GEN-001"), []);

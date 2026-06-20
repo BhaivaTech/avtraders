@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import Seo from "../components/Seo.jsx";
 
 const chapters = [
   { slug: "1-insecticides", title: "Chapter 1 — Insecticides: Classification & Groups" },
@@ -22,6 +23,7 @@ const chapters = [
 export default function Guide() {
   return (
     <div className="cl-root">
+      <Seo pageKey="guide" />
 
       {/* ── HERO ── */}
       <section className="cl-hero" style={{ textAlign: "center", paddingBottom: "2rem" }}>

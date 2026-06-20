@@ -29,6 +29,19 @@ const EXEMPT_PATHS = [
 ];
 
 /**
+ * Resolve the sameSite value for the CSRF cookie.
+ * Default is 'lax' so that normal top-level navigations still send the cookie
+ * and cross-origin iframe / external flows (e.g. payment callbacks, dealer
+ * iframe) don't get blocked. Set CSRF_SAMESITE=strict in .env to opt into
+ * the stricter (and more breakable) policy.
+ */
+function csrfSameSite() {
+  const v = String(process.env.CSRF_SAMESITE || '').trim().toLowerCase();
+  if (v === 'strict' || v === 'lax' || v === 'none') return v;
+  return 'lax';
+}
+
+/**
  * Generate a CSRF token pair: { secret (cookie), token (header) }.
  * The token is an HMAC of the secret so it's verifiable without server state.
  */
@@ -63,13 +76,14 @@ function verifyCsrfToken(cookieSecret, headerToken) {
  * This ensures the cookie is always available for the frontend to pair with.
  */
 export function csrfCookieSetter(req, res, next) {
+  const isProd = (process.env.NODE_ENV || '').trim() === 'production';
   // Only set on safe methods or if cookie is missing
   if (!req.cookies?.[CSRF_SECRET_NAME]) {
     const { secret } = generateCsrfPair();
     res.cookie(CSRF_SECRET_NAME, secret, {
       httpOnly: true,
-      secure: (process.env.NODE_ENV || '').trim() === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: csrfSameSite(),
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: '/',
     });
@@ -82,14 +96,15 @@ export function csrfCookieSetter(req, res, next) {
  * Returns the CSRF token the frontend should send in X-CSRF-Token header.
  */
 export function csrfTokenEndpoint(req, res) {
+  const isProd = (process.env.NODE_ENV || '').trim() === 'production';
   let secret = req.cookies?.[CSRF_SECRET_NAME];
   if (!secret) {
     const pair = generateCsrfPair();
     secret = pair.secret;
     res.cookie(CSRF_SECRET_NAME, secret, {
       httpOnly: true,
-      secure: (process.env.NODE_ENV || '').trim() === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: csrfSameSite(),
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });

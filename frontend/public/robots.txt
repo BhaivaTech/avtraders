@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /payment-result
+Disallow: /payment/phonepe/iframe
+Disallow: /farmers/profile
+
+Sitemap: https://avtradersagriclinic.com/sitemap.xml

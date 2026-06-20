@@ -1,11 +1,21 @@
 // src/pages/FarmerProfile.jsx
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import Seo from '../components/Seo.jsx';
 import './FarmerProfile.css';
 
 const norm = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 
 export default function FarmerProfile() {
+  return (
+    <>
+      <Seo pageKey="farmers/profile" />
+      <FarmerProfileInner />
+    </>
+  );
+}
+
+function FarmerProfileInner() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

@@ -7,8 +7,33 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const envPath = path.resolve(__dirname, ".env");
-dotenv.config({ path: envPath });
+
+// Resolve .env from the server file's directory first, then fall back to
+// process.cwd() so nodemon / node started from a parent folder still works.
+// `override: true` makes .env always win over any empty shell export
+// (a common cause of "Missing DB_HOST" when a parent shell exports "").
+const envCandidates = [
+  path.resolve(__dirname, ".env"),
+  path.resolve(process.cwd(), ".env"),
+];
+const envPath = envCandidates.find((p) => fs.existsSync(p));
+if (!envPath) {
+  // eslint-disable-next-line no-console
+  console.error(
+    `[startup] ⛔  No .env file found. Looked in:\n  ${envCandidates.join("\n  ")}\n` +
+    `Run from the backend/ folder, or copy .env.example to .env.`
+  );
+  process.exit(1);
+}
+const dotenvResult = dotenv.config({ path: envPath, override: true });
+if (dotenvResult.error) {
+  // eslint-disable-next-line no-console
+  console.error(`[startup] ⛔  Failed to read ${envPath}:`, dotenvResult.error.message);
+  process.exit(1);
+}
+const loadedKeys = dotenvResult.parsed ? Object.keys(dotenvResult.parsed).length : 0;
+// eslint-disable-next-line no-console
+console.log(`[startup] ✅ Loaded ${loadedKeys} env vars from ${envPath}`);
 
 /* ---- validate critical env vars immediately after loading .env ---- */
 await import("./src/config/env.js");
@@ -135,7 +160,7 @@ app.get("/api/csrf-token", csrfTokenEndpoint);
 
 /* ---------- Sessions ---------- */
 app.set("trust proxy", prod ? 1 : 0);
-const TEN_DAYS = 10 * 24 * 60 * 60 * 1000;
+const DEFAULT_SESSION_MS = Number(process.env.SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
 
 let store;
 if (prod) {
@@ -169,7 +194,7 @@ const sessionMiddleware = session({
     secure: prod,
     sameSite: "lax",
     domain: prod ? process.env.COOKIE_DOMAIN || undefined : undefined,
-    maxAge: TEN_DAYS,
+    maxAge: DEFAULT_SESSION_MS,
   },
 });
 
@@ -222,7 +247,6 @@ const chatMod = await import("./src/routes/chat.js");
 const chatRoutes = chatMod.default;
 const { attachChatSocket } = chatMod;
 const { default: quotesRoutes } = await import("./src/routes/quotes.js");
-const { ensureTables } = await import("./src/utils/ensureTables.js");
 const { default: farmersRoutes } = await import("./src/routes/farmers.js");
 
 /* ✅ NEW: dealer routes */
@@ -246,6 +270,11 @@ app.use("/api/farmers", farmersRoutes);
 
 /* ✅ Dealer portal base: /api/dealer */
 app.use("/api/dealer", dealerRoutes);
+
+/* ✅ Products (public + admin CRUD) */
+const { default: productsRoutes } = await import("./src/routes/products.js");
+app.use("/api/products", productsRoutes);
+
 
 /* -------- HTTP + Socket.IO -------- */
 const server = http.createServer(app);
@@ -327,16 +356,9 @@ try {
   process.exit(1);
 }
 
-ensureTables()
-  .then(() => {
-    server.listen(PORT, HOST, () => {
-      logger.info({ host: HOST, port: PORT }, `Backend listening on http://${HOST}:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to ensure tables");
-    process.exit(1);
-  });
+server.listen(PORT, HOST, () => {
+  logger.info({ host: HOST, port: PORT }, `Backend listening on http://${HOST}:${PORT}`);
+});
 
 /* ---------- Graceful shutdown ---------- */
 async function gracefulShutdown(signal) {

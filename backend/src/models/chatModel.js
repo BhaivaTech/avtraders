@@ -58,7 +58,25 @@ export async function updateChatStatus(chatId, status) {
   }
 }
 
-export async function getAllChatsForAdmin() {
+export async function getAllChatsForAdmin({ search, status, page = 1, limit = 100 } = {}) {
+  const offset = (Math.max(1, page) - 1) * Number(limit);
+  const conditions = [`EXISTS (
+      SELECT 1 FROM messages mx WHERE mx.chat_id = c.id AND mx.deleted_for_admin = 0
+    )`];
+  const params = [];
+
+  if (search) {
+    conditions.push('(u.name LIKE ? OR u.mobile LIKE ?)');
+    const like = `%${search}%`;
+    params.push(like, like);
+  }
+  if (status && status !== 'all') {
+    conditions.push('c.status = ?');
+    params.push(status.toUpperCase());
+  }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+
   const sql = `
     SELECT
       c.id,
@@ -104,17 +122,15 @@ export async function getAllChatsForAdmin() {
       ) AS unread_count
     FROM chats c
     JOIN users u ON u.id = c.user_id
-    WHERE EXISTS (
-      SELECT 1
-      FROM messages mx
-      WHERE mx.chat_id = c.id
-        AND mx.deleted_for_admin = 0
-    )
+    ${where}
     ORDER BY c.updated_at DESC, c.id DESC
+    LIMIT ? OFFSET ?
   `;
-  const [rows] = await pool.query(sql);
+
+  const [rows] = await pool.query(sql, [...params, Number(limit), offset]);
   return rows;
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  Messages                                                             */
@@ -134,12 +150,14 @@ export async function getChatThread(chatId, role) {
 
   const baseSelect = `
     SELECT m.id, m.chat_id, m.sender_role, m.text, m.meta, m.created_at,
-           a.file_path, a.mime_type, a.duration_seconds, a.kind
+           a.file_path, a.mime_type, a.duration_seconds, a.kind,
+           (c.last_read_admin_at IS NOT NULL AND m.created_at <= c.last_read_admin_at) AS is_read
   `;
   const withOrig = `${baseSelect}, a.original_name`;
   const fromJoin = `
     FROM messages m
     LEFT JOIN attachments a ON a.message_id = m.id
+    JOIN chats c ON c.id = m.chat_id
     WHERE m.chat_id = ? AND m.${hideCol} = 0
     ORDER BY m.id ASC
   `;
