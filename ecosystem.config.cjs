@@ -59,7 +59,7 @@ module.exports = {
   deploy: {
     production: {
       user: 'app',
-      host: '10.160.0.5',
+      host: '34.180.17.171',
       ref: 'origin/main',
       repo: 'git@github.com:yourusername/avtraders.git',
       path: '/home/app/avtraders',

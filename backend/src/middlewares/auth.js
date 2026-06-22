@@ -3,6 +3,7 @@
 
 import jwt from 'jsonwebtoken';
 import { findDealerByPhone } from '../models/dealerModel.js';
+import { hasPermission } from '../config/rbac.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_SESSION_MS = Number(process.env.ADMIN_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
@@ -15,9 +16,33 @@ const FARMER_SESSION_MS = Number(process.env.FARMER_SESSION_MAX_AGE_MS || 10 * 2
 export function ensureAdminSession(req, res, next) {
   if (req.session?.admin) {
     req.session.cookie.maxAge = ADMIN_SESSION_MS;
+    // Enrich request with role + id so downstream handlers can use them.
+    req.adminRole = req.session.adminRole || 'superadmin';
+    req.adminId   = req.session.adminId   || null;
     return next();
   }
   return res.status(401).json({ ok: false, message: 'admin-only' });
+}
+
+/* ------------------------------------------------------------------ */
+/*  RBAC permission guard                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Middleware factory. Use after ensureAdminSession.
+ * @param {string} permission - A key from ROLE_PERMISSIONS (e.g. 'payments')
+ * @example
+ *   router.get('/payments', ensureAdminSession, requirePermission('payments'), handler);
+ */
+export function requirePermission(permission) {
+  return function permissionGuard(req, res, next) {
+    const role = req.adminRole || req.session?.adminRole || 'superadmin';
+    if (hasPermission(role, permission)) return next();
+    return res.status(403).json({
+      ok: false,
+      message: `Forbidden: your role (${role}) does not have '${permission}' permission.`,
+    });
+  };
 }
 
 export function requireAdminIfAdminRole(req, res, next) {

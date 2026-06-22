@@ -13,6 +13,7 @@ import PageSkeleton      from './components/PageSkeleton.jsx';
 import PwaInstallPrompt  from './components/PwaInstallPrompt.jsx';
 import RequireAdmin      from './components/RequireAdmin.jsx';
 import RequireFarmer     from './components/RequireFarmer.jsx';
+import RequirePermission from './components/RequirePermission.jsx';
 import useScrollOnNavigate from './hooks/useScrollOnNavigate.js';
 
 // Lazy-loaded route chunks. Each import() becomes its own JS file
@@ -115,12 +116,12 @@ export default function App() {
                 <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="/admin/dashboard"    element={<AdminDashboard />} />
-                  <Route path="/admin/inbox"        element={<AdminInbox />} />
-                  <Route path="/admin/quotations"   element={<AdminQuotations />} />
-                  <Route path="/admin/payments"     element={<AdminPayments />} />
-                  <Route path="/admin/tracking"     element={<AdminTracking />} />
-                  <Route path="/admin/users"        element={<AdminUsers />} />
-                  <Route path="/admin/analytics"    element={<AdminAnalytics />} />
+                  <Route path="/admin/inbox"        element={<RequirePermission permission="chats"><AdminInbox /></RequirePermission>} />
+                  <Route path="/admin/quotations"   element={<RequirePermission permission="quotations"><AdminQuotations /></RequirePermission>} />
+                  <Route path="/admin/payments"     element={<RequirePermission permission="payments"><AdminPayments /></RequirePermission>} />
+                  <Route path="/admin/tracking"     element={<RequirePermission permission="chats"><AdminTracking /></RequirePermission>} />
+                  <Route path="/admin/users"        element={<RequirePermission permission="users"><AdminUsers /></RequirePermission>} />
+                  <Route path="/admin/analytics"    element={<RequirePermission permission="analytics"><AdminAnalytics /></RequirePermission>} />
                   <Route path="/admin/settings"     element={<AdminSettings />} />
                 </Route>
 

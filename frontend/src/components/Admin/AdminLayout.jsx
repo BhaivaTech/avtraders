@@ -10,6 +10,7 @@ import { resolveApiOrigin } from '@/lib/endpoint';
 import toast from '../../lib/toast.js';
 import AdminSidebar from './AdminSidebar.jsx';
 import AdminHeader from './AdminHeader.jsx';
+import { AdminAuthProvider } from '../../contexts/AdminAuthContext.jsx';
 import './Admin.css';
 
 export default function AdminLayout() {
@@ -56,19 +57,21 @@ export default function AdminLayout() {
   }, []);
 
   return (
-    <div className="admin-layout">
-      <AdminSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div
-        className={`admin-sidebar-overlay${mobileOpen ? ' is-open' : ''}`}
-        onClick={() => setMobileOpen(false)}
-        aria-hidden="true"
-      />
-      <div className="admin-main">
-        <AdminHeader onMenuToggle={() => setMobileOpen((s) => !s)} />
-        <div className="admin-content">
-          <Outlet />
+    <AdminAuthProvider>
+      <div className="admin-layout">
+        <AdminSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
+        <div
+          className={`admin-sidebar-overlay${mobileOpen ? ' is-open' : ''}`}
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+        <div className="admin-main">
+          <AdminHeader onMenuToggle={() => setMobileOpen((s) => !s)} />
+          <div className="admin-content">
+            <Outlet />
+          </div>
         </div>
       </div>
-    </div>
+    </AdminAuthProvider>
   );
 }

@@ -8,6 +8,7 @@ import { insertAuthAudit, requestAuditMeta } from '../models/authAuditModel.js';
 import { pool } from '../config/db.js';
 import { getAllPayments } from '../models/paymentModel.js';
 import logger from '../utils/logger.js';
+import { permissionsForRole } from '../config/rbac.js';
 
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 const ADMIN_SESSION_MS = Number(process.env.ADMIN_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
@@ -27,13 +28,42 @@ function setAdminPreAuth(req) {
   req.session.cookie.maxAge = Math.max(ADMIN_OTP_TTL * 1000, 60_000);
 }
 
-function setAdminSession(req) {
+async function setAdminSession(req) {
   req.session.admin = true;
   req.session.adminEmail = ADMIN_EMAIL;
   req.session.cookie.maxAge = ADMIN_SESSION_MS;
   delete req.session.adminPreAuth;
   delete req.session.adminPreAuthEmail;
   delete req.session.loginNonce;
+
+  // Look up admin_users record to attach role and id.
+  // If no record exists yet (first boot before migration), default to superadmin.
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, name, role FROM admin_users WHERE email = ? AND is_active = 1 LIMIT 1',
+      [ADMIN_EMAIL]
+    );
+    if (rows.length > 0) {
+      req.session.adminId   = rows[0].id;
+      req.session.adminRole = rows[0].role;
+      req.session.adminName = rows[0].name;
+    } else {
+      // Fallback: seed this admin on the fly so future lookups work
+      try {
+        const [ins] = await pool.query(
+          "INSERT IGNORE INTO admin_users (email, name, role) VALUES (?, 'Site Admin', 'superadmin')",
+          [ADMIN_EMAIL]
+        );
+        req.session.adminId   = ins.insertId || null;
+      } catch { /* table may not exist yet — ignore */ }
+      req.session.adminRole = 'superadmin';
+      req.session.adminName = 'Site Admin';
+    }
+  } catch {
+    // Migration not yet applied — degrade gracefully
+    req.session.adminRole = 'superadmin';
+    req.session.adminName = 'Admin';
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -147,12 +177,12 @@ export async function verifyOtp(req, res) {
       return res.status(401).json({ ok: false, error: result.message || 'bad-code' });
     }
 
-    req.session.regenerate((err) => {
+    req.session.regenerate(async (err) => {
       if (err) {
         logger.error({ err }, '[admin] session.regenerate failed');
         return res.status(500).json({ ok: false, error: 'session-failed' });
       }
-      setAdminSession(req);
+      await setAdminSession(req);
       insertAuthAudit({
         actorType: 'admin',
         identifier: ADMIN_EMAIL,
@@ -192,7 +222,14 @@ export function ping(req, res) {
 export function me(req, res) {
   if (!req.session?.admin) return res.status(401).json({ ok: false });
   req.session.cookie.maxAge = ADMIN_SESSION_MS;
-  return res.json({ ok: true, email: req.session.adminEmail || ADMIN_EMAIL, expires_in_ms: ADMIN_SESSION_MS });
+  return res.json({
+    ok: true,
+    email:          req.session.adminEmail || ADMIN_EMAIL,
+    name:           req.session.adminName  || 'Admin',
+    role:           req.session.adminRole  || 'superadmin',
+    permissions:    permissionsForRole(req.session.adminRole || 'superadmin'),
+    expires_in_ms:  ADMIN_SESSION_MS,
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -284,5 +321,152 @@ export async function getAdminStats(req, res) {
   } catch (err) {
     logger.error({ err }, '[admin] getAdminStats failed');
     return res.status(500).json({ ok: false, message: 'Failed to load stats' });
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Admin user management (superadmin only)                              */
+/* ------------------------------------------------------------------ */
+
+export async function listAdminUsers(req, res) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, email, name, role, is_active, created_at, updated_at FROM admin_users ORDER BY id ASC'
+    );
+    return res.json({ ok: true, admins: rows });
+  } catch (err) {
+    logger.error({ err }, '[admin] listAdminUsers failed');
+    return res.status(500).json({ ok: false, message: 'Failed to load admin users' });
+  }
+}
+
+export async function createAdminUser(req, res) {
+  const { email, name, role } = req.body || {};
+  const VALID_ROLES = ['superadmin', 'manager', 'support', 'finance'];
+
+  if (!email || !name || !role) {
+    return res.status(400).json({ ok: false, message: 'email, name, and role are required' });
+  }
+  if (!VALID_ROLES.includes(role)) {
+    return res.status(400).json({ ok: false, message: `role must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'INSERT INTO admin_users (email, name, role) VALUES (?, ?, ?)',
+      [email.trim().toLowerCase(), name.trim(), role]
+    );
+    await insertAuthAudit({
+      actorType: 'admin',
+      actorId: req.session?.adminEmail || 'superadmin',
+      action: 'admin_user_created',
+      success: true,
+      ...requestAuditMeta(req, { new_admin_email: email, role }),
+    });
+    return res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ ok: false, message: 'An admin with that email already exists' });
+    }
+    logger.error({ err }, '[admin] createAdminUser failed');
+    return res.status(500).json({ ok: false, message: 'Failed to create admin user' });
+  }
+}
+
+export async function updateAdminUser(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, message: 'Invalid id' });
+  }
+
+  const { name, role } = req.body || {};
+  const VALID_ROLES = ['superadmin', 'manager', 'support', 'finance'];
+
+  if (role && !VALID_ROLES.includes(role)) {
+    return res.status(400).json({ ok: false, message: `role must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+
+  const updates = [];
+  const values = [];
+  if (name)  { updates.push('name = ?');  values.push(name.trim()); }
+  if (role)  { updates.push('role = ?');  values.push(role); }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ ok: false, message: 'Nothing to update' });
+  }
+  values.push(id);
+
+  try {
+    const [result] = await pool.query(
+      `UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, message: 'Admin user not found' });
+    }
+    await insertAuthAudit({
+      actorType: 'admin',
+      actorId: req.session?.adminEmail || 'superadmin',
+      action: 'admin_user_updated',
+      success: true,
+      ...requestAuditMeta(req, { target_admin_id: id, updates: { name, role } }),
+    });
+    return res.json({ ok: true, id });
+  } catch (err) {
+    logger.error({ err, id }, '[admin] updateAdminUser failed');
+    return res.status(500).json({ ok: false, message: 'Failed to update admin user' });
+  }
+}
+
+export async function deactivateAdminUser(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, message: 'Invalid id' });
+  }
+
+  // Prevent deactivating yourself
+  if (id === req.session?.adminId) {
+    return res.status(400).json({ ok: false, message: 'You cannot deactivate your own account' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE admin_users SET is_active = 0 WHERE id = ?',
+      [id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, message: 'Admin user not found' });
+    }
+    await insertAuthAudit({
+      actorType: 'admin',
+      actorId: req.session?.adminEmail || 'superadmin',
+      action: 'admin_user_deactivated',
+      success: true,
+      ...requestAuditMeta(req, { target_admin_id: id }),
+    });
+    return res.json({ ok: true, id });
+  } catch (err) {
+    logger.error({ err, id }, '[admin] deactivateAdminUser failed');
+    return res.status(500).json({ ok: false, message: 'Failed to deactivate admin user' });
+  }
+}
+
+export async function reactivateAdminUser(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, message: 'Invalid id' });
+  }
+  try {
+    const [result] = await pool.query(
+      'UPDATE admin_users SET is_active = 1 WHERE id = ?',
+      [id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, message: 'Admin user not found' });
+    }
+    return res.json({ ok: true, id });
+  } catch (err) {
+    logger.error({ err, id }, '[admin] reactivateAdminUser failed');
+    return res.status(500).json({ ok: false, message: 'Failed to reactivate admin user' });
   }
 }

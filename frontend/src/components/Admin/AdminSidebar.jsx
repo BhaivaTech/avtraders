@@ -1,13 +1,10 @@
 // src/components/Admin/AdminSidebar.jsx
-// Left-hand navigation rail for the admin panel. Lists links to every
-// sub-page (dashboard, inbox, quotations, payments, tracking, users,
-// analytics, settings) and renders the active state via NavLink.
-//
-// Placeholder — the full nav, icons, and role-based visibility will
-// be filled in during a later step of the Admin restructure ferment.
+// Left-hand navigation rail for the admin panel.
+// Nav items are filtered based on the current admin's role via useAdminAuth().
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAdminAuth } from '../../contexts/AdminAuthContext.jsx';
 
 /* ── inline nav icons ── */
 const icons = {
@@ -37,23 +34,66 @@ const icons = {
   ),
 };
 
+/**
+ * Each nav item declares the permission it requires.
+ * null means "no permission required" (visible to all roles).
+ */
 const NAV_ITEMS = [
-  { to: '/admin/dashboard',  label: 'Dashboard',  icon: icons.dashboard },
-  { to: '/admin/inbox',      label: 'Inbox',      icon: icons.inbox },
-  { to: '/admin/quotations', label: 'Quotations', icon: icons.quotations },
-  { to: '/admin/payments',   label: 'Payments',   icon: icons.payments },
-  { to: '/admin/tracking',   label: 'Tracking',   icon: icons.tracking },
-  { to: '/admin/users',      label: 'Users',      icon: icons.users },
-  { to: '/admin/analytics',  label: 'Analytics',  icon: icons.analytics },
-  { to: '/admin/settings',   label: 'Settings',   icon: icons.settings },
+  { to: '/admin/dashboard',  label: 'Dashboard',  icon: icons.dashboard,  permission: null },
+  { to: '/admin/inbox',      label: 'Inbox',      icon: icons.inbox,      permission: 'chats' },
+  { to: '/admin/quotations', label: 'Quotations', icon: icons.quotations, permission: 'quotations' },
+  { to: '/admin/payments',   label: 'Payments',   icon: icons.payments,   permission: 'payments' },
+  { to: '/admin/tracking',   label: 'Tracking',   icon: icons.tracking,   permission: 'chats' },
+  { to: '/admin/users',      label: 'Users',      icon: icons.users,      permission: 'users' },
+  { to: '/admin/analytics',  label: 'Analytics',  icon: icons.analytics,  permission: 'analytics' },
+  { to: '/admin/settings',   label: 'Settings',   icon: icons.settings,   permission: null },
 ];
 
+const ROLE_COLORS = {
+  superadmin: '#8b5cf6',
+  manager:    '#3b82f6',
+  support:    '#10b981',
+  finance:    '#f59e0b',
+};
+
 export default function AdminSidebar({ open, onClose }) {
+  const { role, name, hasPermission, loading } = useAdminAuth();
+
+  const visibleItems = loading
+    ? NAV_ITEMS // show all while loading to prevent layout shift
+    : NAV_ITEMS.filter(({ permission }) =>
+        permission === null || hasPermission(permission)
+      );
+
   return (
     <aside className={`admin-sidebar${open ? ' is-open' : ''}`} aria-label="Admin navigation">
       <div className="admin-sidebar-brand">AV Traders Admin</div>
+
+      {/* Role identity pill */}
+      {!loading && role && (
+        <div className="admin-sidebar-role-pill" style={{
+          margin: '0 16px 12px',
+          padding: '6px 12px',
+          borderRadius: '8px',
+          background: `${ROLE_COLORS[role] || '#6b7280'}22`,
+          border: `1px solid ${ROLE_COLORS[role] || '#6b7280'}44`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+        }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: ROLE_COLORS[role] || '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {role}
+          </span>
+          {name && (
+            <span style={{ fontSize: '13px', color: 'var(--admin-text, #111)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {name}
+            </span>
+          )}
+        </div>
+      )}
+
       <nav className="admin-sidebar-nav" onClick={onClose}>
-        {NAV_ITEMS.map(({ to, label, icon }) => (
+        {visibleItems.map(({ to, label, icon }) => (
           <NavLink
             key={to}
             to={to}

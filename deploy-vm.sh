@@ -8,7 +8,7 @@ set -e
 # CONFIGURATION - Update these values
 # ============================================
 DOMAIN="av.bhaiavtech.com"
-SERVER_IP="10.160.0.5"
+SERVER_IP="34.180.17.171"
 APP_USER="app"
 APP_DIR="/home/app/avtraders"
 NODE_VERSION="20"  # LTS version

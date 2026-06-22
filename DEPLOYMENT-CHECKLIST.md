@@ -1,5 +1,5 @@
 # AV Traders Deployment Checklist
-## Server: 10.160.0.5 | Domain: av.bhaiavtech.com
+## Server: 34.180.17.171 | Domain: av.bhaiavtech.com
 
 ---
 
@@ -7,10 +7,10 @@
 
 ### DNS Configuration
 - [ ] Login to your domain registrar (or DNS provider)
-- [ ] Add A record: `av.bhaiavtech.com` → `10.160.0.5`
-- [ ] Add A record: `www.bhaiavtech.com` → `10.160.0.5`
+- [ ] Add A record: `av.bhaiavtech.com` → `34.180.17.171`
+- [ ] Add A record: `www.bhaiavtech.com` → `34.180.17.171`
 - [ ] Wait for DNS propagation (5-30 minutes)
-- [ ] Verify: `ping av.bhaiavtech.com` should show `10.160.0.5`
+- [ ] Verify: `ping av.bhaiavtech.com` should show `34.180.17.171`
 
 ### GCP Firewall Rules
 - [ ] Go to GCP Console → VPC Network → Firewall
@@ -37,18 +37,16 @@ gcloud compute firewall-rules create allow-https \
 
 ### Step 1: Connect to Server
 ```bash
-ssh your-username@10.160.0.5
-# Or if using external IP:
-ssh your-username@EXTERNAL_IP
+ssh your-username@34.180.17.171
 ```
 
 ### Step 2: Run Setup Script
 ```bash
 # Upload the deployment script
-scp deploy-vm.sh your-username@10.160.0.5:/tmp/
+scp deploy-vm.sh your-username@34.180.17.171:/tmp/
 
 # Connect and run
-ssh your-username@10.160.0.5
+ssh your-username@34.180.17.171
 chmod +x /tmp/deploy-vm.sh
 sudo /tmp/deploy-vm.sh
 ```
@@ -405,6 +403,6 @@ pm2 monit
 ## Support Contacts
 
 - **Domain**: av.bhaiavtech.com
-- **Server IP**: 10.160.0.5
-- **SSH**: `ssh app@10.160.0.5`
+- **Server IP**: 34.180.17.171
+- **SSH**: `ssh app@34.180.17.171`
 - **MySQL**: `mysql -u avtraders -p avtradersdb`
