@@ -1,5 +1,7 @@
 // server/routes/translate.js
 import express from "express";
+import { validateBody } from "../middlewares/validate.js";
+import { translateSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
@@ -36,7 +38,7 @@ router.get("/languages", async (_req, res) => {
   return res.json([{ code: "en", name: "English" }, { code: "kn", name: "Kannada" }]);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validateBody(translateSchema), async (req, res) => {
   try {
     const { q, source = "auto", target = "kn", format = "text" } = req.body || {};
     const texts = toArray(q).filter(Boolean);

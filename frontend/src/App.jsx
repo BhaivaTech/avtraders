@@ -3,7 +3,7 @@
 // JS bundle stays small; a Suspense boundary shows a route-shaped skeleton
 // while each chunk is fetched.
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 
 import SiteHeader        from './components/SiteHeader.jsx';
@@ -11,6 +11,8 @@ import ErrorBoundary     from './components/ErrorBoundary.jsx';
 import OfflineBanner     from './components/OfflineBanner.jsx';
 import PageSkeleton      from './components/PageSkeleton.jsx';
 import PwaInstallPrompt  from './components/PwaInstallPrompt.jsx';
+import RequireAdmin      from './components/RequireAdmin.jsx';
+import RequireFarmer     from './components/RequireFarmer.jsx';
 import useScrollOnNavigate from './hooks/useScrollOnNavigate.js';
 
 // Lazy-loaded route chunks. Each import() becomes its own JS file
@@ -50,6 +52,7 @@ const AdminTracking     = lazy(() => import('./pages/admin/AdminTracking.jsx'));
 const AdminUsers        = lazy(() => import('./pages/admin/AdminUsers.jsx'));
 const AdminAnalytics    = lazy(() => import('./pages/admin/AdminAnalytics.jsx'));
 const AdminSettings     = lazy(() => import('./pages/admin/AdminSettings.jsx'));
+const AdminLogin        = lazy(() => import('./pages/AdminLogin.jsx'));
 
 /**
  * Suspense wrapper that picks a route-shaped skeleton based on the
@@ -73,10 +76,22 @@ function ScrollOnNavigate() {
   return null;
 }
 
+function ThemeEnforcer() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!pathname.startsWith('/admin')) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
+      <ThemeEnforcer />
       <OfflineBanner />
       <SiteHeader />
       <div className="container">
@@ -91,12 +106,13 @@ export default function App() {
                 <Route path="/farmers"                   element={<Farmers />} />
                 <Route path="/dealers"                   element={<Dealers />} />
 
-                {/* Legacy monolithic admin — preserved for backwards compat */}
+                <Route path="/admin/login"               element={<AdminLogin />} />
+
                 {/* Legacy announcements page — still reachable */}
-                <Route path="/admin/announcements"       element={<AdminAnnouncements />} />
+                <Route path="/admin/announcements"       element={<RequireAdmin><AdminAnnouncements /></RequireAdmin>} />
 
                 {/* New modular admin panel with layout + sidebar */}
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="/admin/dashboard"    element={<AdminDashboard />} />
                   <Route path="/admin/inbox"        element={<AdminInbox />} />
@@ -122,7 +138,7 @@ export default function App() {
                 <Route path="/checkout"                  element={<Checkout />} />
                 <Route path="/payment-result"            element={<PaymentResult />} />
                 <Route path="/payment/phonepe/iframe"    element={<PaymentIframe />} />
-                <Route path="/farmers/profile"           element={<FarmerProfile />} />
+                <Route path="/farmers/profile"           element={<RequireFarmer><FarmerProfile /></RequireFarmer>} />
                 {/* Catch-all: show 404 page for unknown URLs */}
                 <Route path="*"                          element={<NotFound />} />
               </Routes>

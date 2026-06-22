@@ -8,7 +8,7 @@ import {
   dealerOtpSendByMobileLimiter,
   dealerOtpVerifyByMobileLimiter,
 } from '../middlewares/rateLimiter.js';
-import { dealerSendOtpSchema, dealerVerifyOtpSchema } from '../validations/schemas.js';
+import { dealerSendOtpSchema, dealerVerifyOtpSchema, dealerRegisterSchema, placeOrderSchema } from '../validations/schemas.js';
 
 import { sendOtp, verifyOtp, simpleLogin, me, logout, sendOtpLimiter } from '../controllers/dealer/index.js';
 import { register } from '../controllers/dealer/register.js';
@@ -48,13 +48,14 @@ router.post(
     { name: 'gst_certificate', maxCount: 1 },
     { name: 'insecticide_licence', maxCount: 1 },
   ]),
+  validateBody(dealerRegisterSchema),
   register
 );
 router.get('/pricelist', authDealer, getPricelist);
-router.get('/pricelist/download', downloadPricelist);
+router.get('/pricelist/download', authDealer, downloadPricelist);
 
 // Dealer orders
 router.get('/orders',  authDealer, getMyOrders);
-router.post('/orders', authDealer, placeOrder);
+router.post('/orders', authDealer, validateBody(placeOrderSchema), placeOrder);
 
 export default router;

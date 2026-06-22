@@ -1,21 +1,9 @@
 // src/pages/admin/AdminUsers.jsx
 // User management page for farmers & dealers.
-// Fetches unique users from /chat/all and shows them in a searchable table.
-// Supports viewing profiles and blocking/unblocking users.
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../../lib/api.js';
 import toast from '../../lib/toast.js';
-
-/* ── icons ── */
-function IconSearch({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-  );
-}
 
 /* ── user detail modal ── */
 function UserModal({ user, onClose }) {
@@ -38,12 +26,12 @@ function UserModal({ user, onClose }) {
 
   const p = profile || {};
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20 }}>
-      <div className="modal-body" style={{ background:'#fff',borderRadius:12,maxWidth:420,width:'100%',padding:20,position:'relative' }} onClick={(e)=>e.stopPropagation()}>
-        <button onClick={onClose} style={{ position:'absolute',top:10,right:10,background:'none',border:'none',fontSize:20,color:'#64748b',cursor:'pointer' }}>×</button>
-        <h3 style={{ margin:'0 0 16px', fontSize:16, fontWeight:700, color:'#0f172a' }}>👤 {p.full_name || user.name || 'Farmer'}</h3>
-        {loading ? <div style={{ color:'#94a3b8' }}>Loading profile…</div> : (
-          <div style={{ display:'grid', gap:10, fontSize:14, color:'#334155' }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-body" onClick={(e)=>e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
+        <h3 style={{ margin:'0 0 16px', fontSize:16, fontWeight:700, color:'var(--ink)' }}>👤 {p.full_name || user.name || 'Farmer'}</h3>
+        {loading ? <div style={{ color:'var(--muted)' }}>Loading profile…</div> : (
+          <div style={{ display:'grid', gap:10, fontSize:14, color:'var(--ink-soft)' }}>
             <div><strong>Mobile:</strong> {p.mobile || user.mobile}</div>
             {p.whatsapp && <div><strong>WhatsApp:</strong> {p.whatsapp}</div>}
             {p.village && <div><strong>Village:</strong> {p.village}</div>}
@@ -52,31 +40,9 @@ function UserModal({ user, onClose }) {
             {p.pincode && <div><strong>Pincode:</strong> {p.pincode}</div>}
             {p.land_size && <div><strong>Land Size:</strong> {p.land_size}</div>}
             {p.crops_text && <div><strong>Crops:</strong> {p.crops_text}</div>}
-            <div><strong>Status:</strong> {p.blocked ? <span style={{ color:'#dc2626' }}>Blocked</span> : <span style={{ color:'#16a34a' }}>Active</span>}</div>
+            <div><strong>Status:</strong> {p.blocked ? <span className="badge danger">Blocked</span> : <span className="badge success">Active</span>}</div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/* ── row ── */
-function UserRow({ user, onView, onToggleBlock, blocking }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderBottom:'1px solid #f1f5f9', background:'#fff', borderRadius:0 }} className="user-row">
-      <div style={{ flex:2, minWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight:600, color:'#0f172a' }}>{user.name || '—'}</div>
-      <div style={{ flex:1.5, minWidth:100, color:'#334155', fontSize:13 }}>{user.mobile || '—'}</div>
-      <div style={{ flex:1, minWidth:80, fontSize:12 }}>
-        {user.chats > 1 ? `${user.chats} chats` : `${user.chats} chat`}
-      </div>
-      <div style={{ flex:1, minWidth:70, fontSize:12, color:user.unread_total > 0 ? '#dc2626' : '#94a3b8' }}>
-        {user.unread_total} unread
-      </div>
-      <div style={{ flex:1.5, minWidth:90, display:'flex', gap:6, justifyContent:'flex-end' }}>
-        <button onClick={()=>onView(user)} style={{ padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', fontSize:12, cursor:'pointer', color:'#334155' }}>View</button>
-        <button onClick={()=>onToggleBlock(user)} disabled={blocking===user.mobile} style={{ padding:'4px 10px', border:'1px solid '+(user.blocked?'#22c55e':'#ef4444'), borderRadius:6, background:user.blocked?'#f0fdf4':'#fef2f2', fontSize:12, cursor:'pointer', color:user.blocked?'#16a34a':'#dc2626' }}>
-          {blocking===user.mobile ? '…' : (user.blocked ? 'Unblock' : 'Block')}
-        </button>
       </div>
     </div>
   );
@@ -129,7 +95,6 @@ export default function AdminUsers() {
     if (blockingMobile) return;
     setBlockingMobile(user.mobile);
     try {
-      // resolve userId
       let uid = user.user_id;
       if (!uid) {
         const exists = await api.get(`/auth/exists/${user.mobile}`, { withCredentials: true });
@@ -150,55 +115,90 @@ export default function AdminUsers() {
     }
   }
 
+  const totalBlocked = users.filter((u) => u.blocked).length;
+
   return (
     <div className="admin-page" data-admin-page="users">
-      <h1 style={{ margin:'0 0 20px', fontSize:22, fontWeight:800, color:'#0f172a' }}>User Management</h1>
+      <div className="admin-page-head">
+        <h1>User Management</h1>
+        <p className="muted">Manage farmer accounts, view profiles, and block/unblock users.</p>
+      </div>
 
-      {/* Search bar */}
-      <div style={{ display:'flex', gap:8, marginBottom:16, maxWidth:360 }}>
-        <div style={{ flex:1, position:'relative' }}>
-          <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search name or mobile…"
-            style={{ width:'100%', padding:'8px 12px 8px 32px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:14, outline:'none' }}
-          />
-          <span style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:'#94a3b8' }}><IconSearch/></span>
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', marginBottom: 20 }}>
+        <div className="stat-card tone-neutral">
+          <div className="label">Total Users</div>
+          <div className="value">{users.length}</div>
+        </div>
+        <div className="stat-card tone-danger">
+          <div className="label">Blocked</div>
+          <div className="value">{totalBlocked}</div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap' }}>
-        <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', minWidth:100 }}>
-          <div style={{ fontSize:11, fontWeight:600, color:'#64748b', textTransform:'uppercase' }}>Total Users</div>
-          <div style={{ fontSize:20, fontWeight:800, color:'#0f172a' }}>{users.length}</div>
-        </div>
-        <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', minWidth:100 }}>
-          <div style={{ fontSize:11, fontWeight:600, color:'#64748b', textTransform:'uppercase' }}>Blocked</div>
-          <div style={{ fontSize:20, fontWeight:800, color:'#dc2626' }}>{users.filter((u)=>u.blocked).length}</div>
-        </div>
+      <div className="search" style={{ maxWidth: 360, marginBottom: 16 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name or mobile…"
+        />
       </div>
 
-      {/* Table header */}
-      {filtered.length > 0 && (
-        <div style={{ display:'flex', gap:12, padding:'8px 12px', fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.03em', borderBottom:'1px solid #e2e8f0' }}>
-          <div style={{ flex:2, minWidth:120 }}>Name</div>
-          <div style={{ flex:1.5, minWidth:100 }}>Mobile</div>
-          <div style={{ flex:1, minWidth:80 }}>Chats</div>
-          <div style={{ flex:1, minWidth:70 }}>Unread</div>
-          <div style={{ flex:1.5, minWidth:90 }}></div>
-        </div>
-      )}
-
-      {/* Rows */}
       {loading ? (
-        <div style={{ padding:20, color:'#94a3b8', fontSize:14 }}>Loading users…</div>
+        <div className="loading">Loading users…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ padding:20, color:'#94a3b8', fontSize:14 }}>{query.trim() ? 'No users match your search.' : 'No users found.'}</div>
+        <div className="admin-empty">
+          <div className="title">{query.trim() ? 'No matches' : 'No users'}</div>
+          <p>{query.trim() ? 'No users match your search.' : 'No users found.'}</p>
+        </div>
       ) : (
-        filtered.map((u) => (
-          <UserRow key={u.mobile} user={u} onView={setModalUser} onToggleBlock={toggleBlock} blocking={blockingMobile} />
-        ))
+        <div className="table-responsive">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Chats</th>
+                <th>Unread</th>
+                <th className="cell-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => (
+                <tr key={u.mobile}>
+                  <td>
+                    <strong>{u.name || '—'}</strong>
+                    {u.blocked && <span className="badge danger" style={{ marginLeft: 8 }}>Blocked</span>}
+                  </td>
+                  <td>{u.mobile || '—'}</td>
+                  <td>{u.chats} chat{u.chats !== 1 ? 's' : ''}</td>
+                  <td>
+                    {u.unread_total > 0 ? (
+                      <span className="badge danger">{u.unread_total}</span>
+                    ) : (
+                      <span className="muted">0</span>
+                    )}
+                  </td>
+                  <td className="cell-actions">
+                    <button className="btn ghost tiny" onClick={() => setModalUser(u)}>
+                      View
+                    </button>
+                    <button
+                      className={`btn tiny ${u.blocked ? 'success' : 'danger'}`}
+                      onClick={() => toggleBlock(u)}
+                      disabled={blockingMobile === u.mobile}
+                    >
+                      {blockingMobile === u.mobile ? '…' : (u.blocked ? 'Unblock' : 'Block')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {modalUser && <UserModal user={modalUser} onClose={()=>setModalUser(null)} />}
+      {modalUser && <UserModal user={modalUser} onClose={() => setModalUser(null)} />}
     </div>
   );
 }

@@ -12,27 +12,19 @@ import AdminSidebar from './AdminSidebar.jsx';
 import AdminHeader from './AdminHeader.jsx';
 import './Admin.css';
 
-const DARK_MODE_KEY = 'admin-dark-mode';
-
-function getInitialDark() {
-  try {
-    return localStorage.getItem(DARK_MODE_KEY) === 'true';
-  } catch { return false; }
-}
-
 export default function AdminLayout() {
-  const [dark, setDark] = useState(getInitialDark);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     function onStorage(e) {
-      if (e.key === DARK_MODE_KEY) setDark(e.newValue === 'true');
+      if (e.key === 'admin-dark-mode') {
+        try { localStorage.removeItem('admin-dark-mode'); } catch {}
+      }
     }
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  /* ---------- real-time toast notifications ---------- */
   useEffect(() => {
     const ORIGIN = resolveApiOrigin();
     const s = io(ORIGIN, {
@@ -64,7 +56,7 @@ export default function AdminLayout() {
   }, []);
 
   return (
-    <div className="admin-layout" data-admin-dark={dark ? 'true' : 'false'}>
+    <div className="admin-layout">
       <AdminSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div
         className={`admin-sidebar-overlay${mobileOpen ? ' is-open' : ''}`}

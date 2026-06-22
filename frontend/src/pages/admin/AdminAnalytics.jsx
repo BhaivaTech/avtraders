@@ -68,25 +68,14 @@ function aggregateStatus(rows, key = 'status') {
 /* ── chart card ── */
 function ChartCard({ title, children, isLoading }) {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 12,
-        padding: 18,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        minHeight: 320,
-      }}
-    >
-      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#334155' }}>{title}</h3>
+    <div className="chart-card">
+      <h3>{title}</h3>
       {isLoading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-          Loading…
-        </div>
+        <div className="chart-body loading">Loading…</div>
       ) : (
-        children
+        <div className="chart-body">
+          {children}
+        </div>
       )}
     </div>
   );
@@ -127,17 +116,9 @@ export default function AdminAnalytics() {
 
   return (
     <div className="admin-page" data-admin-page="analytics">
-      <h1 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
-        Analytics
-      </h1>
+      <h1>Analytics</h1>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 16,
-        }}
-      >
+      <div className="chart-grid">
         <ChartCard title="Messages Over Time" isLoading={loading}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={messageTrend}>

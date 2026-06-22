@@ -121,11 +121,16 @@ export function adminLoginLimiter() {
 /**
  * General API rate limiter.
  * 100 requests per 15 minutes per IP.
+ * Skips webhook/callback paths so external payment providers aren't rate-limited.
  */
 export function apiLimiter() {
   return rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
+    skip: (req) => {
+      const path = req.path || req.url || '';
+      return path.startsWith('/api/payment/webhook') || path.startsWith('/api/phonepe/callback');
+    },
     message: { ok: false, message: 'Too many requests. Please slow down.' },
     standardHeaders: true,
     legacyHeaders: false,

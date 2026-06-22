@@ -8,6 +8,8 @@
 
 import { z } from 'zod';
 
+function toArray(q) { return Array.isArray(q) ? q : [q]; }
+
 /* ------------------------------------------------------------------ */
 /*  Reusable primitives                                                  */
 /* ------------------------------------------------------------------ */
@@ -275,8 +277,30 @@ export const saveFarmerProfileSchema = z.object({
 });
 
 /* ------------------------------------------------------------------ */
-/*  PhonePe (manual) endpoints                                           */
+/*  Dealer order endpoints                                               */
 /* ------------------------------------------------------------------ */
+
+export const placeOrderSchema = z.object({
+  items: z.array(
+    z.object({
+      productId: z.union([z.string(), z.number()]).transform((v) => Number(v)).pipe(z.number().int().positive('Invalid productId')),
+      qty: z.union([z.string(), z.number()]).transform((v) => Number(v)).pipe(z.number().int().positive('Quantity must be greater than 0').max(10_000, 'Quantity too large')),
+    })
+  ).min(1, 'At least one item is required').max(100, 'Too many items (max 100)'),
+});
+
+/* ------------------------------------------------------------------ */
+/*  Translate endpoint                                                   */
+/* ------------------------------------------------------------------ */
+
+export const translateSchema = z.object({
+  q: z.union([z.string(), z.array(z.string())]).transform(toArray).pipe(
+    z.array(z.string().max(10_000)).min(1).max(50)
+  ),
+  source: z.string().max(10).optional().default('auto'),
+  target: z.string().max(10).optional().default('kn'),
+  format: z.enum(['text', 'html']).optional().default('text'),
+});
 
 export const phonepeCreateSchema = z.object({
   amount: amountSchema,

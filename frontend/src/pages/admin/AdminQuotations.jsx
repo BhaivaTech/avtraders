@@ -173,6 +173,7 @@ export default function AdminQuotations() {
   // --- LR form -------------------------------------------------------
   const [lr, setLr] = useState('');
   const [track, setTrack] = useState(DEFAULT_TRACK_LINK);
+  const [busy, setBusy] = useState(false);
 
   const debounceRef = useRef(null);
 
@@ -214,6 +215,7 @@ export default function AdminQuotations() {
 
   /* ---------- handlers ---------- */
   async function uploadQuote() {
+    if (busy) return;
     if (!sel) {
       toast.error('Select a chat first.');
       return;
@@ -222,6 +224,7 @@ export default function AdminQuotations() {
       toast.error('Choose a PDF/JPG/PNG first.');
       return;
     }
+    setBusy(true);
     const fd = new FormData();
     fd.append('chat_id', sel.id);
     fd.append('amount', amount || 0);
@@ -241,11 +244,15 @@ export default function AdminQuotations() {
     } catch (err) {
       console.error('uploadQuote error:', err);
       toast.error('Could not upload quotation.');
+    } finally {
+      setBusy(false);
     }
   }
 
   async function sendLR() {
+    if (busy) return;
     if (!sel || !lr) return;
+    setBusy(true);
     const link = track || DEFAULT_TRACK_LINK;
     try {
       await api.post(
@@ -258,6 +265,8 @@ export default function AdminQuotations() {
     } catch (err) {
       console.error('sendLR error:', err);
       toast.error('Failed to send LR.');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -291,12 +300,11 @@ export default function AdminQuotations() {
           <div className="search">
             <Icon.Search />
             <input
-              className="input"
               placeholder="Search by name, mobile or last message…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button className="btn ghost refresh" onClick={() => loadChats(query)}>
+            <button className="btn ghost tiny" onClick={() => loadChats(query)}>
               Refresh
             </button>
           </div>
@@ -416,9 +424,9 @@ export default function AdminQuotations() {
                   className="btn primary"
                   style={{ marginTop: 10 }}
                   onClick={uploadQuote}
-                  disabled={!file}
+                  disabled={busy || !file}
                 >
-                  Upload Quotation
+                  {busy ? 'Uploading…' : 'Upload Quotation'}
                 </button>
 
                 <div className="muted" style={{ marginTop: 8 }}>
@@ -488,9 +496,9 @@ export default function AdminQuotations() {
                   className="btn info"
                   style={{ marginTop: 10 }}
                   onClick={sendLR}
-                  disabled={!lr}
+                  disabled={busy || !lr}
                 >
-                  Send LR &amp; Mark Sent
+                  {busy ? 'Sending…' : 'Send LR & Mark Sent'}
                 </button>
 
                 <div className="muted" style={{ marginTop: 8 }}>

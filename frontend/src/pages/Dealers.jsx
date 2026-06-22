@@ -122,8 +122,18 @@ export default function Dealers() {
   const [err, setErr] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
 
-  const [token, setToken] = useState("");
-  const [dealer, setDealer] = useState(null);
+  const [token, setToken] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('dealerAuth') || 'null');
+      return saved?.token || '';
+    } catch { return ''; }
+  });
+  const [dealer, setDealer] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('dealerAuth') || 'null');
+      return saved?.dealer || null;
+    } catch { return null; }
+  });
 
   const [cooldown, setCooldown] = useState(0);
   const cooldownRef = useRef(null);
@@ -165,10 +175,47 @@ export default function Dealers() {
     )}`;
   }, []);
 
+  /* ---------- login persistence ---------- */
   useEffect(() => {
     return () => {
       if (cooldownRef.current) clearInterval(cooldownRef.current);
     };
+  }, []);
+
+  // Persist token/dealer to localStorage whenever they change
+  useEffect(() => {
+    try {
+      if (token && dealer) {
+        localStorage.setItem('dealerAuth', JSON.stringify({ token, dealer, ts: Date.now() }));
+      } else if (!token) {
+        localStorage.removeItem('dealerAuth');
+      }
+    } catch {}
+  }, [token, dealer]);
+
+  // Revalidate on mount if we have a saved token
+  useEffect(() => {
+    if (!token || dealer) return;
+    (async () => {
+      try {
+        const out = await api('/api/dealer/me', { method: 'GET' });
+        if (out?.dealer) {
+          setDealer(out.dealer);
+          if (out?.token) setToken(out.token);
+          setStep('dashboard');
+        } else {
+          // Token invalid or no dealer data
+          setToken('');
+          setDealer(null);
+          localStorage.removeItem('dealerAuth');
+        }
+      } catch {
+        setToken('');
+        setDealer(null);
+        localStorage.removeItem('dealerAuth');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function clearAlerts() {
@@ -220,6 +267,13 @@ export default function Dealers() {
     }
 
     if (!res.ok) {
+      // Handle 401 globally for dealer requests
+      if (res.status === 401) {
+        setToken("");
+        setDealer(null);
+        try { localStorage.removeItem('dealerAuth'); } catch {}
+      }
+
       const message =
         (data && data.message) ||
         (typeof data === "string" ? data : "Request failed");
@@ -494,12 +548,23 @@ export default function Dealers() {
   }
 
   function resetToIntro() {
+    // Call server logout if a token exists
+    if (token) {
+      try {
+        fetch(`${API_BASE}/api/dealer/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        }).catch(() => {});
+      } catch {}
+    }
     setStep("intro");
     setOtp("");
     setToken("");
     setDealer(null);
     setMsg("");
     setErr("");
+    try { localStorage.removeItem('dealerAuth'); } catch {}
   }
 
   const isSimpleMode = LOGIN_MODE === "simple";

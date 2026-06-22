@@ -2,6 +2,8 @@
 import express from 'express';
 import axios from 'axios';
 import crypto from 'crypto';
+import { validateBody } from '../middlewares/validate.js';
+import { phonepeCreateSchema } from '../validations/schemas.js';
 
 const router = express.Router();
 
@@ -46,7 +48,7 @@ function buildStatusChecksum(merchantTxnId) {
 }
 
 /* ------------ CREATE PAYMENT ------------ */
-router.post('/create', async (req, res) => {
+router.post('/create', validateBody(phonepeCreateSchema), async (req, res) => {
   try {
     const { amount, mobile, name, orderId } = req.body;
 

@@ -97,6 +97,30 @@ api.interceptors.response.use(
       }
       return api(originalRequest);
     }
+
+    // Global 401 handler: clear auth state and notify UI
+    if (error.response?.status === 401 && !originalRequest._authCleared) {
+      originalRequest._authCleared = true;
+      try {
+        const path = window.location.pathname;
+        if (path.startsWith('/dealers')) {
+          localStorage.removeItem('dealerAuth');
+        } else if (path.startsWith('/admin')) {
+          localStorage.removeItem('adminAuth');
+        } else if (path.startsWith('/farmers')) {
+          localStorage.removeItem('farmerAuth');
+        } else {
+          // Fallback: clear all auth keys when role is ambiguous
+          localStorage.removeItem('farmerAuth');
+          localStorage.removeItem('adminAuth');
+          localStorage.removeItem('dealerAuth');
+        }
+        window.dispatchEvent(new CustomEvent('auth:401', {
+          detail: { url: originalRequest.url, path },
+        }));
+      } catch {}
+    }
+
     return Promise.reject(error);
   }
 );

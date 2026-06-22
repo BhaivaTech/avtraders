@@ -1,0 +1,27 @@
+# Backend Dockerfile for Cloud Run
+FROM node:20-slim
+
+# Install dependencies for native modules
+RUN apt-get update && apt-get install -y \
+    default-mysql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY backend/ .
+
+# Create uploads directory
+RUN mkdir -p uploads uploads_private
+
+# Expose port (Cloud Run uses PORT env var)
+EXPOSE 8080
+
+# Start the application
+CMD ["node", "server.js"]

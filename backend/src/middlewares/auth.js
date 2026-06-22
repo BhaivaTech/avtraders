@@ -4,7 +4,7 @@
 import jwt from 'jsonwebtoken';
 import { findDealerByPhone } from '../models/dealerModel.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_ME';
+const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_SESSION_MS = Number(process.env.ADMIN_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
 const FARMER_SESSION_MS = Number(process.env.FARMER_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
 
@@ -47,6 +47,27 @@ export function requireUserId(req) {
   }
   req.session.cookie.maxAge = FARMER_SESSION_MS;
   return id;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Generic session guards                                               */
+/* ------------------------------------------------------------------ */
+
+export function requireFarmerSession(req, res, next) {
+  if (req.session?.farmer?.id || req.session?.user?.id) {
+    req.session.cookie.maxAge = FARMER_SESSION_MS;
+    return next();
+  }
+  return res.status(401).json({ ok: false, message: 'Login required' });
+}
+
+export function requireFarmerOrAdminSession(req, res, next) {
+  if (req.session?.admin) return next();
+  if (req.session?.farmer?.id || req.session?.user?.id) {
+    req.session.cookie.maxAge = FARMER_SESSION_MS;
+    return next();
+  }
+  return res.status(401).json({ ok: false, message: 'Authentication required' });
 }
 
 /* ------------------------------------------------------------------ */

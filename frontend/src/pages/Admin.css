@@ -59,20 +59,6 @@
 }
 
 /* ============================================================
-   APP SHELL
-   ============================================================ */
-.admin-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  z-index: 9999;
-  font-family: var(--font-ui);
-  color: var(--text);
-}
-
-/* ============================================================
    TOP BAR — forest green, matches site banner sections
    ============================================================ */
 .topbar {
@@ -258,27 +244,17 @@
 }
 
 /* ============================================================
-   TWO-COLUMN LAYOUT
+   APP SHELL  —  DEPRECATED: this page runs inside AdminLayout
    ============================================================ */
-.cols {
+.admin-overlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 340px 1fr;
-}
-
-.cols.only-list {
-  grid-template-columns: 1fr 0;
-}
-
-.cols.only-thread {
-  grid-template-columns: 0 1fr;
-}
-
-@media (max-width: 1000px) {
-  .cols {
-    grid-template-columns: 1fr;
-  }
+  background: var(--bg);
+  font-family: var(--font-ui);
+  color: var(--text);
 }
 
 /* ============================================================

@@ -11,9 +11,6 @@ import {
 import Seo from "../components/Seo.jsx";
 
 export default function Contact() {
-  return (
-    <>
-      <Seo pageKey="contact" />
   const phone = CONTACT_PHONE;
   const whatsapp = WHATSAPP_URL;
   const email = CONTACT_EMAIL;
@@ -27,10 +24,12 @@ export default function Contact() {
   const embedSrc = `https://www.google.com/maps?q=${mapAddress}&z=16&output=embed`;
 
   const displayPhone = phone.startsWith('+91')
-    ? phone.replace('+91', '+91\u00a0')
+    ? phone.replace('+91', '\u00a0')
     : phone;
 
   return (
+    <>
+      <Seo pageKey="contact" />
     <div className="ct-root">
 
       {/* ── HERO SECTION ── */}

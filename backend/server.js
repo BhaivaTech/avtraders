@@ -55,6 +55,7 @@ import logger from "./src/utils/logger.js";
 
 /* ---- CSRF protection ---- */
 import { csrfCookieSetter, csrfProtect, csrfTokenEndpoint } from "./src/middlewares/csrf.js";
+import { apiLimiter } from "./src/middlewares/rateLimiter.js";
 
 /* ---- Sentry (optional) ---- */
 import { captureException } from "./src/utils/sentry.js";
@@ -255,8 +256,8 @@ const { default: dealerRoutes } = await import("./src/routes/dealer.js");
 /* Import requireAdminIfAdminRole from shared middleware (no more duplicate) */
 const { requireAdminIfAdminRole } = await import("./src/middlewares/auth.js");
 
-/* ---------- Apply CSRF protection to all API routes ---------- */
-app.use("/api", csrfProtect);
+/* ---------- Global rate limiting + CSRF protection on API routes ---------- */
+app.use("/api", apiLimiter(), csrfProtect);
 
 /* Mount API routes UNDER /api */
 app.use("/api/admin", adminRoutes);

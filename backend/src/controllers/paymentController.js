@@ -8,6 +8,7 @@ import {
   updatePaymentMeta,
   updatePaymentStatus,
   getPaymentById,
+  getPaymentWithOwner,
   getPaymentMetaById,
   findPaymentByMerchantOrderId,
 } from '../models/paymentModel.js';
@@ -78,6 +79,16 @@ function verifyPhonePeSignature(rawBody, xVerify) {
   return true;
 }
 
+function assertPaymentAccess(req, paymentRow) {
+  if (req.session?.admin) return;
+  const userId = req.session?.farmer?.id || req.session?.user?.id;
+  if (!userId || Number(paymentRow.owner_id) !== Number(userId)) {
+    const err = new Error('NOT_AUTHORIZED');
+    err.status = 403;
+    throw err;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  POST /api/payment/create                                             */
 /* ------------------------------------------------------------------ */
@@ -125,11 +136,14 @@ export async function createPayment(req, res) {
 export async function iframeToken(req, res) {
   try {
     const pid = Number(req.query.pid);
-    const row = await getPaymentMetaById(pid);
+    const row = await getPaymentWithOwner(pid);
+    if (!row) return res.status(404).json({ ok: false });
+    assertPaymentAccess(req, row);
     const meta = parseMeta(row?.meta);
     if (!meta?.redirectUrl) return res.status(404).json({ ok: false });
     return res.json({ ok: true, redirectUrl: String(meta.redirectUrl) });
   } catch (e) {
+    if (e.status === 403) return res.status(403).json({ ok: false, message: e.message });
     console.error('iframe-token error:', e?.message || e);
     return res.status(500).json({ ok: false });
   }
@@ -228,8 +242,9 @@ export async function webhook(req, res) {
 export async function getPaymentStatus(req, res) {
   try {
     const id = Number(req.params.paymentId);
-    const p = await getPaymentById(id);
+    const p = await getPaymentWithOwner(id);
     if (!p) return res.status(404).json({ ok: false });
+    assertPaymentAccess(req, p);
 
     const meta = parseMeta(p.meta);
     const merchantOrderId = meta?.merchantOrderId;

@@ -27,7 +27,18 @@ export async function updatePaymentStatus(paymentId, status, txnId, meta) {
 
 export async function getPaymentById(paymentId) {
   const [[p]] = await pool.query(
-    'SELECT id, status, meta, txn_id, amount FROM payments WHERE id = ?',
+    'SELECT id, chat_id, status, meta, txn_id, amount FROM payments WHERE id = ?',
+    [paymentId]
+  );
+  return p || null;
+}
+
+export async function getPaymentWithOwner(paymentId) {
+  const [[p]] = await pool.query(
+    `SELECT p.id, p.chat_id, p.status, p.meta, p.txn_id, p.amount, c.user_id AS owner_id
+     FROM payments p
+     LEFT JOIN chats c ON c.id = p.chat_id
+     WHERE p.id = ?`,
     [paymentId]
   );
   return p || null;

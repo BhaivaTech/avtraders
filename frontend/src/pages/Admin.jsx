@@ -9,6 +9,7 @@ import './Admin.css';
 import { resolveApiOrigin, buildMediaUrl } from '@/lib/endpoint';
 import { ADMIN_EMAIL_ALLOWED } from '../lib/config.js';
 import Seo from '../components/Seo.jsx';
+import LinkifyText from '../components/LinkifyText.jsx';
 import toast from '../lib/toast.js';
 
 /* ------------ constants ------------ */
@@ -47,24 +48,6 @@ const dayLabel = (iso) => {
 };
 
 // linkify plain URLs inside text
-function linkify(text = '') {
-  const esc = (s) =>
-    s.replace(/[&<>"']/g, (c) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      }[c]),
-    );
-  const re = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-  return esc(text).replace(re, (m) => {
-    const href = m.startsWith('www.') ? `http://${m}` : m;
-    return `<a href="${href}" target="_blank" rel="noreferrer">${m}</a>`;
-  });
-}
-
 /* ---- filename helpers ---- */
 function safeDecode(s = '') {
   try {
@@ -1028,24 +1011,28 @@ export default function Admin() {
     s.on('chat:delete', reloadThread);
     s.on('chat:status', loadChats);
     s.on('chat:cleared', reloadThread);
-    s.on('chat:deleted', (p) => {
+
+    const onDeleted = (p) => {
       if (sel && p.chat_id === sel.id) {
         setThread([]);
         setSel(null);
         loadChats();
       }
-    });
-    s.on('user:blocked', (p) => {
+    };
+    s.on('chat:deleted', onDeleted);
+
+    const onBlocked = (p) => {
       if (userId && p.user_id === userId) setBlocked(!!p.blocked);
-    });
+    };
+    s.on('user:blocked', onBlocked);
 
     return () => {
       s.off('chat:new_message', onNew);
       s.off('chat:delete', reloadThread);
       s.off('chat:status', loadChats);
       s.off('chat:cleared', reloadThread);
-      s.off('chat:deleted');
-      s.off('user:blocked');
+      s.off('chat:deleted', onDeleted);
+      s.off('user:blocked', onBlocked);
       s.close();
     };
   }, [sel, userId, authed]);
@@ -2397,12 +2384,9 @@ export default function Admin() {
                         )}
 
                         {m.text && !isLR && (
-                          <div
-                            className="text"
-                            dangerouslySetInnerHTML={{
-                              __html: linkify(m.text),
-                            }}
-                          />
+                          <div className="text">
+                            <LinkifyText text={m.text} />
+                          </div>
                         )}
 
                         {spr && (

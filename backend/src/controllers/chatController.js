@@ -31,7 +31,7 @@ export function attachChatSocket(io) { ioRef = io; }
 const norm = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 const stripLeadingSlash = (p) => String(p || '').replace(/^[\/\\]+/, '');
 
-/** Whitelist of allowed sender roles — prevents arbitrary string injection */
+/** Whitelist of allowed sender roles */
 const ALLOWED_SENDER_ROLES = new Set(['farmer', 'admin', 'dealer', 'system']);
 
 // Resolves a URL path to an absolute disk path, refusing to escape uploads/
@@ -42,6 +42,48 @@ function safeUploadPath(urlPath) {
     throw Object.assign(new Error('Path traversal attempt blocked'), { status: 400 });
   }
   return resolved;
+}
+
+/** Returns the authenticated farmer user id from session, or null. */
+function sessionUserId(req) {
+  return req.session?.farmer?.id || req.session?.user?.id || null;
+}
+
+/** Throws if a non-admin tries to act on a chat they don't own. */
+async function assertOwnsChat(req, chatId) {
+  if (req.session?.admin) return;
+  const userId = sessionUserId(req);
+  if (!userId) {
+    const err = new Error('NOT_AUTHENTICATED');
+    err.status = 401;
+    throw err;
+  }
+  const [[chat]] = await pool.query('SELECT user_id FROM chats WHERE id = ? LIMIT 1', [chatId]);
+  if (!chat || Number(chat.user_id) !== Number(userId)) {
+    const err = new Error('NOT_AUTHORIZED');
+    err.status = 403;
+    throw err;
+  }
+}
+
+/** Throws if a non-admin tries to act on a message whose chat they don't own. */
+async function assertOwnsMessageChat(req, messageId) {
+  if (req.session?.admin) return;
+  const userId = sessionUserId(req);
+  if (!userId) {
+    const err = new Error('NOT_AUTHENTICATED');
+    err.status = 401;
+    throw err;
+  }
+  const [[row]] = await pool.query(
+    `SELECT c.user_id FROM messages m JOIN chats c ON c.id = m.chat_id WHERE m.id = ? LIMIT 1`,
+    [messageId]
+  );
+  if (!row || Number(row.user_id) !== Number(userId)) {
+    const err = new Error('NOT_AUTHORIZED');
+    err.status = 403;
+    throw err;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -70,6 +112,12 @@ export async function postMessage(req, res) {
     }
     if (sender_role === 'admin' && !req.session?.admin) {
       return res.status(401).json({ message: 'Admin authentication required' });
+    }
+    if (!req.session?.admin && sender_role !== 'admin') {
+      const sessionMobile = norm(req.session?.farmer?.mobile || req.session?.user?.mobile);
+      if (mobile !== sessionMobile) {
+        return res.status(403).json({ message: 'You can only send messages from your own number' });
+      }
     }
     if (sender_role === 'farmer') {
       const user = await findUserByMobile(mobile);
@@ -138,9 +186,12 @@ export async function getThread(req, res) {
     if (!ALLOWED_SENDER_ROLES.has(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
+    await assertOwnsChat(req, chatId);
     const rows = await getChatThread(chatId, role);
     res.json(rows);
   } catch (e) {
+    if (e.status === 403) return res.status(403).json({ message: e.message });
+    if (e.status === 401) return res.status(401).json({ message: e.message });
     console.error('chat/thread error:', e);
     res.status(500).json({ message: 'Failed to fetch thread' });
   }
@@ -163,6 +214,7 @@ export async function deleteMessage(req, res) {
 
     const msg = await getMessageById(id);
     if (!msg) return res.status(404).json({ message: 'Message not found' });
+    await assertOwnsMessageChat(req, id);
 
     if (mode === 'me') {
       await softDeleteMessage(id, role);
@@ -187,6 +239,8 @@ export async function deleteMessage(req, res) {
 
     res.status(400).json({ message: 'Invalid delete mode' });
   } catch (e) {
+    if (e.status === 403) return res.status(403).json({ message: e.message });
+    if (e.status === 401) return res.status(401).json({ message: e.message });
     console.error('delete message error:', e);
     res.status(500).json({ message: 'Failed to delete message' });
   }
@@ -203,11 +257,14 @@ export async function clearChat(req, res) {
       return res.status(400).json({ message: 'Invalid role' });
     }
     if (scope !== 'me') return res.status(400).json({ message: 'Only scope=me is supported' });
+    await assertOwnsChat(req, chat_id);
 
     await softDeleteAllMessages(chat_id, role);
     ioRef?.emit('chat:cleared', { chat_id, role });
     res.json({ ok: true });
   } catch (e) {
+    if (e.status === 403) return res.status(403).json({ message: e.message });
+    if (e.status === 401) return res.status(401).json({ message: e.message });
     console.error('chat/clear error:', e);
     res.status(500).json({ message: 'Failed to clear chat' });
   }
@@ -220,11 +277,14 @@ export async function deleteChat(req, res) {
     if (!ALLOWED_SENDER_ROLES.has(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
+    await assertOwnsChat(req, chat_id);
 
     await softDeleteAllMessages(chat_id, role);
     ioRef?.emit('chat:deleted', { chat_id, role });
     res.json({ ok: true });
   } catch (e) {
+    if (e.status === 403) return res.status(403).json({ message: e.message });
+    if (e.status === 401) return res.status(401).json({ message: e.message });
     console.error('chat/delete error:', e);
     res.status(500).json({ message: 'Failed to delete chat' });
   }

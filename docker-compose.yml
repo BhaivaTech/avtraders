@@ -1,0 +1,57 @@
+# Local development docker-compose
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: avtraders-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-avtradersdb}
+      MYSQL_USER: ${DB_USER:-avtraders}
+      MYSQL_PASSWORD: ${DB_PASS:-password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: avtraders-backend
+    environment:
+      - NODE_ENV=development
+      - PORT=5100
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-avtraders}
+      - DB_PASS=${DB_PASS:-password}
+      - DB_NAME=${DB_NAME:-avtradersdb}
+    ports:
+      - "5100:5100"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/uploads_private:/app/uploads_private
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: avtraders-frontend
+    ports:
+      - "5173:8080"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

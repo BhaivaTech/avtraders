@@ -1,30 +1,25 @@
 // src/pages/admin/AdminPayments.jsx
 // Payments dashboard — recorded payments with status filtering.
-// Carved out of the monolithic Admin.jsx payments tab during the
-// admin restructure ferment. Hits the `/admin/payments` endpoint
-// and renders a simple status-filtered list.
-//
-// Self-contained: manages its own state, calls the API directly,
-// and renders its own JSX. Receives no props.
-//
-// Pure behaviour-preserving extraction: every handler, helper, and
-// className is identical to the original inline implementation in
-// Admin.jsx (panel === 'payments' block).
 
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
 import toast from '../../lib/toast.js';
-import '../Admin.css';
 
-/* ------------ constants ------------ */
 const PAYMENT_STATUSES = ['all', 'pending', 'success', 'failed'];
+
+function StatusBadge({ status }) {
+  const tone =
+    status === 'success' ? 'success' :
+    status === 'failed'  ? 'danger' :
+    status === 'pending' ? 'warn' : 'ghost';
+  return <span className={`badge ${tone}`}>{status?.toUpperCase()}</span>;
+}
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
   const [payLoading, setPayLoading] = useState(false);
   const [payStatusFilter, setPayStatusFilter] = useState('all');
 
-  /* ---------- payments loader ---------- */
   async function loadPayments() {
     setPayLoading(true);
     try {
@@ -42,8 +37,6 @@ export default function AdminPayments() {
     }
   }
 
-  // Re-fetch whenever the status filter changes (mirrors the
-  // auto-refresh-on-filter behaviour of the original panel).
   useEffect(() => {
     loadPayments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,14 +45,14 @@ export default function AdminPayments() {
   return (
     <div className="admin-page" data-admin-page="payments">
       <div className="admin-page-head">
-        <h1>Payment History</h1>
-        <p className="muted">
-          Recorded payments across PhonePe / UPI / manual entries.
-        </p>
+        <div>
+          <h1>Payment History</h1>
+          <p className="muted">Recorded payments across PhonePe / UPI / manual entries.</p>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {PAYMENT_STATUSES.map((s) => (
             <button
               key={s}
@@ -69,60 +62,47 @@ export default function AdminPayments() {
               {s}
             </button>
           ))}
-          <button
-            className="btn ghost"
-            style={{ fontSize: 12 }}
-            onClick={loadPayments}
-          >
+          <button className="btn ghost" style={{ fontSize: 12 }} onClick={loadPayments}>
             Refresh
           </button>
         </div>
 
         {payLoading ? (
-          <div className="muted">Loading…</div>
+          <div className="loading">Loading payments…</div>
         ) : payments.length === 0 ? (
-          <div className="muted">No payments found.</div>
+          <div className="admin-empty">
+            <div className="title">No payments</div>
+            <p>{payStatusFilter !== 'all' ? `No ${payStatusFilter} payments found.` : 'No payments found.'}</p>
+          </div>
         ) : (
-          payments.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                padding: '8px 0',
-                borderBottom: '1px solid #f1f5f9',
-                fontSize: 13,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>
-                  {p.farmer_name || p.farmer_mobile || '—'}
-                </span>
-                <span
-                  style={{
-                    color:
-                      p.status === 'success'
-                        ? '#16a34a'
-                        : p.status === 'failed'
-                        ? '#dc2626'
-                        : '#d97706',
-                    fontWeight: 600,
-                    fontSize: 11,
-                  }}
-                >
-                  {p.status?.toUpperCase()}
-                </span>
-              </div>
-              <div
-                style={{
-                  color: '#64748b',
-                  fontSize: 11,
-                  marginTop: 2,
-                }}
-              >
-                ₹{p.amount} · {p.provider} · {p.txn_id || 'No TxnID'} ·{' '}
-                {new Date(p.created_at).toLocaleDateString()}
-              </div>
-            </div>
-          ))
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Farmer</th>
+                  <th>Mobile</th>
+                  <th>Amount</th>
+                  <th>Provider</th>
+                  <th>Txn ID</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p.id}>
+                    <td><strong>{p.farmer_name || '—'}</strong></td>
+                    <td>{p.farmer_mobile || '—'}</td>
+                    <td>₹{Number(p.amount || 0).toLocaleString('en-IN')}</td>
+                    <td>{p.provider || '—'}</td>
+                    <td className="muted">{p.txn_id || '—'}</td>
+                    <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td><StatusBadge status={p.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

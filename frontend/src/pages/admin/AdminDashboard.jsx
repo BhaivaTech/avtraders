@@ -3,84 +3,84 @@
 // fetched from existing API endpoints and provides quick links to deeper
 // admin sections.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api.js';
-import { resolveApiOrigin } from '@/lib/endpoint';
+
+/* ── animated counter hook ── */
+function useCountUp(target, duration = 800) {
+  const [display, setDisplay] = useState(0);
+  const frameRef = useRef(null);
+
+  useEffect(() => {
+    if (target === 0) { setDisplay(0); return; }
+    const start = performance.now();
+    const from = 0;
+
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + (target - from) * eased));
+      if (progress < 1) frameRef.current = requestAnimationFrame(tick);
+    }
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+  }, [target, duration]);
+
+  return display;
+}
 
 /* ── stat card ── */
-function StatCard({ label, value, tone = 'neutral', href, isLoading }) {
-  const toneStyles = {
-    neutral:  { borderColor: '#e2e8f0', valueColor: '#0f172a' },
-    primary:  { borderColor: '#3b82f6', valueColor: '#2563eb' },
-    success:  { borderColor: '#22c55e', valueColor: '#16a34a' },
-    danger:   { borderColor: '#ef4444', valueColor: '#dc2626' },
-    warning:  { borderColor: '#f59e0b', valueColor: '#d97706' },
-  };
-  const t = toneStyles[tone] || toneStyles.neutral;
+function StatCard({ label, value, tone = 'neutral', href, isLoading, delay = 0 }) {
+  const numericValue = typeof value === 'number' ? value : null;
+  const animatedValue = useCountUp(numericValue ?? 0);
+  const displayValue = isLoading ? '…' : (numericValue !== null ? animatedValue : value);
 
-  const body = (
-    <div
-      style={{
-        background: '#fff',
-        border: `1px solid ${t.borderColor}`,
-        borderRadius: 12,
-        padding: '16px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        minWidth: 0,
-      }}
-    >
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.03em' }}>
-        {label}
+  const inner = (
+    <>
+      <div className="stat-card-icon">
+        {tone === 'danger' && <span className="pulse-dot" />}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: t.valueColor, lineHeight: 1.1 }}>
-        {isLoading ? '…' : value}
+      <div className="stat-card-body">
+        <div className="label">{label}</div>
+        <div className="value">{displayValue}</div>
       </div>
-    </div>
+    </>
   );
 
   if (href) {
     return (
-      <Link to={href} style={{ textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
-        {body}
+      <Link to={href} className={`stat-card tone-${tone}`} style={{ animationDelay: `${delay}ms` }}>
+        {inner}
+        <div className="stat-card-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
       </Link>
     );
   }
-  return body;
+  return (
+    <div className={`stat-card tone-${tone}`} style={{ animationDelay: `${delay}ms` }}>
+      {inner}
+    </div>
+  );
 }
 
 /* ── quick-link tile ── */
-function QuickLink({ to, label, icon }) {
+function QuickLink({ to, label, icon, delay = 0 }) {
   return (
-    <Link
-      to={to}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '14px 16px',
-        background: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 10,
-        textDecoration: 'none',
-        color: '#0f172a',
-        fontWeight: 600,
-        fontSize: 14,
-        transition: 'box-shadow .15s, transform .1s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,.06)';
-        e.currentTarget.style.transform = 'translateY(-1px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'none';
-      }}
-    >
-      <span style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
-      {label}
+    <Link to={to} className="quick-link" style={{ animationDelay: `${delay}ms` }}>
+      <span className="icon">{icon}</span>
+      <span className="quick-link-label">{label}</span>
+      <span className="quick-link-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </span>
     </Link>
   );
 }
@@ -91,6 +91,12 @@ export default function AdminDashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingQuotations, setPendingQuotations] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,23 +105,19 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
 
-        // 1) admin stats
         const statsRes = await api.get('/admin/stats', { withCredentials: true });
         if (!cancelled && statsRes.data?.stats) {
           setStats(statsRes.data.stats);
         }
 
-        // 2) unread count (lightweight — limit 1, just need total from headers or count)
         const unreadRes = await api.get('/chat/all?status=UNREAD&limit=1', {
           withCredentials: true,
         });
         if (!cancelled) {
-          // backend may return total count in a header or we count the array
           const list = unreadRes.data || [];
           setUnreadCount(list.length > 0 ? (unreadRes.headers['x-total-count'] ? parseInt(unreadRes.headers['x-total-count'], 10) : list.length) : 0);
         }
 
-        // 3) pending quotations count — use overall chat list and filter locally
         const qRes = await api.get('/chat/all?status=SENT&limit=100', { withCredentials: true });
         if (!cancelled) {
           const list = qRes.data || [];
@@ -132,33 +134,42 @@ export default function AdminDashboard() {
     return () => { cancelled = true; };
   }, []);
 
+  const greeting = currentTime.getHours() < 12 ? 'Good morning' : currentTime.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   return (
     <div className="admin-page" data-admin-page="dashboard">
-      <h1 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
-        Dashboard
-      </h1>
+      {/* Welcome banner */}
+      <div className="dashboard-welcome">
+        <div className="dashboard-welcome-text">
+          <h1>{greeting}, Admin</h1>
+          <p className="dashboard-date">{dateStr}</p>
+        </div>
+        <div className="dashboard-welcome-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          <span>AV Traders Admin Panel</span>
+        </div>
+      </div>
 
       {/* KPI cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-          gap: 14,
-          marginBottom: 28,
-        }}
-      >
+      <div className="stat-grid">
         <StatCard
           label="Unread Messages"
           value={unreadCount}
           tone="danger"
           href="/admin/inbox"
           isLoading={loading}
+          delay={0}
         />
         <StatCard
           label="Messages Today"
           value={stats.chatsToday}
           tone="primary"
           isLoading={loading}
+          delay={60}
         />
         <StatCard
           label="Pending Quotations"
@@ -166,12 +177,14 @@ export default function AdminDashboard() {
           tone="warning"
           href="/admin/quotations"
           isLoading={loading}
+          delay={120}
         />
         <StatCard
           label="Total Farmers"
           value={stats.totalFarmers}
           tone="neutral"
           isLoading={loading}
+          delay={180}
         />
         <StatCard
           label="Total Revenue"
@@ -179,27 +192,20 @@ export default function AdminDashboard() {
           tone="success"
           href="/admin/payments"
           isLoading={loading}
+          delay={240}
         />
       </div>
 
       {/* Quick links */}
-      <h2 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700, color: '#334155' }}>
-        Quick Links
-      </h2>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: 12,
-        }}
-      >
-        <QuickLink to="/admin/inbox"      label="Inbox"       icon="💬" />
-        <QuickLink to="/admin/quotations"  label="Quotations"  icon="📄" />
-        <QuickLink to="/admin/payments"    label="Payments"    icon="₹" />
-        <QuickLink to="/admin/tracking"    label="Tracking"    icon="🚚" />
-        <QuickLink to="/admin/users"       label="Users"       icon="👥" />
-        <QuickLink to="/admin/analytics"   label="Analytics"   icon="📊" />
-        <QuickLink to="/admin/settings"    label="Settings"    icon="⚙️" />
+      <h2>Quick Links</h2>
+      <div className="quick-grid">
+        <QuickLink to="/admin/inbox"      label="Inbox"       icon="💬" delay={0} />
+        <QuickLink to="/admin/quotations"  label="Quotations"  icon="📄" delay={40} />
+        <QuickLink to="/admin/payments"    label="Payments"    icon="₹" delay={80} />
+        <QuickLink to="/admin/tracking"    label="Tracking"    icon="🚚" delay={120} />
+        <QuickLink to="/admin/users"       label="Users"       icon="👥" delay={160} />
+        <QuickLink to="/admin/analytics"   label="Analytics"   icon="📊" delay={200} />
+        <QuickLink to="/admin/settings"    label="Settings"    icon="⚙️" delay={240} />
       </div>
     </div>
   );

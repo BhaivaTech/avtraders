@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { socket as sharedSocket } from '../lib/socket.js';
+import LinkifyText from '../components/LinkifyText.jsx';
 import { useRecorder } from '../lib/useRecorder.js';
 import './Farmers.css';
 
@@ -605,6 +606,7 @@ export default function Farmers() {
   /* -------- upload animation state -------- */
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [sending, setSending] = useState(false);
 
   /* -------- FULLSCREEN overlay + body lock -------- */
   useEffect(() => {
@@ -675,18 +677,6 @@ export default function Farmers() {
     const z = (n) => String(n).padStart(2, '0');
     return `${z(d.getDate())}-${z(d.getMonth() + 1)}-${d.getFullYear()}`;
   };
-  const linkify = (text = '') => {
-    const esc = (s) =>
-      s.replace(/[&<>"']/g, (c) =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
-      );
-    const re = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    return esc(text).replace(re, (m) => {
-      const href = m.startsWith('www.') ? `http://${m}` : m;
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${m}</a>`;
-    });
-  };
-
   /* -------- login persistence -------- */
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('farmerAuth') || 'null');
@@ -776,18 +766,21 @@ export default function Farmers() {
     s.on('chat:new_message', onNew);
     s.on('chat:delete', refreshIf);
     s.on('chat:cleared', refreshIf);
-    s.on('chat:deleted', (p) => {
+
+    const onChatDeleted = (p) => {
       if (p.chat_id === chatId) {
         setThread([]);
         setChatId(null);
       }
-    });
-    
-    s.on('chat:status', (p) => {
+    };
+    s.on('chat:deleted', onChatDeleted);
+
+    const onChatStatus = (p) => {
       if (p.chat_id === chatId && p.status === 'READ') {
         setThread(prev => prev.map(m => m.sender_role === 'farmer' ? { ...m, is_read: 1 } : m));
       }
-    });
+    };
+    s.on('chat:status', onChatStatus);
 
     const onQuotesChanged = async () => {
       if (!mobile) return;
@@ -803,8 +796,8 @@ export default function Farmers() {
       s.off('chat:new_message', onNew);
       s.off('chat:delete', refreshIf);
       s.off('chat:cleared', refreshIf);
-      s.off('chat:deleted');
-      s.off('chat:status');
+      s.off('chat:deleted', onChatDeleted);
+      s.off('chat:status', onChatStatus);
       s.off('quotes:changed', onQuotesChanged);
       s.off('connect_error', onCE);
       s.off('error', onCE);
@@ -898,9 +891,13 @@ export default function Farmers() {
     setQuotesLoaded(true);
   }
   async function refreshThreadById(id, smooth = true) {
-    const r = await api.get(`/chat/thread/${id}`, { withCredentials: true });
-    setThread(r.data);
-    if (smooth) scrollToBottomSoon();
+    try {
+      const r = await api.get(`/chat/thread/${id}`, { withCredentials: true });
+      setThread(Array.isArray(r?.data) ? r.data : []);
+      if (smooth) scrollToBottomSoon();
+    } catch {
+      setThread([]);
+    }
   }
   async function refreshThread(smooth = true) {
     if (chatId) return refreshThreadById(chatId, smooth);
@@ -1207,7 +1204,7 @@ export default function Farmers() {
 
   /* send text/file(s) now – supports up to 15 attachments (one API call per file) */
   async function sendMessageNow() {
-    if (!canSend() || uploading) return;
+    if (!canSend() || uploading || sending) return;
     const mobile10 = norm(mobile);
     if (mobile10.length !== 10) {
       alert('Invalid mobile. Please login again.');
@@ -1218,6 +1215,7 @@ export default function Farmers() {
     const hasFiles = total > 0;
 
     try {
+      setSending(true);
       if (hasFiles) {
         setUploading(true);
         setUploadProgress(0);
@@ -1299,6 +1297,7 @@ export default function Farmers() {
         alert(err?.response?.data?.message || 'Failed to send message');
       }
     } finally {
+      setSending(false);
       if (hasFiles) {
         setUploading(false);
         setUploadProgress(0);
@@ -1328,7 +1327,7 @@ export default function Farmers() {
   }
 
   async function sendAudioDraftNow() {
-    if (!audioDraft) return;
+    if (!audioDraft || sending) return;
     const fd = new FormData();
     fd.append('mobile', norm(mobile));
     fd.append('sender_role', 'farmer');
@@ -1345,6 +1344,7 @@ export default function Farmers() {
       Math.max(1, Math.round(audioDraft.duration || 0))
     );
     try {
+      setSending(true);
       const r = await api.post('/chat/message', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true,
@@ -1363,6 +1363,8 @@ export default function Farmers() {
       scrollToBottomSoon();
     } catch {
       alert('Failed to send voice note');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -1429,7 +1431,7 @@ export default function Farmers() {
 
   /* -------- Spray -------- */
   async function sendSprayDetailsNow() {
-    if (!lastDate && !lastChem && !lastDose) {
+    if ((!lastDate && !lastChem && !lastDose) || sending) {
       alert('Add at least one field.');
       return;
     }
@@ -1441,6 +1443,7 @@ export default function Farmers() {
     fd.append('last_chemical', lastChem);
     fd.append('last_dosage', lastDose);
     try {
+      setSending(true);
       const r = await api.post('/chat/message', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true,
@@ -1461,6 +1464,8 @@ export default function Farmers() {
       scrollToBottomSoon();
     } catch {
       alert('Failed to send spray details');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -1998,12 +2003,9 @@ export default function Farmers() {
                           )}
 
                           {m.text && !lrType && (
-                            <div
-                              className="text"
-                              dangerouslySetInnerHTML={{
-                                __html: linkify(m.text),
-                              }}
-                            />
+                            <div className="text">
+                              <LinkifyText text={m.text} />
+                            </div>
                           )}
 
                           {lrType && <LRChip {...lrPayload} />}
@@ -2255,6 +2257,7 @@ export default function Farmers() {
                     className="send-btn"
                     title="Send"
                     onClick={sendAudioDraftNow}
+                    disabled={sending}
                   >
                     <Icon.Send />
                   </button>
@@ -2381,7 +2384,7 @@ export default function Farmers() {
                     className="send-btn"
                     title="Send"
                     onClick={sendMessageNow}
-                    disabled={!canSend()}
+                    disabled={!canSend() || uploading || sending}
                   >
                     <Icon.Send />
                   </button>
@@ -2752,6 +2755,7 @@ export default function Farmers() {
                   <button
                     className="btn primary"
                     onClick={sendSprayDetailsNow}
+                    disabled={sending}
                   >
                     <Icon.Send />
                   </button>
