@@ -6,7 +6,7 @@ module.exports = {
     {
       name: 'avtraders-backend',
       script: 'server.js',
-      cwd: '/home/app/avtraders/backend',
+      cwd: '/home/swaragh092/avtraders/backend',
       instances: 1,  // Use 1 for Socket.io compatibility
       exec_mode: 'fork',  // Use 'fork' for Socket.io, not 'cluster'
       
@@ -23,9 +23,9 @@ module.exports = {
       },
 
       // Logging
-      log_file: '/home/app/logs/avtraders-combined.log',
-      out_file: '/home/app/logs/avtraders-out.log',
-      error_file: '/home/app/logs/avtraders-error.log',
+      log_file: '/home/swaragh092/logs/avtraders-combined.log',
+      out_file: '/home/swaragh092/logs/avtraders-out.log',
+      error_file: '/home/swaragh092/logs/avtraders-error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       
@@ -58,11 +58,11 @@ module.exports = {
   // Deployment configuration
   deploy: {
     production: {
-      user: 'app',
+      user: 'swaragh092',
       host: '34.180.17.171',
       ref: 'origin/main',
-      repo: 'git@github.com:yourusername/avtraders.git',
-      path: '/home/app/avtraders',
+      repo: 'git@github.com:BhaivaTech/avtraders.git',
+      path: '/home/swaragh092/avtraders',
       'pre-deploy-local': '',
       'post-deploy': 'cd backend && npm install --production && pm2 reload ecosystem.config.cjs --env production',
       'pre-setup': '',
