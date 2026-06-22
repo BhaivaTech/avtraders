@@ -105,6 +105,6 @@ pm2 status
 echo ""
 echo -e "${GREEN}Health Check:${NC}"
 sleep 2
-curl -s http://localhost:5100/health | head -c 200 || echo "Backend starting..."
+curl -s http://localhost:5100/api/health | head -c 200 || echo "Backend starting..."
 echo ""
 echo -e "${GREEN}Site: https://av.bhaivatech.com${NC}"
