@@ -5,7 +5,7 @@
 # Usage: bash update.sh
 # ============================================
 
-APP_USER="swaragh092"
+APP_USER="chethan"
 APP_DIR="/home/$APP_USER/avtraders"
 BRANCH="main"   # Change to your branch (main / development)
 
