@@ -69,26 +69,5 @@ export default defineConfig({
   build: {
     target: "es2019",
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // Must check react-* packages BEFORE the generic react check
-            if (id.includes("react-router") || id.includes("@remix-run")) return "vendor-router";
-            if (id.includes("react-i18next") || id.includes("i18next")) return "vendor-i18n";
-            if (id.includes("react-helmet-async")) return "vendor-helmet";
-            if (id.includes("react-hot-toast")) return "vendor-toast";
-            if (id.includes("react-hook-form") || id.includes("@hookform")) return "vendor-rhf";
-            if (id.includes("socket.io-client")) return "vendor-socket";
-            if (id.includes("pdfjs-dist")) return "vendor-pdf";
-            // Only core react & react-dom go here (checked last among react-*)
-            if (id.includes("/react/") || id.includes("/react-dom/")) return "vendor-react";
-            return "vendor";
-          }
-          if (id.includes("/src/pages/Admin")) return "page-admin";
-          return undefined;
-        },
-      },
-    },
   },
 });
