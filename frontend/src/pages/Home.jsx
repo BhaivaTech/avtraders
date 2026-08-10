@@ -720,6 +720,15 @@ export default function Home() {
           --r-xl:  28px;
           --r-2xl: 36px;
 
+          /* Surface / text tokens */
+          --color-background-primary: #ffffff;
+          --color-background-secondary: #f8fdf6;
+          --color-background-tertiary: #f4f8ef;
+          --color-text-primary: #172033;
+          --color-text-secondary: #5a6472;
+          --color-text-tertiary: #7b8495;
+          --color-border-tertiary: #e5e7eb;
+
           /* Motion */
           --ease: cubic-bezier(0.4, 0, 0.2, 1);
           --dur:  220ms;
@@ -1842,24 +1851,26 @@ export default function Home() {
         ══════════════════════════════════════════════ */
         .wa-popup {
           position: fixed;
-          right: 16px;
-          bottom: 16px;
-          z-index: 60;
-          max-width: 400px;
-          width: calc(100% - 32px);
+          right: 18px;
+          bottom: 120px;
+          z-index: 90;
+          max-width: 360px;
+          width: min(100%, 360px);
+          max-height: calc(100vh - 160px);
           box-shadow: 0 12px 24px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
           border-radius: var(--r-xl);
-          background: var(--color-background-primary);
+          background: #ffffff;
           border: 1px solid var(--color-border-tertiary);
           overflow: hidden;
+          opacity: 1;
         }
         .wa-popup-close {
           position: absolute;
-          top: 8px; right: 8px;
+          top: 10px; right: 10px;
           width: 32px; height: 32px;
           border-radius: var(--r-sm);
           border: 1px solid var(--color-border-tertiary);
-          background: var(--color-background-primary);
+          background: #ffffff;
           cursor: pointer;
           line-height: 30px;
           text-align: center;
@@ -1910,7 +1921,7 @@ export default function Home() {
         }
         .wa-popup-note {
           border-top: 1px dashed var(--color-border-tertiary);
-          background: var(--color-background-secondary);
+          background: #f8fdf6;
           padding: 10px 14px;
           font-size: 12px;
           color: var(--color-text-tertiary);
@@ -1975,6 +1986,12 @@ export default function Home() {
           .h-announce-bar { font-size: 12px; padding: 6px 12px; }
           .h-announce-label { font-size: 11px; }
           .h-chat-fab { width: 52px; height: 52px; bottom: 112px; right: 14px; }
+          .wa-popup {
+            right: 14px;
+            bottom: 132px;
+            width: min(100%, 92vw);
+            max-width: 340px;
+          }
         }
       `}</style>
 
