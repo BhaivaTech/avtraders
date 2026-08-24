@@ -1658,16 +1658,32 @@ export default function Farmers() {
         <main className="body">
           {!logged ? (
             <div className="auth-card">
-              <h3>Welcome</h3>
+              <div className="auth-hero">
+                <div className="auth-logo">AV</div>
+                <div className="auth-title">AV Agro Support</div>
+                <div className="auth-sub">Farmer Login</div>
+              </div>
+
               {step === 'mobile' && (
                 <>
-                  <label>Mobile</label>
-                  <input
-                    className="input"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="10-digit number"
-                  />
+                  <p className="auth-note">
+                    Enter your mobile number and we&rsquo;ll send you an OTP to log in.
+                  </p>
+                  <label>Mobile Number</label>
+                  <div className="input-wrap">
+                    <span className="input-prefix">+91</span>
+                    <input
+                      className="input"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') sendOtp();
+                      }}
+                      placeholder="10-digit number"
+                    />
+                  </div>
                   <div className="auth-actions">
                     <button className="btn primary" onClick={sendOtp}>
                       Send OTP
@@ -1678,13 +1694,10 @@ export default function Farmers() {
 
               {step === 'details' && (
                 <>
-                  <div className="auth-row" style={{ display: 'flex', marginBottom: 8 }}>
-                    <button className="btn ghost" onClick={goBackToMobile}>
-                      ← Back
-                    </button>
-                    <div style={{ flex: 1 }} />
-                  </div>
-                  <p className="muted" style={{ marginBottom: 8 }}>
+                  <button className="auth-back" onClick={goBackToMobile}>
+                    ← Back
+                  </button>
+                  <p className="auth-note">
                     Please fill your details once. You can edit them later in Profile.
                   </p>
 
@@ -1802,21 +1815,30 @@ export default function Farmers() {
 
               {step === 'otp' && (
                 <>
-                  <div className="auth-row">
-                    <button className="btn ghost" onClick={goBackToMobile}>
-                      ← Back
-                    </button>
-                    <div style={{ flex: 1 }} />
-                  </div>
+                  <button className="auth-back" onClick={goBackToMobile}>
+                    ← Back
+                  </button>
 
                   {/* Profile details moved to FarmerProfile page */}
 
-                  <label>OTP</label>
+                  <p className="auth-note">
+                    We sent a 6-digit code to
+                  </p>
+                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                    <span className="auth-mobile-pill">+91 {norm(mobile)}</span>
+                  </div>
+
+                  <label>Enter OTP</label>
                   <input
-                    className="input"
+                    className="input auth-otp-input"
+                    inputMode="numeric"
+                    maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    placeholder="6 digits"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') verifyOtp();
+                    }}
+                    placeholder="••••••"
                   />
                   <div className="auth-actions">
                     <button className="btn ghost" onClick={goBackToMobile}>
@@ -2810,13 +2832,33 @@ body.no-scroll{overflow:hidden!important}
 .down-fab{position:absolute;right:18px;bottom:92px;z-index:35;width:42px;height:42px;border-radius:50%;background:#22c55e;color:#fff;border:none;box-shadow:0 6px 18px rgba(0,0,0,.15);display:grid;place-items:center}
 .up-fab{position:absolute;left:18px;bottom:92px;z-index:35;width:42px;height:42px;border-radius:50%;background:#22c55e;color:#fff;border:none;box-shadow:0 6px 18px rgba(0,0,0,.15);display:grid;place-items:center}
 
-/* auth */
-.auth-card{width:min(520px,92vw);margin:8vh auto;background:#fff;padding:22px 24px;border-radius:20px;box-shadow:0 8px 26px rgba(0,0,0,.06)}
-.auth-card h3{margin:0 0 14px}
-.auth-card .input{width:100%;margin-bottom:12px}
-.auth-actions{display:flex;gap:12px;justify-content:flex-end;align-items:center;margin-top:8px}
-.btn.ghost{background:#f3f4f6;color:#111827;border:none;padding:8px 14px;border-radius:10px}
-.btn.primary{background:#22c55e;color:#fff;border:none;padding:8px 14px;border-radius:10px}
+/* auth — site theme: --brand #48a43f / --brand-strong #1e5631 / --brand-soft #e9f8f1 */
+.auth-card{position:relative;width:min(460px,92vw);margin:auto;background:#fff;padding:0 24px 26px;border-radius:20px;border:1px solid var(--border,#e5e7eb);box-shadow:0 14px 44px rgba(30,86,49,.16);overflow:hidden}
+.auth-hero{margin:0 -24px 20px;padding:28px 20px 22px;background:linear-gradient(135deg,#48a43f 0%,#1e5631 100%);color:#fff;text-align:center}
+.auth-logo{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;font-weight:800;font-size:20px;letter-spacing:.5px}
+.auth-title{font-size:19px;font-weight:800;line-height:1.2}
+.auth-sub{font-size:13px;color:#d9f5dc;margin-top:3px}
+.auth-note{font-size:13.5px;color:#6b7280;text-align:center;margin:0 0 16px;line-height:1.5}
+.auth-back{display:inline-flex;align-items:center;gap:4px;margin:-4px 0 12px -8px;padding:6px 10px;border:none;border-radius:10px;background:transparent;color:#1e5631;font-weight:700;font-size:14px;cursor:pointer}
+.auth-back:hover{background:#e9f8f1}
+.auth-card label{display:block;font-size:12px;font-weight:700;color:#1e5631;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.auth-card .input{width:100%;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:12px;padding:12px 14px;background:#fff;font-size:15px;color:#111827;transition:border-color .15s ease,box-shadow .15s ease}
+.auth-card .input::placeholder{color:#94a3b8}
+.auth-card .input:focus{outline:none;border-color:#48a43f;box-shadow:0 0 0 3px rgba(72,164,63,.18)}
+.input-wrap{position:relative}
+.input-wrap .input{padding-left:54px;margin-bottom:14px}
+.input-prefix{position:absolute;top:50%;left:16px;transform:translateY(-50%);font-weight:800;color:#1e5631;pointer-events:none}
+.auth-mobile-pill{display:inline-block;background:#e9f8f1;border:1px solid #bfe8c6;color:#1e5631;font-weight:800;font-size:15px;border-radius:999px;padding:7px 18px}
+.auth-otp-input{text-align:center!important;font-size:22px!important;font-weight:800;letter-spacing:10px;padding-left:14px!important}
+.auth-otp-input::placeholder{color:#cbd5e1}
+.auth-actions{display:flex;gap:10px;justify-content:stretch;align-items:center;margin-top:10px}
+.auth-actions .btn.primary{flex:1}
+.auth-card .btn.primary{background:linear-gradient(135deg,#48a43f,#3c8c34);color:#fff;border:none;padding:13px 16px;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;transition:filter .15s ease,transform .05s ease;white-space:nowrap}
+.auth-card .btn.primary:hover:not(:disabled){filter:brightness(1.06)}
+.auth-card .btn.primary:active:not(:disabled){transform:translateY(1px)}
+.auth-card .btn.primary:disabled{opacity:.6}
+.auth-card .btn.ghost{background:#f1f5f9;color:#111827;border:none;padding:12px 16px;border-radius:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.auth-card .btn.ghost:hover{background:#e2e8f0}
 .btn{border:none;padding:8px 12px;border-radius:10px;background:#ecfdf5;color:#065f46}
 
 /* media + docs */
@@ -3140,7 +3182,8 @@ body.no-scroll{overflow:hidden!important}
 
 /* small helpers */
 @media(max-width:480px){
-  .auth-card{margin-top:6vh;padding:18px 16px}
+  .auth-card{padding:0 18px 20px}
+  .auth-hero{margin:0 -18px 16px}
   .composer{padding:6px}
 }
       `}</style>

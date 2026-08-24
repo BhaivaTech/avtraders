@@ -80,9 +80,14 @@ function ScrollOnNavigate() {
 function ThemeEnforcer() {
   const { pathname } = useLocation();
   useEffect(() => {
-    if (!pathname.startsWith('/admin')) {
+    // Force light theme on all non-admin routes AND on the admin login page
+    // so that refresh/logout does not leave a black background.
+    const isAdminApp = pathname.startsWith('/admin') && pathname !== '/admin/login';
+    if (!isAdminApp) {
       document.documentElement.setAttribute('data-theme', 'light');
       document.documentElement.style.colorScheme = 'light';
+      document.documentElement.style.background = '#f1f5f9';
+      document.body.style.background = '#f1f5f9';
     }
   }, [pathname]);
   return null;
