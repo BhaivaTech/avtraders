@@ -52,14 +52,15 @@ function AdminUsersSection() {
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm]       = useState({ email: '', name: '', role: 'support' });
+  const [form, setForm]       = useState({ email: '', name: '', role: 'support', password: '' });
   const [saving, setSaving]   = useState(false);
-  const [editUser, setEditUser] = useState(null); // { id, name, role }
+  const [editUser, setEditUser] = useState(null); // { id, name, role, password }
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api('/admin/admin-users');
+      const res = await api('/admin/admin-users');
+      const data = res?.data;
       if (data?.ok) setUsers(data.admins || []);
     } catch (e) {
       toast.error('Failed to load admin users');
@@ -72,20 +73,21 @@ function AdminUsersSection() {
 
   async function createUser(e) {
     e.preventDefault();
-    if (!form.email || !form.name || !form.role) return;
+    if (!form.email || !form.name || !form.role || !form.password) return;
     setSaving(true);
     try {
-      const data = await api.post('/admin/admin-users', form);
+      const res = await api.post('/admin/admin-users', form);
+      const data = res?.data;
       if (data?.ok) {
         toast.success('Admin user created');
         setShowModal(false);
-        setForm({ email: '', name: '', role: 'support' });
+        setForm({ email: '', name: '', role: 'support', password: '' });
         loadUsers();
       } else {
         toast.error(data?.message || 'Failed to create user');
       }
     } catch (e) {
-      toast.error('Failed to create admin user');
+      toast.error(e?.response?.data?.message || 'Failed to create admin user');
     } finally {
       setSaving(false);
     }
@@ -96,10 +98,10 @@ function AdminUsersSection() {
     if (!editUser) return;
     setSaving(true);
     try {
-      const data = await api.patch(`/admin/admin-users/${editUser.id}`, {
-        name: editUser.name,
-        role: editUser.role,
-      });
+      const payload = { name: editUser.name, role: editUser.role };
+      if (editUser.password) payload.password = editUser.password;
+      const res = await api.patch(`/admin/admin-users/${editUser.id}`, payload);
+      const data = res?.data;
       if (data?.ok) {
         toast.success('Admin user updated');
         setEditUser(null);
@@ -118,7 +120,8 @@ function AdminUsersSection() {
     const action = user.is_active ? 'deactivate' : 'reactivate';
     if (!window.confirm(`Are you sure you want to ${action} ${user.email}?`)) return;
     try {
-      const data = await api.patch(`/admin/admin-users/${user.id}/${action}`, {});
+      const res = await api.patch(`/admin/admin-users/${user.id}/${action}`, {});
+      const data = res?.data;
       if (data?.ok) {
         toast.success(`Admin user ${action}d`);
         loadUsers();
@@ -165,7 +168,7 @@ function AdminUsersSection() {
                       <button
                         className="btn"
                         style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => setEditUser({ id: u.id, name: u.name, role: u.role })}
+                        onClick={() => setEditUser({ id: u.id, name: u.name, role: u.role, password: '' })}
                       >
                         Edit
                       </button>
@@ -210,6 +213,15 @@ function AdminUsersSection() {
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 required
               />
+              <input
+                className="admin-input"
+                type="password"
+                placeholder="Password (min 6 characters)"
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                minLength={6}
+                required
+              />
               <select
                 className="admin-input"
                 value={form.role}
@@ -246,6 +258,13 @@ function AdminUsersSection() {
                 value={editUser.name}
                 onChange={e => setEditUser(u => ({ ...u, name: e.target.value }))}
                 required
+              />
+              <input
+                className="admin-input"
+                type="password"
+                placeholder="New password (leave blank to keep current)"
+                value={editUser.password || ''}
+                onChange={e => setEditUser(u => ({ ...u, password: e.target.value }))}
               />
               <select
                 className="admin-input"

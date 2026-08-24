@@ -77,9 +77,10 @@ function verifyCsrfToken(cookieSecret, headerToken) {
  */
 export function csrfCookieSetter(req, res, next) {
   const isProd = (process.env.NODE_ENV || '').trim() === 'production';
-  // Only set on safe methods or if cookie is missing
   if (!req.cookies?.[CSRF_SECRET_NAME]) {
     const { secret } = generateCsrfPair();
+    if (!req.cookies) req.cookies = {};
+    req.cookies[CSRF_SECRET_NAME] = secret;
     res.cookie(CSRF_SECRET_NAME, secret, {
       httpOnly: true,
       secure: isProd,
@@ -96,19 +97,7 @@ export function csrfCookieSetter(req, res, next) {
  * Returns the CSRF token the frontend should send in X-CSRF-Token header.
  */
 export function csrfTokenEndpoint(req, res) {
-  const isProd = (process.env.NODE_ENV || '').trim() === 'production';
-  let secret = req.cookies?.[CSRF_SECRET_NAME];
-  if (!secret) {
-    const pair = generateCsrfPair();
-    secret = pair.secret;
-    res.cookie(CSRF_SECRET_NAME, secret, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: csrfSameSite(),
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/',
-    });
-  }
+  const secret = req.cookies?.[CSRF_SECRET_NAME];
   const token = crypto
     .createHmac('sha256', secret)
     .update('csrf-double-submit')

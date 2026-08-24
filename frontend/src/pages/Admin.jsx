@@ -1072,12 +1072,6 @@ export default function Admin() {
     e?.preventDefault?.();
     setLoginMsg('');
 
-    if ((loginEmail || '').trim().toLowerCase() !== ADMIN_EMAIL_ALLOWED) {
-      setLoginMsg(
-        'Incorrect email. If you are a farmer, please use the Clinic section for chat/messages.',
-      );
-      return;
-    }
     try {
       setBusy(true);
       const r = await api.post(
@@ -1090,7 +1084,7 @@ export default function Admin() {
         setOtpCode('');
         setOtpTTL(Number(r.data.ttl || 60));
         setLoginMsg(
-          `OTP sent to ${ADMIN_EMAIL_ALLOWED}. Please enter within ${
+          `OTP sent to ${loginEmail || ADMIN_EMAIL_ALLOWED}. Please enter within ${
             r.data.ttl || 60
           } seconds.`,
         );

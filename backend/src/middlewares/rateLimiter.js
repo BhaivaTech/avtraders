@@ -111,7 +111,7 @@ export function loginLimiter() {
 export function adminLoginLimiter() {
   return rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 20,
     message: { ok: false, message: 'Too many login attempts. Please wait 15 minutes.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -234,7 +234,7 @@ export function adminLoginByEmailLimiter() {
   return createIdentifierLimiter({
     bucket: 'admin-login',
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 20,
     message: 'Too many admin login attempts for this email. Please wait 15 minutes.',
     extractId: (req) => (req.body?.email || '').toLowerCase().trim(),
   });

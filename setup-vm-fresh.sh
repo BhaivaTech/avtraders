@@ -18,7 +18,7 @@ DOMAIN="av.bhaivatech.com"
 SERVER_IP="34.47.226.103"
 NODE_VERSION="20"
 GITHUB_REPO="https://github.com/BhaivaTech/avtraders.git"
-BRANCH="main"
+BRANCH="development"
 
 # Remote DB
 DB_HOST="46.28.44.56"
@@ -170,6 +170,11 @@ cd $APP_DIR/frontend
 npm install
 npm run build
 echo -e "${GREEN}✔ Frontend built${NC}"
+
+# Fix permissions so Nginx (www-data) can read files in home dir
+chmod o+x /home/$APP_USER
+chmod -R o+rX $APP_DIR/frontend/dist
+echo -e "${GREEN}✔ Permissions fixed for Nginx${NC}"
 
 # ============================================
 # PHASE 8: PM2 Setup

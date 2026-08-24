@@ -160,7 +160,7 @@ app.use(csrfCookieSetter);
 app.get("/api/csrf-token", csrfTokenEndpoint);
 
 /* ---------- Sessions ---------- */
-app.set("trust proxy", prod ? 1 : 0);
+app.set("trust proxy", prod ? 2 : 0);
 const DEFAULT_SESSION_MS = Number(process.env.SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
 
 let store;
@@ -193,8 +193,7 @@ const sessionMiddleware = session({
   cookie: {
     httpOnly: true,
     secure: prod,
-    sameSite: "lax",
-    domain: prod ? process.env.COOKIE_DOMAIN || undefined : undefined,
+    sameSite: prod ? "none" : "lax",
     maxAge: DEFAULT_SESSION_MS,
   },
 });

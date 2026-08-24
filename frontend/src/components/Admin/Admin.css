@@ -84,7 +84,7 @@
 .admin-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
-  min-height: calc(100vh - 64px);
+  min-height: 100vh;
   background: var(--bg);
   color: var(--ink);
   transition: background .25s, color .25s;

@@ -31,7 +31,8 @@ export function AdminAuthProvider({ children }) {
   const refresh = useCallback(async () => {
     setAuth((s) => ({ ...s, loading: true }));
     try {
-      const data = await api('/admin/me');
+      const res = await api('/admin/me');
+      const data = res?.data;
       if (data?.ok) {
         setAuth({
           loading:     false,
@@ -41,10 +42,18 @@ export function AdminAuthProvider({ children }) {
           permissions: data.permissions || [],
         });
       } else {
+        try { localStorage.removeItem('adminAuth'); } catch {}
         setAuth({ ...DEFAULT_STATE, loading: false });
+        if (window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
       }
     } catch {
+      try { localStorage.removeItem('adminAuth'); } catch {}
       setAuth({ ...DEFAULT_STATE, loading: false });
+      if (window.location.pathname !== '/admin/login') {
+        window.location.href = '/admin/login';
+      }
     }
   }, []);
 

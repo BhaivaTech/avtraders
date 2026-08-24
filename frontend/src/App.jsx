@@ -89,13 +89,16 @@ function ThemeEnforcer() {
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
       <ThemeEnforcer />
       <OfflineBanner />
-      <SiteHeader />
-      <div className="container">
+      {!isAdmin && <SiteHeader />}
+      <div className={isAdmin ? 'admin-app-container' : 'container'}>
         <ErrorBoundary>
           <ScrollOnNavigate />
           <main id="main" tabIndex={-1}>

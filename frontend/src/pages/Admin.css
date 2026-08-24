@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 /* ============================================================
    Admin.css — AV Traders Agri Clinic & Agri Business Center
    Design system: matches Clinic.jsx / Contact.jsx / Distribution.jsx
@@ -50,9 +52,6 @@
   --topbar-bg: var(--g900);
   --topbar-fg: #eafff1;
 }
-
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 * {
   box-sizing: border-box;

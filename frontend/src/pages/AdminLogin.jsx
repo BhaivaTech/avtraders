@@ -45,7 +45,7 @@ export default function AdminLogin() {
         setOtpCode('');
         const ttl = Number(r.data.ttl || 60);
         setOtpTTL(ttl);
-        setMsg(`OTP sent to ${ADMIN_EMAIL_ALLOWED}. Valid for ${ttl} seconds.`);
+        setMsg(`OTP sent to ${email || ADMIN_EMAIL_ALLOWED}. Valid for ${ttl} seconds.`);
         const t = setInterval(() => setOtpTTL((p) => { if (p <= 1) { clearInterval(t); return 0; } return p - 1; }), 1000);
       } else {
         setMsg('Login failed.');

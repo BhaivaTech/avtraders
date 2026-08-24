@@ -21,16 +21,17 @@ if (!Number.isFinite(ADMIN_OTP_TTL) || ADMIN_OTP_TTL <= 0) ADMIN_OTP_TTL = 60;
 const _rawPass = String(process.env.ADMIN_PASSWORD || '').trim();
 const adminPasswordHash = await bcrypt.hash(_rawPass, 12);
 
-function setAdminPreAuth(req) {
+function setAdminPreAuth(req, email) {
   req.session.adminPreAuth = true;
-  req.session.adminPreAuthEmail = ADMIN_EMAIL;
+  req.session.adminPreAuthEmail = email || ADMIN_EMAIL;
   req.session.loginNonce = crypto.randomBytes(8).toString('hex');
-  req.session.cookie.maxAge = Math.max(ADMIN_OTP_TTL * 1000, 60_000);
+  req.session.cookie.maxAge = 15 * 60 * 1000;
 }
 
-async function setAdminSession(req) {
+async function setAdminSession(req, targetEmail) {
+  const email = targetEmail || req.session?.adminPreAuthEmail || ADMIN_EMAIL;
   req.session.admin = true;
-  req.session.adminEmail = ADMIN_EMAIL;
+  req.session.adminEmail = email;
   req.session.cookie.maxAge = ADMIN_SESSION_MS;
   delete req.session.adminPreAuth;
   delete req.session.adminPreAuthEmail;
@@ -41,13 +42,13 @@ async function setAdminSession(req) {
   try {
     const [rows] = await pool.query(
       'SELECT id, name, role FROM admin_users WHERE email = ? AND is_active = 1 LIMIT 1',
-      [ADMIN_EMAIL]
+      [email]
     );
     if (rows.length > 0) {
       req.session.adminId   = rows[0].id;
       req.session.adminRole = rows[0].role;
       req.session.adminName = rows[0].name;
-    } else {
+    } else if (email === ADMIN_EMAIL) {
       // Fallback: seed this admin on the fly so future lookups work
       try {
         const [ins] = await pool.query(
@@ -58,6 +59,9 @@ async function setAdminSession(req) {
       } catch { /* table may not exist yet — ignore */ }
       req.session.adminRole = 'superadmin';
       req.session.adminName = 'Site Admin';
+    } else {
+      req.session.adminRole = 'support';
+      req.session.adminName = 'Admin User';
     }
   } catch {
     // Migration not yet applied — degrade gracefully
@@ -73,8 +77,39 @@ export async function loginStart(req, res) {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '').trim();
 
-  const passwordOk = await bcrypt.compare(password, adminPasswordHash);
-  if (email !== ADMIN_EMAIL || !passwordOk) {
+  if (!email || !password) {
+    return res.status(401).json({ ok: false, error: 'bad-credentials' });
+  }
+
+  let passwordOk = false;
+  let allowed = false;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, password_hash, is_active FROM admin_users WHERE email = ? AND is_active = 1 LIMIT 1',
+      [email]
+    );
+    if (rows.length > 0) {
+      allowed = true;
+      const adminUser = rows[0];
+      if (adminUser.password_hash) {
+        passwordOk = await bcrypt.compare(password, adminUser.password_hash);
+      } else {
+        // Fallback for primary ADMIN_EMAIL or accounts without custom password
+        passwordOk = await bcrypt.compare(password, adminPasswordHash);
+      }
+    } else if (email === ADMIN_EMAIL) {
+      allowed = true;
+      passwordOk = await bcrypt.compare(password, adminPasswordHash);
+    }
+  } catch {
+    if (email === ADMIN_EMAIL) {
+      allowed = true;
+      passwordOk = await bcrypt.compare(password, adminPasswordHash);
+    }
+  }
+
+  if (!allowed || !passwordOk) {
     await insertAuthAudit({
       actorType: 'admin',
       identifier: email,
@@ -86,11 +121,11 @@ export async function loginStart(req, res) {
   }
 
   try {
-    await sendAdminOTP(ADMIN_EMAIL);
-    setAdminPreAuth(req);
+    await sendAdminOTP(email);
+    setAdminPreAuth(req, email);
     await insertAuthAudit({
       actorType: 'admin',
-      identifier: ADMIN_EMAIL,
+      identifier: email,
       action: 'otp_sent',
       success: true,
       ...requestAuditMeta(req),
@@ -104,7 +139,7 @@ export async function loginStart(req, res) {
     logger.error({ err: e }, '[admin/login-start] send-otp failed');
     await insertAuthAudit({
       actorType: 'admin',
-      identifier: ADMIN_EMAIL,
+      identifier: email,
       action: 'otp_send_failed',
       success: false,
       ...requestAuditMeta(req, { error: e?.message || 'send-failed' }),
@@ -119,7 +154,7 @@ export async function loginStart(req, res) {
 export async function resendOtp(req, res) {
   const email = String(req.body?.email || req.session?.adminPreAuthEmail || '').trim().toLowerCase();
 
-  if (email !== ADMIN_EMAIL || !req.session?.adminPreAuth) {
+  if (!email || !req.session?.adminPreAuth) {
     await insertAuthAudit({
       actorType: 'admin',
       identifier: email,
@@ -131,11 +166,11 @@ export async function resendOtp(req, res) {
   }
 
   try {
-    await sendAdminOTP(ADMIN_EMAIL);
-    setAdminPreAuth(req);
+    await sendAdminOTP(email);
+    setAdminPreAuth(req, email);
     await insertAuthAudit({
       actorType: 'admin',
-      identifier: ADMIN_EMAIL,
+      identifier: email,
       action: 'otp_resent',
       success: true,
       ...requestAuditMeta(req),
@@ -145,7 +180,7 @@ export async function resendOtp(req, res) {
     logger.error({ err: e }, '[admin/resend-otp] send failed');
     await insertAuthAudit({
       actorType: 'admin',
-      identifier: ADMIN_EMAIL,
+      identifier: email,
       action: 'otp_resend_failed',
       success: false,
       ...requestAuditMeta(req, { error: e?.message || 'send-failed' }),
@@ -158,11 +193,10 @@ export async function resendOtp(req, res) {
 /*  POST /api/admin/verify-otp                                           */
 /* ------------------------------------------------------------------ */
 export async function verifyOtp(req, res) {
-  const email = String(req.body?.email || '').trim().toLowerCase();
+  const email = String(req.body?.email || req.session?.adminPreAuthEmail || '').trim().toLowerCase();
   const code = String(req.body?.code || '').trim();
 
-  if (email !== ADMIN_EMAIL) return res.status(401).json({ ok: false, error: 'bad-email' });
-  if (!req.session.adminPreAuth) return res.status(401).json({ ok: false, error: 'no-preauth' });
+  if (!email || !req.session?.adminPreAuth) return res.status(401).json({ ok: false, error: 'no-preauth' });
 
   try {
     const result = await verifyAdminOTP(email, code);
@@ -182,15 +216,21 @@ export async function verifyOtp(req, res) {
         logger.error({ err }, '[admin] session.regenerate failed');
         return res.status(500).json({ ok: false, error: 'session-failed' });
       }
-      await setAdminSession(req);
-      insertAuthAudit({
-        actorType: 'admin',
-        identifier: ADMIN_EMAIL,
-        action: 'login_success',
-        success: true,
-        ...requestAuditMeta(req),
+      await setAdminSession(req, email);
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          logger.error({ saveErr }, '[admin] session.save failed');
+          return res.status(500).json({ ok: false, error: 'session-save-failed' });
+        }
+        insertAuthAudit({
+          actorType: 'admin',
+          identifier: email,
+          action: 'login_success',
+          success: true,
+          ...requestAuditMeta(req),
+        });
+        return res.json({ ok: true, expires_in_ms: ADMIN_SESSION_MS });
       });
-      return res.json({ ok: true, expires_in_ms: ADMIN_SESSION_MS });
     });
   } catch (e) {
     logger.error({ err: e }, '[admin/verify-otp] verify failed');
@@ -341,20 +381,24 @@ export async function listAdminUsers(req, res) {
 }
 
 export async function createAdminUser(req, res) {
-  const { email, name, role } = req.body || {};
+  const { email, name, role, password } = req.body || {};
   const VALID_ROLES = ['superadmin', 'manager', 'support', 'finance'];
 
-  if (!email || !name || !role) {
-    return res.status(400).json({ ok: false, message: 'email, name, and role are required' });
+  if (!email || !name || !role || !password) {
+    return res.status(400).json({ ok: false, message: 'email, name, role, and password are required' });
+  }
+  if (String(password).length < 6) {
+    return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters long' });
   }
   if (!VALID_ROLES.includes(role)) {
     return res.status(400).json({ ok: false, message: `role must be one of: ${VALID_ROLES.join(', ')}` });
   }
 
   try {
+    const passwordHash = await bcrypt.hash(String(password).trim(), 12);
     const [result] = await pool.query(
-      'INSERT INTO admin_users (email, name, role) VALUES (?, ?, ?)',
-      [email.trim().toLowerCase(), name.trim(), role]
+      'INSERT INTO admin_users (email, name, role, password_hash) VALUES (?, ?, ?, ?)',
+      [email.trim().toLowerCase(), name.trim(), role, passwordHash]
     );
     await insertAuthAudit({
       actorType: 'admin',
@@ -379,7 +423,7 @@ export async function updateAdminUser(req, res) {
     return res.status(400).json({ ok: false, message: 'Invalid id' });
   }
 
-  const { name, role } = req.body || {};
+  const { name, role, password } = req.body || {};
   const VALID_ROLES = ['superadmin', 'manager', 'support', 'finance'];
 
   if (role && !VALID_ROLES.includes(role)) {
@@ -390,6 +434,14 @@ export async function updateAdminUser(req, res) {
   const values = [];
   if (name)  { updates.push('name = ?');  values.push(name.trim()); }
   if (role)  { updates.push('role = ?');  values.push(role); }
+  if (password && String(password).trim().length > 0) {
+    if (String(password).length < 6) {
+      return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters long' });
+    }
+    const passwordHash = await bcrypt.hash(String(password).trim(), 12);
+    updates.push('password_hash = ?');
+    values.push(passwordHash);
+  }
 
   if (updates.length === 0) {
     return res.status(400).json({ ok: false, message: 'Nothing to update' });

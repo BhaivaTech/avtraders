@@ -63,6 +63,7 @@ body{
 }
 a{ color:inherit; text-decoration:none; }
 .container{ max-width:1200px; margin:0 auto; padding:16px; }
+.admin-app-container{ width:100%; min-height:100vh; margin:0; padding:0; }
 
 /* ---------- UTILITIES ---------- */
 .justify{ text-align:justify; text-justify:inter-word; hyphens:auto; }

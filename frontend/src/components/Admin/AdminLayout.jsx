@@ -58,13 +58,13 @@ export default function AdminLayout() {
 
   return (
     <AdminAuthProvider>
+      <div
+        className={`admin-sidebar-overlay${mobileOpen ? ' is-open' : ''}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
       <div className="admin-layout">
         <AdminSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
-        <div
-          className={`admin-sidebar-overlay${mobileOpen ? ' is-open' : ''}`}
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
         <div className="admin-main">
           <AdminHeader onMenuToggle={() => setMobileOpen((s) => !s)} />
           <div className="admin-content">
