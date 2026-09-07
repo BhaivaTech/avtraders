@@ -9,9 +9,7 @@
 // immediately, the server call follows, and we revert on error.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import Seo from '../components/Seo.jsx';
 import { Skeleton, SkeletonText, SkeletonCard } from '../components/Skeleton.jsx';
 import toast from '../lib/toast.js';
 import './AdminAnnouncements.css';
@@ -44,17 +42,10 @@ const EMPTY_FORM = {
 };
 
 export default function AdminAnnouncements() {
-  return (
-    <>
-      <Seo pageKey="admin/announcements" />
-      <AdminAnnouncementsInner />
-    </>
-  );
+  return <AdminAnnouncementsInner />;
 }
 
 function AdminAnnouncementsInner() {
-  const navigate = useNavigate();
-
   const [list, setList]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -279,14 +270,6 @@ function AdminAnnouncementsInner() {
   return (
     <div className="admin-ann-container">
       <header className="admin-ann-header">
-        <button
-          type="button"
-          className="icon-btn ghost"
-          onClick={() => navigate('/admin')}
-          aria-label="Back to admin"
-        >
-          ←
-        </button>
         <div className="admin-ann-title">Announcements</div>
         <div className="admin-ann-spacer" />
         <button

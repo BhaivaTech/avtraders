@@ -161,10 +161,14 @@ app.get("/api/csrf-token", csrfTokenEndpoint);
 
 /* ---------- Sessions ---------- */
 app.set("trust proxy", prod ? 2 : 0);
-const DEFAULT_SESSION_MS = Number(process.env.SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
+// Fixed 12-hour session lifetime everywhere (local + prod). Sessions are
+// NOT renewed on activity — the timer starts at login and expires 12h later.
+const DEFAULT_SESSION_MS = Number(process.env.SESSION_MAX_AGE_MS || 12 * 60 * 60 * 1000);
 
+// MySQL-backed store in EVERY environment so sessions survive server
+// restarts (MemoryStore wiped them, kicking users to the login page).
 let store;
-if (prod) {
+try {
   const sessionOptions = {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT || 3306),
@@ -176,11 +180,15 @@ if (prod) {
     connectionLimit: 5,
     connectTimeout: 20000,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
+    keepAliveInitialDelay: 10000,
+    // Expired-session cleanup every 10 minutes
+    clearExpired: true,
+    checkExpirationInterval: 10 * 60 * 1000,
   };
   store = new MySQLStore(sessionOptions);
   store.on("error", (err) => logger.error({ err }, "[session-store] error"));
-} else {
+} catch (err) {
+  logger.error({ err }, "[session-store] failed to initialise MySQL store");
   store = new session.MemoryStore();
 }
 
@@ -189,7 +197,8 @@ const sessionMiddleware = session({
   store,
   resave: false,
   saveUninitialized: false,
-  rolling: true,
+  // Fixed lifetime: no sliding renewal — cookie expires exactly 12h after login
+  rolling: false,
   cookie: {
     httpOnly: true,
     secure: prod,
@@ -286,6 +295,17 @@ const io = new Server(server, {
 });
 
 attachChatSocket(io);
+
+/* Shared socket handle for controllers outside chatController */
+const { setIo } = await import("./src/utils/socketBus.js");
+setIo(io);
+
+/* Give adminController a handle to the session store so it can destroy
+   old sessions when an admin takes over from another browser/device. */
+const adminMod = await import("./src/controllers/adminController.js");
+if (typeof adminMod.attachAdminSessionStore === "function") {
+  adminMod.attachAdminSessionStore(store);
+}
 
 /* ---- Periodic OTP cleanup (every 15 min) ---- */
 async function cleanupExpiredOtps() {

@@ -1,8 +1,9 @@
 // src/pages/admin/AdminSettings.jsx
-// Admin settings page: notification preferences, session controls,
-// and Admin User Management (superadmin only).
+// Admin settings page: account & session info, self-service password
+// change, notification preferences, cache maintenance, and Admin User
+// Management (superadmin only).
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api.js';
 import toast from '../../lib/toast.js';
@@ -18,32 +19,152 @@ const ROLE_LABELS = {
   finance:    { label: 'Finance',    color: '#f59e0b' },
 };
 
-function Toggle({ checked, onChange, label }) {
+function Toggle({ checked, onChange, label, hint }) {
   return (
-    <label className="toggle">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span className="toggle-label">{label}</span>
+    <label className="set-toggle">
+      <span className="set-toggle-text">
+        <span className="set-toggle-label">{label}</span>
+        {hint && <span className="set-toggle-hint">{hint}</span>}
+      </span>
+      <span className={'set-switch' + (checked ? ' on' : '')}>
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+        <span className="knob" />
+      </span>
     </label>
   );
 }
 
 function RoleBadge({ role }) {
   const info = ROLE_LABELS[role] || { label: role, color: '#6b7280' };
+  return <span className={`role-badge role-${role}`}>{info.label}</span>;
+}
+
+function SettingsCard({ icon, title, subtitle, children, className = '' }) {
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '2px 10px',
-      borderRadius: '20px',
-      fontSize: '11px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      background: `${info.color}22`,
-      border: `1px solid ${info.color}55`,
-      color: info.color,
-    }}>
-      {info.label}
-    </span>
+    <section className={'settings-card ' + className}>
+      <div className="settings-card-head">
+        <span className="settings-card-icon">{icon}</span>
+        <div>
+          <h3>{title}</h3>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+      </div>
+      <div className="settings-card-body">{children}</div>
+    </section>
+  );
+}
+
+/* ── Change password form (any admin role) ── */
+function ChangePasswordSection() {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const mismatch = confirm.length > 0 && next !== confirm;
+
+  async function submit(e) {
+    e.preventDefault();
+    if (mismatch || saving) return;
+    setSaving(true);
+    try {
+      const res = await api.patch(
+        '/admin/my-password',
+        { current_password: current, new_password: next },
+        { withCredentials: true }
+      );
+      if (res?.data?.ok) {
+        toast.success('Password updated');
+        setCurrent('');
+        setNext('');
+        setConfirm('');
+      } else {
+        toast.error(res?.data?.message || 'Failed to change password');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to change password');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="pw-form">
+      <label className="field">
+        <span>Current password</span>
+        <input
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
+      </label>
+      <label className="field">
+        <span>New password</span>
+        <input
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          autoComplete="new-password"
+          minLength={8}
+          placeholder="min 8 characters"
+          required
+        />
+      </label>
+      <label className="field">
+        <span>Confirm new password</span>
+        <input
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="new-password"
+          style={mismatch ? { borderColor: '#ef4444' } : undefined}
+          required
+        />
+        {mismatch && <em className="field-error">Passwords do not match</em>}
+      </label>
+      <button className="btn primary" disabled={saving || mismatch || !next}>
+        {saving ? 'Updating…' : 'Update password'}
+      </button>
+    </form>
+  );
+}
+
+/* ── Cache maintenance ── */
+function CacheSection() {
+  const [clearing, setClearing] = useState(false);
+
+  async function clearCache() {
+    if (!window.confirm('Clear locally cached files and reload? The app will refresh.')) return;
+    setClearing(true);
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      toast.success('Cache cleared — reloading');
+      setTimeout(() => window.location.reload(), 600);
+    } catch {
+      toast.error('Could not clear cache');
+      setClearing(false);
+    }
+  }
+
+  return (
+    <>
+      <p className="settings-note">
+        If pages look stale or the app misbehaves after an update, clear the
+        offline cache. This only affects this device.
+      </p>
+      <button className="btn ghost danger" onClick={clearCache} disabled={clearing}>
+        {clearing ? 'Clearing…' : 'Clear cached data & reload'}
+      </button>
+    </>
   );
 }
 
@@ -51,10 +172,11 @@ function RoleBadge({ role }) {
 function AdminUsersSection() {
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter]   = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm]       = useState({ email: '', name: '', role: 'support', password: '' });
   const [saving, setSaving]   = useState(false);
-  const [editUser, setEditUser] = useState(null); // { id, name, role, password }
+  const [editUser, setEditUser] = useState(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -70,6 +192,16 @@ function AdminUsersSection() {
   }, []);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const visibleUsers = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) =>
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.role?.toLowerCase().includes(q)
+    );
+  }, [users, filter]);
 
   async function createUser(e) {
     e.preventDefault();
@@ -133,48 +265,63 @@ function AdminUsersSection() {
     }
   }
 
+  function Modal({ title, onClose, children }) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+          <h3>{title}</h3>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>Admin Users</h3>
-        <button className="btn" onClick={() => setShowModal(true)}>+ Add Admin</button>
+    <SettingsCard
+      icon="👥"
+      title="Admin Users"
+      subtitle="Manage team accounts and their access roles"
+      className="settings-card-full"
+    >
+      <div className="au-toolbar">
+        <input
+          className="au-search"
+          placeholder="Search by name, email or role…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+        <button className="btn primary" onClick={() => setShowModal(true)}>+ Add Admin</button>
       </div>
 
       {loading ? (
-        <div style={{ color: 'var(--ink-soft)', fontSize: 14 }}>Loading…</div>
+        <div className="settings-note">Loading…</div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <div className="table-wrap">
+          <table className="au-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--admin-border, #e5e7eb)' }}>
-                {['Name', 'Email', 'Role', 'Status', 'Actions'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--ink-soft)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
-                ))}
-              </tr>
+              <tr>{['Name', 'Email', 'Role', 'Status', 'Actions'].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
             <tbody>
-              {users.map(u => (
-                <tr key={u.id} style={{ borderBottom: '1px solid var(--admin-border, #f3f4f6)', opacity: u.is_active ? 1 : 0.5 }}>
-                  <td style={{ padding: '10px 12px', fontWeight: 500 }}>{u.name}</td>
-                  <td style={{ padding: '10px 12px', color: 'var(--ink-soft)' }}>{u.email}</td>
-                  <td style={{ padding: '10px 12px' }}><RoleBadge role={u.role} /></td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: u.is_active ? '#10b981' : '#ef4444' }}>
+              {visibleUsers.map((u) => (
+                <tr key={u.id} className={u.is_active ? '' : 'row-inactive'}>
+                  <td className="cell-name">{u.name}</td>
+                  <td className="cell-email">{u.email}</td>
+                  <td><RoleBadge role={u.role} /></td>
+                  <td>
+                    <span className={'status-pill ' + (u.is_active ? 'ok' : 'off')}>
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                  <td>
+                    <div className="au-actions">
                       <button
-                        className="btn"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        className="btn tiny"
                         onClick={() => setEditUser({ id: u.id, name: u.name, role: u.role, password: '' })}
                       >
                         Edit
                       </button>
                       <button
-                        className={`btn ${u.is_active ? 'danger' : ''}`}
-                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        className={'btn tiny ' + (u.is_active ? 'ghost danger' : 'ghost')}
                         onClick={() => toggleActive(u)}
                       >
                         {u.is_active ? 'Deactivate' : 'Reactivate'}
@@ -183,123 +330,113 @@ function AdminUsersSection() {
                   </td>
                 </tr>
               ))}
-              {users.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: '20px 12px', textAlign: 'center', color: 'var(--ink-soft)' }}>No admin users yet.</td></tr>
+              {visibleUsers.length === 0 && (
+                <tr><td colSpan={5} className="empty-cell">No matching admin users.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Create Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--admin-surface, #fff)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ margin: '0 0 20px' }}>Add Admin User</h3>
-            <form onSubmit={createUser} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <input
-                className="admin-input"
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                required
-              />
-              <input
-                className="admin-input"
-                type="text"
-                placeholder="Full name"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                required
-              />
-              <input
-                className="admin-input"
-                type="password"
-                placeholder="Password (min 6 characters)"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                minLength={6}
-                required
-              />
-              <select
-                className="admin-input"
-                value={form.role}
-                onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-              >
-                <option value="superadmin">Superadmin</option>
-                <option value="manager">Manager</option>
-                <option value="support">Support</option>
-                <option value="finance">Finance</option>
-              </select>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="submit" className="btn" disabled={saving} style={{ flex: 1 }}>
-                  {saving ? 'Creating…' : 'Create'}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => setShowModal(false)} style={{ flex: 1 }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal title="Add Admin User" onClose={() => setShowModal(false)}>
+          <form onSubmit={createUser} className="stack-form">
+            <input className="admin-input" type="email" placeholder="Email" value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+            <input className="admin-input" type="text" placeholder="Full name" value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+            <input className="admin-input" type="password" placeholder="Password (min 6 characters)" value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} minLength={6} required />
+            <select className="admin-input" value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              <option value="superadmin">Superadmin</option>
+              <option value="manager">Manager</option>
+              <option value="support">Support</option>
+              <option value="finance">Finance</option>
+            </select>
+            <div className="modal-actions">
+              <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Creating…' : 'Create'}</button>
+              <button type="button" className="btn ghost" onClick={() => setShowModal(false)}>Cancel</button>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Edit Modal */}
       {editUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--admin-surface, #fff)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ margin: '0 0 20px' }}>Edit Admin User</h3>
-            <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <input
-                className="admin-input"
-                type="text"
-                placeholder="Full name"
-                value={editUser.name}
-                onChange={e => setEditUser(u => ({ ...u, name: e.target.value }))}
-                required
-              />
-              <input
-                className="admin-input"
-                type="password"
-                placeholder="New password (leave blank to keep current)"
-                value={editUser.password || ''}
-                onChange={e => setEditUser(u => ({ ...u, password: e.target.value }))}
-              />
-              <select
-                className="admin-input"
-                value={editUser.role}
-                onChange={e => setEditUser(u => ({ ...u, role: e.target.value }))}
-              >
-                <option value="superadmin">Superadmin</option>
-                <option value="manager">Manager</option>
-                <option value="support">Support</option>
-                <option value="finance">Finance</option>
-              </select>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="submit" className="btn" disabled={saving} style={{ flex: 1 }}>
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => setEditUser(null)} style={{ flex: 1 }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal title={`Edit ${editUser.name}`} onClose={() => setEditUser(null)}>
+          <form onSubmit={saveEdit} className="stack-form">
+            <input className="admin-input" type="text" placeholder="Full name" value={editUser.name}
+              onChange={(e) => setEditUser((u) => ({ ...u, name: e.target.value }))} required />
+            <input className="admin-input" type="password" placeholder="New password (leave blank to keep)"
+              value={editUser.password || ''}
+              onChange={(e) => setEditUser((u) => ({ ...u, password: e.target.value }))} />
+            <select className="admin-input" value={editUser.role}
+              onChange={(e) => setEditUser((u) => ({ ...u, role: e.target.value }))}>
+              <option value="superadmin">Superadmin</option>
+              <option value="manager">Manager</option>
+              <option value="support">Support</option>
+              <option value="finance">Finance</option>
+            </select>
+            <div className="modal-actions">
+              <button type="submit" className="btn primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button type="button" className="btn ghost" onClick={() => setEditUser(null)}>Cancel</button>
+            </div>
+          </form>
+        </Modal>
       )}
-    </div>
+    </SettingsCard>
+  );
+}
+
+/* ── live session countdown (fixed 12h from login) ── */
+function SessionCountdown({ expiresAt }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!expiresAt) return <>—</>;
+  const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  if (remaining === 0) return <span style={{ color: '#dc2626', fontWeight: 700 }}>Expired</span>;
+
+  const h = Math.floor(remaining / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
+  const s = remaining % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    <>
+      {pad(h)}:{pad(m)}:{pad(s)}
+      <span style={{ display: 'block', fontWeight: 400, fontSize: 12, color: 'var(--muted)' }}>
+        auto-logout at expiry
+      </span>
+    </>
   );
 }
 
 /* ── Main Settings Page ── */
 export default function AdminSettings() {
   const navigate = useNavigate();
-  const { role, hasPermission } = useAdminAuth();
+  const { role, hasPermission, refresh, sessionExpiresAt } = useAdminAuth();
   const [notifyNewMsg, setNotifyNewMsg] = useState(true);
   const [notifyPayment, setNotifyPayment] = useState(true);
   const [sessionInfo, setSessionInfo] = useState({ email: '', ts: 0 });
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // When the fixed 12h window closes, bounce to login immediately.
+  useEffect(() => {
+    if (!sessionExpiresAt) return;
+    const msLeft = sessionExpiresAt - Date.now();
+    if (msLeft <= 0) {
+      try { localStorage.removeItem(ADMIN_AUTH_KEY); } catch {}
+      toast.error('Session expired — please log in again');
+      navigate('/admin/login');
+      return;
+    }
+    const t = setTimeout(() => refresh(), msLeft + 1500);
+    return () => clearTimeout(t);
+  }, [sessionExpiresAt, navigate, refresh]);
 
   useEffect(() => {
     try {
@@ -333,45 +470,52 @@ export default function AdminSettings() {
     window.location.reload();
   }
 
-  const sessionAge = sessionInfo.ts ? Math.round((Date.now() - sessionInfo.ts) / (1000 * 60 * 60 * 24)) : 0;
+  const initials = (sessionInfo.email || 'A').slice(0, 2).toUpperCase();
 
   return (
     <div className="admin-page" data-admin-page="settings">
-      <h1>Settings</h1>
+      <div className="admin-page-head">
+        <h1>Settings</h1>
+        <p className="muted">Account, security and workspace preferences</p>
+      </div>
 
-      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-        <div className="admin-card">
-          <h3>Notifications</h3>
-          <Toggle checked={notifyNewMsg} onChange={(v) => saveNotify('newMessage', v)} label="New messages" />
-          <Toggle checked={notifyPayment} onChange={(v) => saveNotify('payment', v)} label="Payment updates" />
-          <div className="toggle-hint">These control real-time toast alerts in the admin panel.</div>
-        </div>
-
-        <div className="admin-card">
-          <h3>Session</h3>
-          <div style={{ display: 'grid', gap: 10, fontSize: 14, color: 'var(--ink-soft)' }}>
-            <div>
-              <div className="label">Email</div>
-              <div>{sessionInfo.email || '—'}</div>
-            </div>
-            <div>
-              <div className="label">Role</div>
-              <div style={{ marginTop: 4 }}><RoleBadge role={role || 'superadmin'} /></div>
-            </div>
-            <div>
-              <div className="label">Session age</div>
-              <div>{sessionAge > 0 ? `${sessionAge} day${sessionAge > 1 ? 's' : ''}` : 'Today'}</div>
+      <div className="settings-grid">
+        {/* Account */}
+        <SettingsCard icon="👤" title="Account" subtitle="Your admin identity and session">
+          <div className="account-row">
+            <span className="avatar-lg">{initials}</span>
+            <div className="account-main">
+              <div className="account-email">{sessionInfo.email || '—'}</div>
+              <RoleBadge role={role || 'superadmin'} />
             </div>
           </div>
-          <button
-            className="btn danger"
-            style={{ marginTop: 16 }}
-            onClick={logoutNow}
-            disabled={loggingOut}
-          >
+          <dl className="kv-list">
+            <div><dt>Session expires in</dt><dd><SessionCountdown expiresAt={sessionExpiresAt} /></dd></div>
+            <div><dt>Signed in</dt><dd>{sessionInfo.ts ? new Date(sessionInfo.ts).toLocaleString('en-IN') : '—'}</dd></div>
+            <div><dt>Session length</dt><dd>12 hours (fixed, from login)</dd></div>
+          </dl>
+          <button className="btn danger" onClick={logoutNow} disabled={loggingOut} style={{ marginTop: 'auto' }}>
             {loggingOut ? 'Logging out…' : 'Logout'}
           </button>
-        </div>
+        </SettingsCard>
+
+        {/* Security */}
+        <SettingsCard icon="🔒" title="Change Password" subtitle="Update your own login password">
+          <ChangePasswordSection />
+        </SettingsCard>
+
+        {/* Notifications */}
+        <SettingsCard icon="🔔" title="Notifications" subtitle="Real-time alerts inside the panel">
+          <Toggle checked={notifyNewMsg} onChange={(v) => saveNotify('newMessage', v)}
+            label="New messages" hint="Toast when a farmer sends a message" />
+          <Toggle checked={notifyPayment} onChange={(v) => saveNotify('payment', v)}
+            label="Payment updates" hint="Toast on payment status changes" />
+        </SettingsCard>
+
+        {/* Maintenance */}
+        <SettingsCard icon="🧰" title="Maintenance" subtitle="Fix loading issues on this device">
+          <CacheSection />
+        </SettingsCard>
 
         {/* Admin User Management — superadmin only */}
         {hasPermission('admin_users') && <AdminUsersSection />}

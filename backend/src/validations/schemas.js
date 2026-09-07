@@ -108,6 +108,11 @@ export const adminResendOtpSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email format'),
 });
 
+export const changeMyPasswordSchema = z.object({
+  current_password: z.string().min(1, 'Current password is required'),
+  new_password: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
 /* ------------------------------------------------------------------ */
 /*  Chat endpoints                                                       */
 /* ------------------------------------------------------------------ */

@@ -2,8 +2,9 @@
 import express from 'express';
 import {
   loginStart, resendOtp, verifyOtp, ping, me, logout,
-  blockFarmer, getAdminPayments, getAdminStats,
+  blockFarmer, getAdminPayments, getAdminStats, getAdminInsights,
   listAdminUsers, createAdminUser, updateAdminUser, deactivateAdminUser, reactivateAdminUser,
+  changeMyPassword,
 } from '../controllers/adminController.js';
 import { listAuthAudit, listDealerAudit } from '../controllers/auditController.js';
 import { adminGetAllOrders, adminUpdateOrderStatus } from '../controllers/dealer/orders.js';
@@ -14,7 +15,7 @@ import {
   otpVerifyLimiter,
   adminLoginByEmailLimiter,
 } from '../middlewares/rateLimiter.js';
-import { adminLoginStartSchema, adminVerifyOtpSchema, adminResendOtpSchema } from '../validations/schemas.js';
+import { adminLoginStartSchema, adminVerifyOtpSchema, adminResendOtpSchema, changeMyPasswordSchema } from '../validations/schemas.js';
 
 const router = express.Router();
 
@@ -46,6 +47,10 @@ router.get('/payments', ensureAdminSession, requirePermission('payments'), getAd
 
 // ── Admin dashboard stats ─────────────────────────────────────────────
 router.get('/stats', ensureAdminSession, getAdminStats);
+router.get('/insights', ensureAdminSession, getAdminInsights);
+
+// ── Self-service password change (any admin role) ─────────────────────
+router.patch('/my-password', ensureAdminSession, validateBody(changeMyPasswordSchema), changeMyPassword);
 
 // ── Dealer orders management ──────────────────────────────────────────
 router.get('/orders',              ensureAdminSession, requirePermission('dealers'), adminGetAllOrders);

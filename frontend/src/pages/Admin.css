@@ -257,6 +257,130 @@
 }
 
 /* ============================================================
+   INBOX LAYOUT — chat fills the visible area exactly.
+   The list and thread scroll internally; the page itself
+   never scrolls taller than the viewport.
+   ============================================================ */
+.admin-content:has(> .admin-page[data-admin-page="inbox"]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-page[data-admin-page="inbox"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 2-column chat area */
+.cols {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: var(--space-3);
+}
+
+.cols .list {
+  width: 340px;
+  flex-shrink: 0;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.cols .list-inner {
+  flex: 1;
+  min-height: 0;
+}
+
+.cols .thread {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Thread header strip */
+.thread-head {
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+/* ── Stats cards (Farmers / Chats Today / Revenue) ── */
+.inbox-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--g50);
+  border-bottom: 1px solid var(--line);
+}
+
+.inbox-stat-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-btn);
+  padding: 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.inbox-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.inbox-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.inbox-stat-card.is-revenue .inbox-stat-value {
+  color: var(--g600);
+}
+
+/* Narrow screens: show either the list or the thread, never both */
+@media (max-width: 1000px) {
+  .cols {
+    gap: 0;
+  }
+
+  .cols .list {
+    width: 100%;
+    flex: 1;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .cols .thread {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .cols.only-list .thread,
+  .cols.only-thread .list {
+    display: none;
+  }
+}
+
+/* ============================================================
    CHAT LIST (left column)
    ============================================================ */
 .list {

@@ -80,15 +80,13 @@ function ScrollOnNavigate() {
 function ThemeEnforcer() {
   const { pathname } = useLocation();
   useEffect(() => {
-    // Force light theme on all non-admin routes AND on the admin login page
-    // so that refresh/logout does not leave a black background.
-    const isAdminApp = pathname.startsWith('/admin') && pathname !== '/admin/login';
-    if (!isAdminApp) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.style.colorScheme = 'light';
-      document.documentElement.style.background = '#f1f5f9';
-      document.body.style.background = '#f1f5f9';
-    }
+    // Force light theme everywhere (public site AND admin app).
+    // The admin panel is light-only; leaving data-theme="dark" active
+    // there turns its transparent inputs black after a refresh.
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.style.colorScheme = 'light';
+    document.documentElement.style.background = '#f1f5f9';
+    document.body.style.background = '#f1f5f9';
   }, [pathname]);
   return null;
 }
@@ -117,9 +115,6 @@ export default function App() {
 
                 <Route path="/admin/login"               element={<AdminLogin />} />
 
-                {/* Legacy announcements page — still reachable */}
-                <Route path="/admin/announcements"       element={<RequireAdmin><AdminAnnouncements /></RequireAdmin>} />
-
                 {/* New modular admin panel with layout + sidebar */}
                 <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -129,6 +124,7 @@ export default function App() {
                   <Route path="/admin/payments"     element={<RequirePermission permission="payments"><AdminPayments /></RequirePermission>} />
                   <Route path="/admin/tracking"     element={<RequirePermission permission="chats"><AdminTracking /></RequirePermission>} />
                   <Route path="/admin/users"        element={<RequirePermission permission="users"><AdminUsers /></RequirePermission>} />
+                  <Route path="/admin/announcements" element={<RequirePermission permission="announcements"><AdminAnnouncements /></RequirePermission>} />
                   <Route path="/admin/analytics"    element={<RequirePermission permission="analytics"><AdminAnalytics /></RequirePermission>} />
                   <Route path="/admin/settings"     element={<AdminSettings />} />
                 </Route>

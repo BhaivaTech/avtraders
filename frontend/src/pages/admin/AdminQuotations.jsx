@@ -12,6 +12,7 @@
 // Admin.jsx (panel === 'quote' and panel === 'lr' blocks).
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api.js';
 import toast from '../../lib/toast.js';
 import '../Admin.css';
@@ -158,6 +159,8 @@ function LRChip({ lr, track }) {
 /* Main page                                                          */
 /* =================================================================== */
 export default function AdminQuotations() {
+  const navigate = useNavigate();
+
   // --- farmer / chat lookup -----------------------------------------
   const [query, setQuery] = useState('');
   const [chats, setChats] = useState([]);
@@ -349,30 +352,31 @@ export default function AdminQuotations() {
             <p className="muted">Select a chat to send a quotation or LR.</p>
           ) : (
             <>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
+              <div className="quote-sel-head">
                 <div>
-                  <div style={{ fontWeight: 600 }}>
+                  <div className="q-name">
                     {sel.name || sel.mobile || 'Selected chat'}
                   </div>
-                  <div className="muted" style={{ fontSize: 11 }}>
-                    Chat ID: {sel.id}
-                  </div>
+                  <div className="q-sub">Chat ID: {sel.id}</div>
                 </div>
-                <button
-                  className="icon-btn"
-                  title="Clear selection"
-                  onClick={clearSelection}
-                >
-                  <Icon.Close />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    className="btn primary"
+                    title="Open this chat in the Inbox"
+                    onClick={() =>
+                      navigate('/admin/inbox', { state: { chat: sel } })
+                    }
+                  >
+                    Go to chat →
+                  </button>
+                  <button
+                    className="icon-btn"
+                    title="Clear selection"
+                    onClick={clearSelection}
+                  >
+                    <Icon.Close />
+                  </button>
+                </div>
               </div>
 
               {/* Quotation panel */}
@@ -435,14 +439,6 @@ export default function AdminQuotations() {
                   <b>Open</b> button).
                 </div>
               </section>
-
-              <hr
-                style={{
-                  border: 'none',
-                  borderTop: '1px solid #e5e7eb',
-                  margin: '14px 0',
-                }}
-              />
 
               {/* LR / dispatch panel */}
               <section className="quote-section">

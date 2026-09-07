@@ -48,10 +48,15 @@ function buildPool() {
     database:        env.database,
     waitForConnections: true,
     connectionLimit:    10,
+    // Cull idle pooled connections BEFORE intermediate firewalls/NAT
+    // or the remote server's wait_timeout silently kill them.
+    // Prevents "read ECONNRESET" on the first query after an idle gap.
+    maxIdle:            4,
+    idleTimeout:        60_000,
     queueLimit:         0,
     timezone:        'Z',
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
+    keepAliveInitialDelay: 10_000,
     connectTimeout:  20000,
   });
   // Non-fatal upfront ping (so you see EHOSTUNREACH cleanly)
@@ -69,12 +74,41 @@ function buildPool() {
   return _pool;
 }
 
+// Transient connection errors: a pooled socket died while idle.
+// Retrying once on a fresh connection is safe (the query never started).
+function isTransientConnError(e) {
+  const code = String(e?.code || '');
+  return (
+    ['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(code) ||
+    /connection lost|econnreset|socket.*ended/i.test(String(e?.message || ''))
+  );
+}
+
+async function poolQueryWithRetry(p, fn, args) {
+  try {
+    return await p[fn](...args);
+  } catch (e) {
+    if (!isTransientConnError(e)) throw e;
+    // Run on a brand-new dedicated connection, bypassing stale pooled ones
+    const conn = await p.getConnection();
+    try {
+      return await conn[fn](...args);
+    } finally {
+      conn.release();
+    }
+  }
+}
+
 // Proxy: any access to `pool.query(...)`, `pool.getConnection()`, etc.
 // goes through buildPool(), so importing this file before env is set
-// no longer throws.
+// no longer throws. query/execute get one transparent retry against
+// dead-idle-connection resets.
 export const pool = new Proxy({}, {
   get(_t, prop) {
     const p = buildPool();
+    if (prop === 'query' || prop === 'execute') {
+      return (...args) => poolQueryWithRetry(p, prop, args);
+    }
     const v = p[prop];
     return typeof v === 'function' ? v.bind(p) : v;
   },

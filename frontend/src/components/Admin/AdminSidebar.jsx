@@ -26,6 +26,9 @@ const icons = {
   users: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   ),
+  announcements: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l18-7v18l-9-3.5L3 15z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+  ),
   analytics: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
   ),
@@ -45,6 +48,7 @@ const NAV_ITEMS = [
   { to: '/admin/payments',   label: 'Payments',   icon: icons.payments,   permission: 'payments' },
   { to: '/admin/tracking',   label: 'Tracking',   icon: icons.tracking,   permission: 'chats' },
   { to: '/admin/users',      label: 'Users',      icon: icons.users,      permission: 'users' },
+  { to: '/admin/announcements', label: 'Announcements', icon: icons.announcements, permission: 'announcements' },
   { to: '/admin/analytics',  label: 'Analytics',  icon: icons.analytics,  permission: 'analytics' },
   { to: '/admin/settings',   label: 'Settings',   icon: icons.settings,   permission: null },
 ];

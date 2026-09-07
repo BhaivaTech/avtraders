@@ -1,5 +1,6 @@
 // src/pages/Farmers.jsx
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { socket as sharedSocket } from '../lib/socket.js';
 import LinkifyText from '../components/LinkifyText.jsx';
@@ -485,8 +486,271 @@ function LRChip({ lrNo, link }) {
   );
 }
 
+/* ================== Auth Step Components ================== */
+function AuthMobileStep({ mobile, setMobile, sendOtp, blocked }) {
+  const [error, setError] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const m = String(mobile || '').replace(/\D/g, '').slice(0, 10);
+    if (m.length !== 10) {
+      setError('Enter a valid 10-digit mobile number');
+      return;
+    }
+    setError('');
+    sendOtp();
+  };
+
+  const handleChange = (e) => {
+    const v = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setMobile(v);
+    if (error) setError('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="auth-form">
+      <p className="auth-note">
+        Enter your mobile number and we&rsquo;ll send you an OTP to log in.
+      </p>
+
+      <label htmlFor="mobile-input">Mobile Number</label>
+      <div className="input-wrap">
+        <span className="input-prefix">+91</span>
+        <input
+          ref={inputRef}
+          id="mobile-input"
+          className="input"
+          inputMode="numeric"
+          maxLength={10}
+          value={mobile}
+          onChange={handleChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit(e);
+          }}
+          placeholder="10-digit number"
+          disabled={blocked}
+        />
+      </div>
+
+      {error && <div className="auth-error">{error}</div>}
+
+      <div className="auth-actions">
+        <button className="btn primary" type="submit" disabled={blocked}>
+          Send OTP
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AuthDetailsStep({ profileDraft, setProfileDraft, mobile, goBackToMobile, sendOtpWithDetails }) {
+  const [errors, setErrors] = useState({});
+
+  const validateField = (name, value) => {
+    const v = value.trim();
+    switch (name) {
+      case 'full_name':
+        return v.length < 2 ? 'Enter your full name' : '';
+      case 'whatsapp':
+        return v.replace(/\D/g, '').length !== 10 ? 'Enter a valid 10-digit WhatsApp number' : '';
+      case 'village':
+        return !v ? 'Enter your village' : '';
+      case 'taluk':
+        return !v ? 'Enter your taluk' : '';
+      case 'district':
+        return !v ? 'Enter your district' : '';
+      case 'pincode':
+        return v.length < 5 ? 'Enter a valid pin code' : '';
+      default:
+        return '';
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setProfileDraft((prev) => ({ ...prev, [name]: value }));
+    const err = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: err }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    const required = ['full_name', 'whatsapp', 'village', 'taluk', 'district', 'pincode'];
+    required.forEach((field) => {
+      const err = validateField(field, profileDraft[field]);
+      if (err) newErrors[field] = err;
+    });
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    sendOtpWithDetails();
+  };
+
+  const fields = [
+    { name: 'full_name', label: 'Full Name *', placeholder: 'Your name', type: 'text' },
+    { name: 'whatsapp', label: 'WhatsApp Number *', placeholder: '10-digit WhatsApp number', type: 'tel' },
+    { name: 'village', label: 'Village *', placeholder: 'Village', type: 'text' },
+    { name: 'taluk', label: 'Taluk *', placeholder: 'Taluk', type: 'text' },
+    { name: 'district', label: 'District *', placeholder: 'District', type: 'text' },
+    { name: 'pincode', label: 'Pin Code *', placeholder: 'Pincode', type: 'text' },
+    { name: 'land_size', label: 'Land Size (optional)', placeholder: 'e.g. 2 acres', type: 'text' },
+    { name: 'crops_text', label: 'Crops they grow (optional)', placeholder: 'Freely type crops', type: 'text' },
+  ];
+
+  return (
+    <form onSubmit={handleSubmit} className="auth-form">
+      <button type="button" className="auth-back" onClick={goBackToMobile}>
+        <Icon.Back /> Back
+      </button>
+      <p className="auth-note">
+        Please fill your details once. You can edit them later in Profile.
+      </p>
+
+      {fields.map((f) => (
+        <div key={f.name} className="input-group">
+          <label htmlFor={f.name}>{f.label}</label>
+          <input
+            id={f.name}
+            name={f.name}
+            className={`input ${errors[f.name] ? 'error' : ''}`}
+            type={f.type}
+            value={profileDraft[f.name] || ''}
+            onChange={handleChange}
+            placeholder={f.placeholder}
+            inputMode={f.type === 'tel' ? 'numeric' : 'text'}
+          />
+          {errors[f.name] && <span className="field-error">{errors[f.name]}</span>}
+        </div>
+      ))}
+
+      <div className="auth-actions">
+        <button className="btn primary" type="submit">
+          Save & Get OTP
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AuthOtpStep({ otp, setOtp, mobile, goBackToMobile, verifyOtp }) {
+  const [otpDigits, setOtpDigits] = useState(Array(6).fill(''));
+  const [error, setError] = useState('');
+  const inputsRef = useRef([]);
+
+  useEffect(() => {
+    inputsRef.current[0]?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (otp) {
+      const digits = String(otp).padStart(6, '').split('');
+      setOtpDigits(digits);
+      inputsRef.current.forEach((input, i) => {
+        if (input) input.value = digits[i] || '';
+      });
+    }
+  }, [otp]);
+
+  const handleDigitChange = (index, value) => {
+    const digit = value.replace(/\D/g, '').slice(0, 1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+    setOtp(newDigits.join(''));
+    setError('');
+
+    if (digit && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    } else if (!digit && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+
+    if (newDigits.every((d) => d)) {
+      verifyOtp();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+    if (e.key === 'Enter') {
+      verifyOtp();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const digits = pasted.padEnd(6, '').split('');
+    setOtpDigits(digits);
+    setOtp(digits.join(''));
+    inputsRef.current.forEach((input, i) => {
+      if (input) input.value = digits[i] || '';
+    });
+    if (digits.every((d) => d)) {
+      verifyOtp();
+    }
+  };
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); verifyOtp(); }} className="auth-form">
+      <button type="button" className="auth-back" onClick={goBackToMobile}>
+        <Icon.Back /> Back
+      </button>
+
+      <p className="auth-note">
+        We sent a 6-digit code to
+      </p>
+      <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <span className="auth-mobile-pill">+91 {String(mobile).replace(/\D/g, '').slice(-10)}</span>
+      </div>
+
+      <label className="otp-label">Enter OTP</label>
+      <div className="otp-inputs" role="group" aria-label="OTP code">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <input
+            key={i}
+            ref={(el) => { inputsRef.current[i] = el; }}
+            className={`otp-input ${otpDigits[i] ? 'filled' : ''}`}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={otpDigits[i]}
+            onChange={(e) => handleDigitChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            onPaste={handlePaste}
+            autoComplete="one-time-code"
+            aria-label={`Digit ${i + 1}`}
+          />
+        ))}
+      </div>
+
+      {error && <div className="auth-error">{error}</div>}
+
+      <div className="auth-actions">
+        <button type="button" className="btn ghost" onClick={goBackToMobile}>
+          Change Number
+        </button>
+        <button type="submit" className="btn primary" disabled={!otpDigits.every((d) => d)}>
+          Verify & Login
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /* ================== Main ================== */
 export default function Farmers() {
+  const navigate = useNavigate();
+
   /* -------- responsive flag -------- */
   const [isPhone, setIsPhone] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
@@ -1600,7 +1864,7 @@ export default function Farmers() {
                       className="icon-btn ghost"
                       title="My Profile"
                       onClick={() => {
-                        window.location.href = '/farmers/profile';
+                        navigate('/farmers/profile');
                       }}
                       aria-label="My Profile"
                     >
@@ -1657,201 +1921,61 @@ export default function Farmers() {
 
         <main className="body">
           {!logged ? (
-            <div className="auth-card">
-              <div className="auth-hero">
-                <div className="auth-logo">AV</div>
-                <div className="auth-title">AV Agro Support</div>
-                <div className="auth-sub">Farmer Login</div>
+            <div className="auth-container">
+              <div className="auth-card">
+                <div className="auth-hero">
+                  <div className="auth-logo">AV</div>
+                  <div className="auth-title">AV Agro Support</div>
+                  <div className="auth-sub">Farmer Login</div>
+                </div>
+
+                <div className="auth-progress">
+                  <div className="progress-step" data-step="1">
+                    <span className="step-num">1</span>
+                    <span className="step-label">Mobile</span>
+                  </div>
+                  <div className="progress-line" style={{ width: step === 'mobile' ? '0%' : step === 'details' ? '50%' : '100%' }} />
+                  <div className="progress-step" data-step="2">
+                    <span className="step-num">2</span>
+                    <span className="step-label">Details</span>
+                  </div>
+                  <div className="progress-line" style={{ width: step === 'otp' ? '100%' : '0%' }} />
+                  <div className="progress-step" data-step="3">
+                    <span className="step-num">3</span>
+                    <span className="step-label">Verify</span>
+                  </div>
+                </div>
+
+                {step === 'mobile' && (
+                  <AuthMobileStep
+                    mobile={mobile}
+                    setMobile={setMobile}
+                    sendOtp={sendOtp}
+                    blocked={blocked}
+                  />
+                )}
+
+                {step === 'details' && (
+                  <AuthDetailsStep
+                    profileDraft={profileDraft}
+                    setProfileDraft={setProfileDraft}
+                    mobile={mobile}
+                    goBackToMobile={goBackToMobile}
+                    sendOtpWithDetails={sendOtpWithDetails}
+                  />
+                )}
+
+                {step === 'otp' && (
+                  <AuthOtpStep
+                    otp={otp}
+                    setOtp={setOtp}
+                    mobile={mobile}
+                    goBackToMobile={goBackToMobile}
+                    verifyOtp={verifyOtp}
+                  />
+                )}
               </div>
-
-              {step === 'mobile' && (
-                <>
-                  <p className="auth-note">
-                    Enter your mobile number and we&rsquo;ll send you an OTP to log in.
-                  </p>
-                  <label>Mobile Number</label>
-                  <div className="input-wrap">
-                    <span className="input-prefix">+91</span>
-                    <input
-                      className="input"
-                      inputMode="numeric"
-                      maxLength={10}
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') sendOtp();
-                      }}
-                      placeholder="10-digit number"
-                    />
-                  </div>
-                  <div className="auth-actions">
-                    <button className="btn primary" onClick={sendOtp}>
-                      Send OTP
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {step === 'details' && (
-                <>
-                  <button className="auth-back" onClick={goBackToMobile}>
-                    ← Back
-                  </button>
-                  <p className="auth-note">
-                    Please fill your details once. You can edit them later in Profile.
-                  </p>
-
-                  <label>Full Name *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.full_name}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        full_name: e.target.value,
-                      }))
-                    }
-                    placeholder="Your name"
-                  />
-
-                  <label>WhatsApp Number *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.whatsapp}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        whatsapp: e.target.value,
-                      }))
-                    }
-                    placeholder="10-digit WhatsApp number"
-                  />
-
-                  <label>Village *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.village}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        village: e.target.value,
-                      }))
-                    }
-                    placeholder="Village"
-                  />
-
-                  <label>Taluk *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.taluk}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        taluk: e.target.value,
-                      }))
-                    }
-                    placeholder="Taluk"
-                  />
-
-                  <label>District *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.district}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        district: e.target.value,
-                      }))
-                    }
-                    placeholder="District"
-                  />
-
-                  <label>Pin Code *</label>
-                  <input
-                    className="input"
-                    value={profileDraft.pincode}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        pincode: e.target.value,
-                      }))
-                    }
-                    placeholder="Pincode"
-                  />
-
-                  <label>Land Size (optional)</label>
-                  <input
-                    className="input"
-                    value={profileDraft.land_size}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        land_size: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. 2 acres"
-                  />
-
-                  <label>Crops they grow (optional)</label>
-                  <input
-                    className="input"
-                    value={profileDraft.crops_text}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        crops_text: e.target.value,
-                      }))
-                    }
-                    placeholder="Freely type crops"
-                  />
-
-                  <div className="auth-actions">
-                    <button className="btn primary" onClick={sendOtpWithDetails}>
-                      Save &amp; Get OTP
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {step === 'otp' && (
-                <>
-                  <button className="auth-back" onClick={goBackToMobile}>
-                    ← Back
-                  </button>
-
-                  {/* Profile details moved to FarmerProfile page */}
-
-                  <p className="auth-note">
-                    We sent a 6-digit code to
-                  </p>
-                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                    <span className="auth-mobile-pill">+91 {norm(mobile)}</span>
-                  </div>
-
-                  <label>Enter OTP</label>
-                  <input
-                    className="input auth-otp-input"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') verifyOtp();
-                    }}
-                    placeholder="••••••"
-                  />
-                  <div className="auth-actions">
-                    <button className="btn ghost" onClick={goBackToMobile}>
-                      Change Number
-                    </button>
-                    <button className="btn primary" onClick={verifyOtp}>
-                      Verify &amp; Login
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
+            </div>          ) : (
             <>
               {blocked && (
                 <div className="banner danger">
@@ -2326,6 +2450,7 @@ export default function Farmers() {
                             e.stopPropagation();
                             removeAttachment(idx);
                           }}
+                          aria-label="Remove attachment"
                         >
                           <Icon.Close />
                         </button>
@@ -2337,6 +2462,7 @@ export default function Farmers() {
                       type="button"
                       className="attach-item attach-plus"
                       onClick={() => fileInputRef.current?.click()}
+                      aria-label="Add more files"
                     >
                       <span>+</span>
                     </button>
@@ -2349,7 +2475,7 @@ export default function Farmers() {
                   ref={cameraInputRef}
                   type="file"
                   accept="image/*"
-                  capture={isMobileUA() ? 'environment' : undefined}
+                  capture="environment"
                   style={{ display: 'none' }}
                   onChange={(e) => onPickFiles(e.target.files)}
                   disabled={blocked}
@@ -2364,62 +2490,68 @@ export default function Farmers() {
                   disabled={blocked}
                 />
                 <button
-                  className="icon-btn"
+                  className="icon-btn media-btn"
                   title="Camera"
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={blocked}
+                  aria-label="Take photo"
                 >
                   <Icon.Camera />
                 </button>
                 <button
-                  className="icon-btn"
-                  title="Attach"
+                  className="icon-btn media-btn"
+                  title="Attach file"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={blocked}
+                  aria-label="Attach file"
                 >
                   <Icon.Clip />
                 </button>
-                <textarea
-                  ref={taRef}
-                  className="input flex ta"
-                  placeholder={
-                    blocked
-                      ? 'You are blocked'
-                      : replyTo
-                      ? `Replying… ${replyTo.snippet}`
-                      : 'Type a message'
-                  }
-                  rows={1}
-                  value={message}
-                  onChange={onTextChange}
-                  disabled={blocked}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessageNow();
+                <div className="composer-input-wrapper">
+                  <textarea
+                    ref={taRef}
+                    className="input flex ta"
+                    placeholder={
+                      blocked
+                        ? 'You are blocked'
+                        : replyTo
+                        ? `Replying… ${replyTo.snippet}`
+                        : 'Type a message'
                     }
-                  }}
-                  onFocus={scrollToBottomSoon}
-                />
+                    rows={1}
+                    value={message}
+                    onChange={onTextChange}
+                    disabled={blocked}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessageNow();
+                      }
+                    }}
+                    onFocus={scrollToBottomSoon}
+                  />
+                </div>
                 {canSend() ? (
                   <button
                     className="send-btn"
                     title="Send"
                     onClick={sendMessageNow}
                     disabled={!canSend() || uploading || sending}
+                    aria-label="Send message"
                   >
                     <Icon.Send />
                   </button>
                 ) : (
                   <button
-                    className={'icon-btn ' + (recording ? 'rec' : '')}
-                    title={recording ? 'Stop' : 'Voice message'}
+                    className={'icon-btn media-btn ' + (recording ? 'rec' : '')}
+                    title={recording ? 'Stop recording' : 'Voice message'}
                     onClick={async () => {
                       if (blocked) return;
                       if (!recording) await start();
                       else await stopRecordingToDraft();
                     }}
                     disabled={blocked || !!audioDraft}
+                    aria-label={recording ? 'Stop recording' : 'Record voice message'}
                   >
                     {recording ? <Icon.Stop /> : <Icon.Mic />}
                   </button>
@@ -2860,6 +2992,37 @@ body.no-scroll{overflow:hidden!important}
 .auth-card .btn.ghost{background:#f1f5f9;color:#111827;border:none;padding:12px 16px;border-radius:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .auth-card .btn.ghost:hover{background:#e2e8f0}
 .btn{border:none;padding:8px 12px;border-radius:10px;background:#ecfdf5;color:#065f46}
+
+/* auth container & progress */
+.auth-container{display:flex;align-items:center;justify-content:center;min-height:100%;padding:20px}
+.auth-progress{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 24px;padding:0 12px}
+.progress-step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1}
+.progress-step[data-step="1"] .step-num{background:#48a43f}
+.progress-step[data-step="2"] .step-num{background:#48a43f}
+.progress-step[data-step="3"] .step-num{background:#48a43f}
+.step-num{width:28px;height:28px;border-radius:50%;background:#cbd5e1;color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px;transition:all .3s ease}
+.step-label{font-size:11px;color:#6b7280;font-weight:500;white-space:nowrap;transition:color .3s ease}
+.progress-line{flex:1;height:3px;background:#e5e7eb;border-radius:999px;max-width:60px;transition:width .4s ease,background .4s ease}
+
+/* auth form */
+.auth-form{width:100%}
+.input-group{margin-bottom:16px}
+.auth-card .input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+.field-error{display:block;font-size:11px;color:#ef4444;margin-top:4px}
+.auth-error{font-size:12px;color:#ef4444;text-align:center;margin:8px 0 12px;padding:8px 12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca}
+
+/* OTP inputs */
+.otp-label{display:block;font-size:12px;font-weight:700;color:#1e5631;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;text-align:center}
+.otp-inputs{display:flex;justify-content:center;gap:8px;margin-bottom:16px}
+.otp-input{width:44px;height:52px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;font-size:22px;font-weight:700;text-align:center;color:#111827;transition:all .15s ease;-webkit-text-security:disc}
+.otp-input:focus{outline:none;border-color:#48a43f;box-shadow:0 0 0 3px rgba(72,164,63,.18)}
+.otp-input.filled{border-color:#48a43f;background:#f0fdf4}
+.otp-input::placeholder{color:#cbd5e1;-webkit-text-security:none}
+@media (max-width:480px){
+  .otp-input{width:38px;height:48px;font-size:18px}
+  .progress-line{max-width:40px}
+  .step-label{font-size:10px}
+}
 
 /* media + docs */
 .msg .img{border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;display:inline-block;max-width:100%}

@@ -40,18 +40,16 @@ export default function AdminLayout() {
     const onQuotesChanged = () => {
       toast.info('Quotation updated', { duration: 4000 });
     };
-    const onStatusChanged = () => {
-      toast.info('Chat status changed', { duration: 4000 });
-    };
+    // NOTE: 'chat:status' is intentionally not toasted — it fires on
+    // every read/unread transition (e.g., each chat selection) and
+    // would be constant noise. The inbox reflects status live already.
 
     s.on('chat:new_message', onNewMessage);
     s.on('quotes:changed', onQuotesChanged);
-    s.on('chat:status', onStatusChanged);
 
     return () => {
       s.off('chat:new_message', onNewMessage);
       s.off('quotes:changed', onQuotesChanged);
-      s.off('chat:status', onStatusChanged);
       s.close();
     };
   }, []);

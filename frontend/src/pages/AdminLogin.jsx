@@ -3,6 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { ADMIN_EMAIL_ALLOWED } from '../lib/config.js';
 
+const ADMIN_AUTH_KEY = 'adminAuth';
+
+/* ── Icons ──────────────────────────────────────────────── */
 function EyeIcon({ open }) {
   return open ? (
     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -17,8 +20,6 @@ function EyeIcon({ open }) {
     </svg>
   );
 }
-
-const ADMIN_AUTH_KEY = 'adminAuth';
 
 /* ── Inline CSS ─────────────────────────────────────────── */
 const CSS = `
@@ -54,10 +55,16 @@ const CSS = `
   .al-logo-text { color: #0f172a; }
   .al-logo-text strong { display: block; font-size: 15px; font-weight: 700; }
   .al-logo-text span { font-size: 11px; color: #64748b; }
-  
+
+  .al-notice {
+    background: #fef9c3; border: 1px solid #fde047;
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 20px;
+    font-size: 13px; line-height: 1.5; color: #713f12;
+  }
+
   .al-title { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
   .al-subtitle { margin: 0 0 24px; font-size: 14px; color: #64748b; }
-  
+
   .al-label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px; }
   .al-input-wrap { position: relative; margin-bottom: 16px; }
   .al-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
@@ -79,7 +86,7 @@ const CSS = `
   .al-input::placeholder { color: #94a3b8; }
   .al-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
   .al-input:disabled { background: #f8fafc; color: #64748b; opacity: .7; }
-  
+
   .al-btn {
     width: 100%; padding: 12px;
     background: #16a34a;
@@ -91,7 +98,7 @@ const CSS = `
   .al-btn:hover:not(:disabled) { background: #15803d; }
   .al-btn:active:not(:disabled) { transform: scale(0.98); }
   .al-btn:disabled { opacity: .6; cursor: not-allowed; }
-  
+
   .al-err {
     display: flex; align-items: flex-start; gap: 8px;
     background: #fef2f2; border: 1px solid #fecaca;
@@ -104,14 +111,14 @@ const CSS = `
     border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
     font-size: 13px; color: #15803d; line-height: 1.4;
   }
-  
+
   .al-hint { font-size: 12px; color: #64748b; margin: 12px 0 0; text-align: center; }
   .al-hint b { color: #334155; }
   .al-link { background: none; border: none; color: #16a34a; cursor: pointer; padding: 0; font-size: 12px; text-decoration: underline; font-family: inherit; }
-  
+
   .al-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: #94a3b8; font-size: 12px; }
   .al-divider::before, .al-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
-  
+
   @keyframes al-spin { to { transform: rotate(360deg); } }
   .al-spin { animation: al-spin .8s linear infinite; display: inline-block; }
   .al-footer { margin-top: 24px; text-align: center; font-size: 11px; color: #94a3b8; }
@@ -128,16 +135,17 @@ export default function AdminLogin() {
   const [otpCode, setOtpCode]   = useState('');
   const [otpSent, setOtpSent]   = useState(false);
   const [otpTTL, setOtpTTL]     = useState(0);
+  const [otherSession, setOtherSession] = useState(false);
   const [msg, setMsg]           = useState('');
   const [msgType, setMsgType]   = useState('err');
   const [busy, setBusy]         = useState(false);
-  const [showPass, setShowPass] = useState(false);
 
   async function startLogin(e) {
     e?.preventDefault();
     setMsg('');
     if (email.trim().toLowerCase() !== ADMIN_EMAIL_ALLOWED) {
       setMsg('Incorrect email. Farmers please use the Clinic section.');
+      setMsgType('err');
       return;
     }
     try {
@@ -146,6 +154,7 @@ export default function AdminLogin() {
       if (r?.data?.ok) {
         setOtpSent(true);
         setOtpCode('');
+        setOtherSession(!!r.data.existing_session);
         const ttl = Number(r.data.ttl || 60);
         setOtpTTL(ttl);
         setMsg(`OTP sent to ${ADMIN_EMAIL_ALLOWED}. Valid for ${ttl} seconds.`);
@@ -165,9 +174,35 @@ export default function AdminLogin() {
   async function verifyOtp(e) {
     e?.preventDefault();
     setMsg('');
+
+    // Single-session enforcement: if another browser/device is active,
+    // ask before clearing it. Declining aborts the login here.
+    let force = false;
+    if (otherSession) {
+      force = window.confirm(
+        'This account is already logged in on another browser or device.\n\n' +
+        'Clear that session and log in here instead?'
+      );
+      if (!force) {
+        setMsg('Login cancelled. The other session stays active.');
+        setMsgType('err');
+        return;
+      }
+    }
+
     try {
       setBusy(true);
-      const r = await api.post('/admin/verify-otp', { email, code: otpCode }, { withCredentials: true });
+      const r = await api.post(
+        '/admin/verify-otp',
+        { email, code: otpCode, force },
+        { withCredentials: true }
+      );
+      if (r?.data?.conflict) {
+        setOtherSession(true);
+        setMsg(r.data.message || 'Already logged in elsewhere.');
+        setMsgType('err');
+        return;
+      }
       if (r?.data?.ok) {
         localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify({ ts: Date.now(), email }));
         navigate(from, { replace: true });
@@ -184,31 +219,112 @@ export default function AdminLogin() {
   const expired = otpSent && otpTTL === 0;
 
   return (
-    <div style={s.shell}>
-      <div style={s.card}>
-        <div style={s.notice}>
-          <b>Office Use Only</b><br />
-          Farmers: use the <a href="/farmers">Clinic section</a> for chat and messages.
-        </div>
-        <h1 style={s.title}>Admin Login</h1>
+    <>
+      <style>{CSS}</style>
 
-        {(!otpSent || expired) && (
-          <form onSubmit={startLogin} style={s.form}>
-            <label style={s.label}>Email</label>
-            <input style={s.input} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin email" autoComplete="username" />
-            <label style={s.label}>Password</label>
-            <input style={s.input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="•••••" autoComplete="current-password" />
-            {msg && <div style={s.err}>{msg}</div>}
-            <button style={s.btn} disabled={busy || !email || !password}>
-              {busy ? 'Sending OTP…' : 'Login'}
-            </button>
-            <p style={s.hint}>OTP is required for every login and valid for 1 minute.</p>
-          </form>
-        )}
+      <div className="al-shell">
+        <div className="al-card">
+          {/* Notice */}
+          <div className="al-notice">
+            <b>Office Use Only</b><br />
+            Farmers: use the <a href="/farmers">Clinic section</a> for chat and messages.
+          </div>
+
+          {/* Logo row */}
+          <div className="al-logo">
+            <div className="al-logo-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C7 2 3 7 3 12c0 3 1.5 5 4 6 1 .4 2 .5 3 .5V21h4v-2.5c1 0 2-.1 3-.5 2.5-1 4-3 4-6 0-5-4-10-9-10z" fill="#fff"/>
+                <path d="M12 4v14M8 7c1.5 2 3 5 4 9M16 7c-1.5 2-3 5-4 9" stroke="rgba(22, 163, 74, 0.6)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div className="al-logo-text">
+              <strong>AV Traders</strong>
+              <span>Agri Clinic Admin</span>
+            </div>
+          </div>
+
+          <h1 className="al-title">{otpSent && !expired ? 'Enter OTP' : 'Admin Login'}</h1>
+          <p className="al-subtitle">
+            {otpSent && !expired
+              ? 'Check your email for the one-time code'
+              : 'Sign in to manage your agri portal'}
+          </p>
+
+          {/* ── Step 1: email + password ── */}
+          {(!otpSent || expired) && (
+            <form onSubmit={startLogin}>
+              <label className="al-label">Email Address</label>
+              <div className="al-input-wrap">
+                <span className="al-input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M2 8l10 6 10-6" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  </svg>
+                </span>
+                <input
+                  className="al-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  autoComplete="username"
+                  type="email"
+                />
+              </div>
+
+              <label className="al-label">Password</label>
+              <div className="al-input-wrap">
+                <span className="al-input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  </svg>
+                </span>
+                <input
+                  className="al-input"
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="al-eye"
+                  onClick={() => setShowPass((s) => !s)}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
+                  title={showPass ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  <EyeIcon open={showPass} />
+                </button>
+              </div>
+
+              {msg && (
+                <div className={msgType === 'ok' ? 'al-ok' : 'al-err'}>
+                  <span>{msgType === 'ok' ? '✅' : '⚠️'}</span>
+                  <span>{msg}</span>
+                </div>
+              )}
+
+              <button className="al-btn" disabled={busy || !email || !password} type="submit">
+                {busy
+                  ? <><span className="al-spin">⏳</span> Sending OTP…</>
+                  : <>Continue</>}
+              </button>
+              <p className="al-hint">OTP is required for every login and valid for 1 minute.</p>
+            </form>
+          )}
 
           {/* ── Step 2: OTP verify ── */}
           {otpSent && !expired && (
             <form onSubmit={verifyOtp}>
+              {otherSession && (
+                <div className="al-notice" style={{ marginBottom: 14 }}>
+                  <b>Session active elsewhere</b><br />
+                  Verifying will ask to clear the other browser/device session.
+                </div>
+              )}
               <label className="al-label">Email</label>
               <div className="al-input-wrap">
                 <span className="al-input-icon">
@@ -270,20 +386,6 @@ export default function AdminLogin() {
           </div>
         </div>
       </div>
-    // </>
+    </>
   );
 }
-
-const s = {
-  shell:  { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', padding: '24px' },
-  card:   { width: '100%', maxWidth: '400px', background: '#fff', borderRadius: '12px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)' },
-  notice: { background: '#fef9c3', border: '1px solid #fde047', borderRadius: '8px', padding: '12px 14px', marginBottom: '20px', fontSize: '13px', lineHeight: '1.5' },
-  title:  { margin: '0 0 20px', fontSize: '22px', fontWeight: 700, color: '#1e293b' },
-  form:   { display: 'flex', flexDirection: 'column', gap: '10px' },
-  label:  { fontSize: '13px', fontWeight: 600, color: '#475569' },
-  input:  { padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '14px', outline: 'none' },
-  btn:    { marginTop: '6px', padding: '10px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '7px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' },
-  hint:   { fontSize: '12px', color: '#64748b', margin: '4px 0 0' },
-  err:    { fontSize: '13px', color: '#dc2626', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' },
-  link:   { background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, fontSize: '12px', textDecoration: 'underline' },
-};

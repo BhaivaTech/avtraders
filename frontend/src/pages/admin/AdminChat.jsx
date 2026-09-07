@@ -13,6 +13,7 @@
 // Admin.jsx.
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api } from '../../lib/api.js';
 import { io } from 'socket.io-client';
 import { useRecorder } from '../../lib/useRecorder.js';
@@ -633,6 +634,8 @@ function ActionSheet({ open, onClose, onDeleteMe, onDeleteAll, onReply }) {
 /* =================================================================== */
 
 export default function AdminChat() {
+  const location = useLocation();
+
   // data
   const [chats, setChats] = useState([]);
   const [chatsPage, setChatsPage] = useState(1);
@@ -781,7 +784,21 @@ export default function AdminChat() {
     requestAnimationFrame(scrollToBottom);
 
   /* ---------- loaders ---------- */
-  async function loadChats(q = query, st = statusFilter, page = 1) {
+  // Refs mirror the latest query/filter so socket-triggered reloads
+  // (registered once) never read stale closure values.
+  const queryRef = useRef(query);
+  const statusRef = useRef(statusFilter);
+  queryRef.current = query;
+  statusRef.current = statusFilter;
+  // Guards against out-of-order responses: only the newest request
+  // may update the chat list.
+  const chatsReqSeq = useRef(0);
+  const loadMoreBusy = useRef(false);
+
+  async function loadChats(q, st, page = 1) {
+    q = q ?? queryRef.current;
+    st = st ?? statusRef.current;
+    const seq = ++chatsReqSeq.current;
     try {
       const params = new URLSearchParams();
       if (q) params.set('search', q);
@@ -793,6 +810,10 @@ export default function AdminChat() {
         withCredentials: true,
       });
       const list = r.data || [];
+
+      // A newer request already resolved — drop this stale response
+      // instead of overwriting fresh data (caused "missing users").
+      if (seq !== chatsReqSeq.current && page === 1) return;
 
       if (page === 1) {
         setChats(list);
@@ -829,9 +850,13 @@ export default function AdminChat() {
   }, [query, statusFilter]);
 
   function handleLoadMoreChats() {
+    if (loadMoreBusy.current) return;
+    loadMoreBusy.current = true;
     const nextPage = chatsPage + 1;
     setChatsPage(nextPage);
-    loadChats(query, statusFilter, nextPage);
+    Promise.resolve(loadChats(queryRef.current, statusRef.current, nextPage)).finally(() => {
+      loadMoreBusy.current = false;
+    });
   }
 
   async function loadAdminStats() {
@@ -841,12 +866,15 @@ export default function AdminChat() {
     } catch {}
   }
 
+  const threadReqSeq = useRef(0);
   async function loadThread(chatId) {
+    const seq = ++threadReqSeq.current;
     try {
       const r = await api.get(
         `/chat/thread/${chatId}?role=admin`,
         { withCredentials: true },
       );
+      if (seq !== threadReqSeq.current) return; // newer selection won
       setThread(r.data || []);
       scrollToBottomSoon();
     } catch (e) {
@@ -945,7 +973,10 @@ export default function AdminChat() {
 
     s.on('chat:new_message', onNew);
     s.on('chat:delete', reloadThread);
-    s.on('chat:status', loadChats);
+    // NOTE: pass wrappers, not loadChats directly — socket payloads
+    // would otherwise be treated as the search-query argument.
+    const onStatus = () => loadChats();
+    s.on('chat:status', onStatus);
     s.on('chat:cleared', reloadThread);
 
     const onDeleted = (p) => {
@@ -965,7 +996,7 @@ export default function AdminChat() {
     return () => {
       s.off('chat:new_message', onNew);
       s.off('chat:delete', reloadThread);
-      s.off('chat:status', loadChats);
+      s.off('chat:status', onStatus);
       s.off('chat:cleared', reloadThread);
       s.off('chat:deleted', onDeleted);
       s.off('user:blocked', onBlocked);
@@ -991,6 +1022,20 @@ export default function AdminChat() {
       scrollToBottomSoon();
     })();
   }, [sel?.id]);
+
+  // Hand-off from the Quotations page: pre-select the chat passed via
+  // router state, then clear just that payload (keeping React Router's
+  // own history bookkeeping intact).
+  useEffect(() => {
+    const c = location.state?.chat;
+    if (c?.id) {
+      setSel(c);
+      const st = { ...(window.history.state || {}) };
+      delete st.usr;
+      window.history.replaceState(st, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ---------- UI helpers ---------- */
   function filtered() {
@@ -1512,20 +1557,6 @@ export default function AdminChat() {
   };
 
   /* ---------- render ---------- */
-  const displayName = sel?.name
-    ? String(sel.name).toUpperCase()
-    : sel
-    ? 'UNKNOWN'
-    : 'AV AGRO SUPPORT';
-  const headerInitials = sel?.name
-    ? sel.name
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((s) => s[0]?.toUpperCase())
-        .join('') || 'U'
-    : 'AV';
-
   return (
     <div className="admin-overlay">
       {/* Upload overlay with circular percentage (for all media) */}
@@ -1544,130 +1575,6 @@ export default function AdminChat() {
         </div>
       )}
 
-      {/* Top bar */}
-      <header className="topbar green">
-        <div className="left">
-          <button
-            className="icon-btn ghost"
-            title="Back"
-            onClick={() => {
-              if (isNarrow && sel) setSel(null);
-              else window.location.href = '/';
-            }}
-          >
-            <Icon.Back />
-          </button>
-
-          <button
-            type="button"
-            className="avatar avatar-btn"
-            title={sel ? 'View farmer profile' : 'AV Agro Support'}
-            onClick={sel ? () => showProfileFor(sel) : undefined}
-            style={{ cursor: sel ? 'pointer' : 'default' }}
-          >
-            {headerInitials}
-          </button>
-
-          <div className="meta">
-            <div className="title">{displayName}</div>
-            <div className="sub">
-              {sel ? 'Chat' : 'AV Agro Support'}
-            </div>
-          </div>
-        </div>
-
-        <div className="right">
-          <button
-            className="icon-btn ghost"
-            title="Quotation"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'quote' }));
-              }
-            }}
-          >
-            <Icon.RupeeNote />
-          </button>
-
-          <button
-            className="icon-btn ghost"
-            title="VRL / LR"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'lr' }));
-              }
-            }}
-          >
-            <Icon.Box />
-          </button>
-
-          {/* ANNOUNCEMENT BUTTON */}
-          <button
-            className="icon-btn ghost"
-            title="Announcements"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'announcement' }));
-              }
-            }}
-          >
-            <Icon.Announcement />
-          </button>
-
-          <button
-            className="icon-btn ghost"
-            title="Products"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'products' }));
-              }
-            }}
-          >🛒</button>
-
-          <button
-            className="icon-btn ghost"
-            title="Payments"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'payments' }));
-              }
-            }}
-          >💳</button>
-
-          <button
-            className="icon-btn ghost"
-            title="Dealer Orders"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'orders' }));
-              }
-            }}
-          >📦</button>
-
-          <button
-            className="icon-btn ghost"
-            title="Audit Log"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:set-panel', { detail: 'audit' }));
-              }
-            }}
-          >🔍</button>
-
-          <button
-            className="icon-btn ghost"
-            title="Logout"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('admin:logout'));
-              }
-            }}
-          >
-            <Icon.Power />
-          </button>
-        </div>
-      </header>
-
       {/* 2-column layout */}
       <div
         className={
@@ -1681,18 +1588,18 @@ export default function AdminChat() {
       >
         {/* left list */}
         <aside className="list">
-          <div style={{ display: 'flex', gap: 8, padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Farmers</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{adminStats.totalFarmers}</div>
+          <div className="inbox-stats">
+            <div className="inbox-stat-card">
+              <div className="inbox-stat-label">Farmers</div>
+              <div className="inbox-stat-value">{adminStats.totalFarmers}</div>
             </div>
-            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Chats Today</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{adminStats.chatsToday}</div>
+            <div className="inbox-stat-card">
+              <div className="inbox-stat-label">Chats Today</div>
+              <div className="inbox-stat-value">{adminStats.chatsToday}</div>
             </div>
-            <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Revenue</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a' }}>₹{adminStats.totalRevenue}</div>
+            <div className="inbox-stat-card is-revenue">
+              <div className="inbox-stat-label">Revenue</div>
+              <div className="inbox-stat-value">₹{adminStats.totalRevenue}</div>
             </div>
           </div>
           <div className="list-head">
@@ -1820,7 +1727,7 @@ export default function AdminChat() {
         {/* thread */}
         <section className="thread">
           {sel && (
-            <div className="thread-head" style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+            <div className="thread-head" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <button
                   className="icon-btn ghost"

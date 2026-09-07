@@ -3,7 +3,8 @@
 */
 
 .admin-ann-container {
-  min-height: 100vh;
+  /* Fits inside .admin-content — no forced 100vh (that caused an
+     always-on vertical scrollbar within the admin layout shell). */
   background: var(--bg);
   color: var(--ink);
   display: flex;
@@ -14,14 +15,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  background: var(--brand);
-  color: var(--brand-ink);
+  padding: 0 0 12px;
 }
 
 .admin-ann-title {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 22px;
+  color: var(--ink);
 }
 
 .admin-ann-spacer { flex: 1; }

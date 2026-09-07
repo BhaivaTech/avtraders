@@ -6,8 +6,9 @@ import { findDealerByPhone } from '../models/dealerModel.js';
 import { hasPermission } from '../config/rbac.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const ADMIN_SESSION_MS = Number(process.env.ADMIN_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
-const FARMER_SESSION_MS = Number(process.env.FARMER_SESSION_MAX_AGE_MS || 10 * 24 * 60 * 60 * 1000);
+// Fixed 12h admin session — never renewed on activity.
+const ADMIN_SESSION_MS = Number(process.env.ADMIN_SESSION_MAX_AGE_MS || 12 * 60 * 60 * 1000);
+const FARMER_SESSION_MS = Number(process.env.FARMER_SESSION_MAX_AGE_MS || 12 * 60 * 60 * 1000);
 
 /* ------------------------------------------------------------------ */
 /*  Admin session guard                                                  */
@@ -15,8 +16,13 @@ const FARMER_SESSION_MS = Number(process.env.FARMER_SESSION_MAX_AGE_MS || 10 * 2
 
 export function ensureAdminSession(req, res, next) {
   if (req.session?.admin) {
-    req.session.cookie.maxAge = ADMIN_SESSION_MS;
-    // Enrich request with role + id so downstream handlers can use them.
+    // Fixed 12h lifetime from login: do NOT renew the cookie here.
+    // Expire defensively if the stored login timestamp is too old.
+    const loginAt = Number(req.session.adminLoginAt || 0);
+    if (loginAt && Date.now() - loginAt > ADMIN_SESSION_MS) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ ok: false, message: 'Session expired' });
+    }
     req.adminRole = req.session.adminRole || 'superadmin';
     req.adminId   = req.session.adminId   || null;
     return next();
