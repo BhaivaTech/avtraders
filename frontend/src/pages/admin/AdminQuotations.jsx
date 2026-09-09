@@ -18,7 +18,7 @@ import toast from '../../lib/toast.js';
 import '../Admin.css';
 
 /* ------------ constants ------------ */
-const DEFAULT_TRACK_LINK = 'http://www.vrlgroup.in/track_consignment.aspx';
+const DEFAULT_TRACK_LINK = 'https://www.vrlgroup.in/Tracking/TrackShipment';
 
 /* ------------ helpers ------------ */
 async function copyText(txt = '') {

@@ -27,15 +27,4 @@ export default defineConfig({
       reporter: ['text', 'html'],
     },
   },
-  // The PhonePe SDK is shipped as a tarball with non-standard
-  // package.json exports, which Vite's resolver rejects. Tell Vite
-  // to leave it alone — the test app does not load phonepe-api.js.
-  optimizeDeps: { exclude: ['pg-sdk-node'] },
-  resolve: {
-    alias: {
-      // Stub the PhonePe SDK with an empty module so any stray
-      // import (e.g. from payment routes) resolves cleanly in tests.
-      'pg-sdk-node': new URL('./test/helpers/empty-module.js', import.meta.url).pathname,
-    },
-  },
 });

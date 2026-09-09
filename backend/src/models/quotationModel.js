@@ -15,38 +15,45 @@ export async function getLatestPendingQuoteByMobile(mobile) {
   const [[user]] = await pool.query('SELECT id FROM users WHERE mobile=? LIMIT 1', [mobile]);
   if (!user) return { chat_id: null, quote: null };
 
-  const [[chat]] = await pool.query(
-    'SELECT id FROM chats WHERE user_id=? ORDER BY id DESC LIMIT 1',
+  const [chats] = await pool.query(
+    'SELECT id FROM chats WHERE user_id=? ORDER BY id DESC',
     [user.id]
   );
-  if (!chat) return { chat_id: null, quote: null };
+  if (!chats.length) return { chat_id: null, quote: null };
+
+  const chatIds = chats.map(c => c.id);
+  const placeholders = chatIds.map(() => '?').join(',');
 
   const [q] = await pool.query(
     `SELECT id, chat_id, amount, currency, file_path, status, created_at
        FROM quotations
-      WHERE chat_id=? AND status='PENDING'
-      ORDER BY id DESC LIMIT 1`,
-    [chat.id]
+      WHERE chat_id IN (${placeholders}) AND status='PENDING'
+      ORDER BY created_at DESC LIMIT 1`,
+    chatIds
   );
-  return { chat_id: chat.id, quote: q[0] || null };
+  if (q[0]) return { chat_id: q[0].chat_id, quote: q[0] };
+  return { chat_id: chatIds[0], quote: null };
 }
 
 export async function listPendingQuotesByMobile(mobile) {
   const [[user]] = await pool.query('SELECT id FROM users WHERE mobile=? LIMIT 1', [mobile]);
   if (!user) return [];
 
-  const [[chat]] = await pool.query(
-    'SELECT id FROM chats WHERE user_id=? ORDER BY id DESC LIMIT 1',
+  const [chats] = await pool.query(
+    'SELECT id FROM chats WHERE user_id=? ORDER BY id DESC',
     [user.id]
   );
-  if (!chat) return [];
+  if (!chats.length) return [];
+
+  const chatIds = chats.map(c => c.id);
+  const placeholders = chatIds.map(() => '?').join(',');
 
   const [rows] = await pool.query(
     `SELECT id, chat_id, amount, currency, file_path, message_id, status, created_at
        FROM quotations
-      WHERE chat_id=? AND status='PENDING'
-      ORDER BY id ASC`,
-    [chat.id]
+      WHERE chat_id IN (${placeholders}) AND status='PENDING'
+      ORDER BY created_at DESC`,
+    chatIds
   );
   return rows;
 }
