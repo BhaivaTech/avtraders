@@ -19,8 +19,8 @@ function isLocalHost() {
 // Base origin (no /api). On prod we always use same-origin.
 export function resolveApiBase() {
   try {
-    const { origin, hostname } = window.location;
-    if (!isLocalHost() && /avtradersagriclinic\.com$/i.test(hostname)) return origin;
+    const { origin } = window.location;
+    if (!isLocalHost()) return origin;
   } catch {}
   return DEV_FALLBACK;
 }

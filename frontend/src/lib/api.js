@@ -6,8 +6,7 @@ function resolveApiBaseURL() {
   if (import.meta.env?.DEV) return "http://localhost:5100";
   if (import.meta.env?.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
   if (typeof window !== "undefined" && window.location) {
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}`;
+    return window.location.origin;
   }
   return "http://localhost:5100";
 }
@@ -34,30 +33,23 @@ api.interceptors.request.use((config) => {
 /* ------------------------------------------------------------------ */
 
 let csrfToken = null;
+let csrfRequest = null;
 
-/**
- * Read the csrf_secret cookie value (not HttpOnly, used for double-submit).
- * The actual HttpOnly cookie is set by the server; this reads the
- * non-HttpOnly companion cookie if present, or fetches a fresh token.
- */
-function getCsrfCookie() {
-  const match = document.cookie.match(/(?:^|;\s*)csrf_secret=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-/**
- * Fetch a fresh CSRF token from the server.
- */
+/** Fetch one shared token request so concurrent writes use the same cookie. */
 async function fetchCsrfToken() {
-  try {
-    const resp = await axios.get(`${resolveApiBaseURL()}/api/csrf-token`, {
+  if (!csrfRequest) {
+    csrfRequest = axios.get(`${resolveApiBaseURL()}/api/csrf-token`, {
       withCredentials: true,
-    });
-    csrfToken = resp.data?.csrf_token || null;
-    return csrfToken;
-  } catch {
-    return null;
+      timeout: 20000,
+      headers: { "Cache-Control": "no-cache" },
+    }).then((resp) => {
+      const token = resp.data?.csrf_token;
+      if (!token) throw new Error("Could not obtain a CSRF token. Refresh and try again.");
+      csrfToken = token;
+      return token;
+    }).finally(() => { csrfRequest = null; });
   }
+  return csrfRequest;
 }
 
 /**
@@ -80,17 +72,18 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// On 403 (CSRF mismatch), refresh the token and retry once
+// Refresh missing or expired CSRF credentials and retry once.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     if (
       error.response?.status === 403 &&
-      error.response?.data?.error === "csrf_token_invalid" &&
-      !originalRequest._csrfRetried
+      ["csrf_token_invalid", "csrf_token_missing"].includes(error.response?.data?.error) &&
+      originalRequest && !originalRequest._csrfRetried
     ) {
       originalRequest._csrfRetried = true;
+      csrfToken = null;
       await fetchCsrfToken();
       if (csrfToken) {
         originalRequest.headers["X-CSRF-Token"] = csrfToken;

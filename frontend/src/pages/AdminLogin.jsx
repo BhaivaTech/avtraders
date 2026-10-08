@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { ADMIN_EMAIL_ALLOWED } from '../lib/config.js';
 
 const ADMIN_AUTH_KEY = 'adminAuth';
 
@@ -143,11 +142,6 @@ export default function AdminLogin() {
   async function startLogin(e) {
     e?.preventDefault();
     setMsg('');
-    if (email.trim().toLowerCase() !== ADMIN_EMAIL_ALLOWED) {
-      setMsg('Incorrect email. Farmers please use the Clinic section.');
-      setMsgType('err');
-      return;
-    }
     try {
       setBusy(true);
       const r = await api.post('/admin/login-start', { email, password }, { withCredentials: true });
@@ -157,7 +151,7 @@ export default function AdminLogin() {
         setOtherSession(!!r.data.existing_session);
         const ttl = Number(r.data.ttl || 60);
         setOtpTTL(ttl);
-        setMsg(`OTP sent to ${ADMIN_EMAIL_ALLOWED}. Valid for ${ttl} seconds.`);
+        setMsg(`OTP sent to ${email.trim().toLowerCase()}. Valid for ${ttl} seconds.`);
         setMsgType('ok');
         const t = setInterval(() => setOtpTTL((p) => { if (p <= 1) { clearInterval(t); return 0; } return p - 1; }), 1000);
       } else {
@@ -312,7 +306,7 @@ export default function AdminLogin() {
                   ? <><span className="al-spin">⏳</span> Sending OTP…</>
                   : <>Continue</>}
               </button>
-              <p className="al-hint">OTP is required for every login and valid for 1 minute.</p>
+              <p className="al-hint">OTP is required for every login. The expiry appears after sending.</p>
             </form>
           )}
 
@@ -359,7 +353,7 @@ export default function AdminLogin() {
               </div>
 
               <p className="al-hint">
-                Expires in <b>00:{String(otpTTL).padStart(2, '0')}</b>.{' '}
+                Expires in <b>{String(Math.floor(otpTTL / 60)).padStart(2, '0')}:{String(otpTTL % 60).padStart(2, '0')}</b>.{' '}
                 <button type="button" className="al-link" onClick={startLogin} disabled={busy}>
                   Resend OTP
                 </button>
