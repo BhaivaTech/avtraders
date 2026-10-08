@@ -1,0 +1,66 @@
+name: Deploy development to EC2
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: avtraders-ec2-development
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+      - name: Install and check backend
+        run: |
+          npm ci --prefix backend --no-audit --no-fund
+          npm --prefix backend test -- test/middlewares/csrf.test.js test/migrations/migrations.test.js
+          find backend/src -name '*.js' -print0 | xargs -0 -n 1 node --check
+          node --check backend/server.js
+          bash -n scripts/deploy-ec2-release.sh
+      - name: Build frontend
+        env:
+          VITE_API_BASE_URL: ''
+          VITE_API_URL: ''
+          VITE_SITE_URL: https://avtradersagriclinic.com
+        run: |
+          npm ci --prefix frontend --no-audit --no-fund
+          npm --prefix frontend run build
+      - name: Package release without secrets or uploaded data
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle/frontend"
+          git archive "$GITHUB_SHA" backend | tar -x -C "$RUNNER_TEMP/bundle" --exclude='backend/.env*' --exclude='backend/uploads*'
+          cp -a frontend/dist "$RUNNER_TEMP/bundle/frontend/dist"
+          tar -czf "$RUNNER_TEMP/release.tar.gz" -C "$RUNNER_TEMP/bundle" backend frontend
+      - name: Deploy and verify
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+          EC2_KNOWN_HOSTS: ${{ vars.EC2_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$EC2_SSH_KEY" && test -n "$EC2_HOST" && test -n "$EC2_USER" && test -n "$EC2_KNOWN_HOSTS"
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$EC2_SSH_KEY" > "$RUNNER_TEMP/ssh/key"
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/ssh/key"
+          release_id="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ssh_options=(-i "$RUNNER_TEMP/ssh/key" -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts")
+          scp "${ssh_options[@]}" "$RUNNER_TEMP/release.tar.gz" "$EC2_USER@$EC2_HOST:/tmp/avtraders-$release_id.tar.gz"
+          scp "${ssh_options[@]}" scripts/deploy-ec2-release.sh "$EC2_USER@$EC2_HOST:/tmp/deploy-avtraders-$release_id.sh"
+          ssh "${ssh_options[@]}" "$EC2_USER@$EC2_HOST" "bash /tmp/deploy-avtraders-$release_id.sh $release_id"
+          curl --fail --silent --show-error --max-time 20 --resolve "avtradersagriclinic.com:443:$EC2_HOST" https://avtradersagriclinic.com/api/health

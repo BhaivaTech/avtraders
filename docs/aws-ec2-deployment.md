@@ -95,3 +95,20 @@ Removed the frontend email allowlist from AdminLogin.jsx. Any email can reach ba
 ## Admin OTP expiry (2026-10-07)
 
 Increased ADMIN_OTP_EXPIRY_SECONDS to 300 seconds on EC2 and restarted the backend. Frontend countdown now formats minutes and seconds correctly and no longer claims a fixed one-minute expiry. Production build passed; server environment and database health verified. This applies to newly generated admin OTPs; existing OTPs retain their stored expiry.
+
+## Continuous deployment configuration
+
+Workflow: .github/workflows/deploy-development.yml
+Release script: scripts/deploy-ec2-release.sh
+
+Pushes to development trigger focused CSRF/migration tests, backend syntax checks, a frontend production build, and deployment to EC2. Deployments run serially. The release archive excludes backend environment files and uploaded data; server configuration and uploads remain in shared directories. Each release installs production dependencies, saves a database dump before startup migrations, switches the current symlink, restarts the backend and checks HTTP/TLS health. Failure after activation restores the prior application release. Database migrations are not automatically reversed; their backup is retained. Deployment stops if free disk space is below 1 GiB. Old releases and backups require periodic deliberate maintenance.
+
+Required repository settings:
+- Secret EC2_SSH_KEY: dedicated deployment private key.
+- Variable EC2_HOST: 15.252.74.211.
+- Variable EC2_USER: ec2-user.
+- Variable EC2_KNOWN_HOSTS: verified EC2 public host key line.
+
+Status: workflow published to development; deployment credentials have not been provisioned. Deployments require the repository secret and variables listed above. Automatic review rejected creating a durable privileged SSH access path without explicit authorization. A dedicated ec2-user key would permit access to the server and its existing sudo permissions; GitHub stores the private counterpart as an encrypted repository secret used by this workflow.
+
+Validation: shell syntax and git diff checks passed; six focused CSRF/migration tests passed. Full backend suite is not a CD gate because of the two previously observed failures in announcements and email rate limiting. First GitHub Actions deployment must be verified after credential authorization and publishing.
