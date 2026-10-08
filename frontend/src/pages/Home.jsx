@@ -2469,8 +2469,7 @@ export default function Home() {
             <div className={`anim-footer-col${footerCols[1] ? " col-visible" : ""}`}>
               <div className="h-footer-heading">Contact</div>
               <div className="h-footer-text">
-                {/* 📞 {CONTACT_PHONE.replace('+91', '+91 ')}<br /> */}
-                📞 9844883639<br />
+                📞 {CONTACT_PHONE.replace('+91', '+91 ')}<br />
                 ✉️ {CONTACT_EMAIL}
               </div>
             </div>
