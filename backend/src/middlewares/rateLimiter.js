@@ -121,13 +121,18 @@ export function adminLoginLimiter() {
 /**
  * General API rate limiter.
  * 100 requests per 15 minutes per IP.
- * Skips webhook/callback paths so external payment providers aren't rate-limited.
+ * Skips farmer/admin OTP login and external payment callbacks.
  */
 export function apiLimiter() {
   return rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     skip: (req) => {
+      // originalUrl includes /api even when this middleware is mounted at /api.
+      const otpPath = (req.originalUrl || req.url || '').split('?')[0];
+      if (req.method === 'POST' && /^\/api\/(?:auth\/(?:send-otp|resend-otp|verify-otp|login)|admin\/(?:login-start|resend-otp|verify-otp))\/?$/i.test(otpPath)) {
+        return true;
+      }
       const path = req.path || req.url || '';
       return path.startsWith('/api/payment/webhook') || path.startsWith('/api/phonepe/callback');
     },
