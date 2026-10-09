@@ -168,6 +168,18 @@ function CacheSection() {
   );
 }
 
+// Keep the component identity stable when the admin form state changes.
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <h3>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ── Admin Users Management (superadmin only) ── */
 function AdminUsersSection() {
   const [users, setUsers]     = useState([]);
@@ -263,17 +275,6 @@ function AdminUsersSection() {
     } catch {
       toast.error(`Failed to ${action} admin user`);
     }
-  }
-
-  function Modal({ title, onClose, children }) {
-    return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-          <h3>{title}</h3>
-          {children}
-        </div>
-      </div>
-    );
   }
 
   return (
