@@ -640,23 +640,15 @@ function AuthDetailsStep({ profileDraft, setProfileDraft, mobile, goBackToMobile
 }
 
 function AuthOtpStep({ otp, setOtp, mobile, goBackToMobile, verifyOtp }) {
-  const [otpDigits, setOtpDigits] = useState(Array(6).fill(''));
+  const [otpDigits, setOtpDigits] = useState(() =>
+    Array.from({ length: 6 }, (_, i) => String(otp || '')[i] || '')
+  );
   const [error, setError] = useState('');
   const inputsRef = useRef([]);
 
   useEffect(() => {
     inputsRef.current[0]?.focus();
   }, []);
-
-  useEffect(() => {
-    if (otp) {
-      const digits = String(otp).padStart(6, '').split('');
-      setOtpDigits(digits);
-      inputsRef.current.forEach((input, i) => {
-        if (input) input.value = digits[i] || '';
-      });
-    }
-  }, [otp]);
 
   const handleDigitChange = (index, value) => {
     const digit = value.replace(/\D/g, '').slice(0, 1);
@@ -673,7 +665,7 @@ function AuthOtpStep({ otp, setOtp, mobile, goBackToMobile, verifyOtp }) {
     }
 
     if (newDigits.every((d) => d)) {
-      verifyOtp();
+      verifyOtp(newDigits.join(''));
     }
   };
 
@@ -689,14 +681,12 @@ function AuthOtpStep({ otp, setOtp, mobile, goBackToMobile, verifyOtp }) {
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const digits = pasted.padEnd(6, '').split('');
+    const digits = Array.from({ length: 6 }, (_, i) => pasted[i] || '');
     setOtpDigits(digits);
     setOtp(digits.join(''));
-    inputsRef.current.forEach((input, i) => {
-      if (input) input.value = digits[i] || '';
-    });
+    inputsRef.current[Math.min(pasted.length, 5)]?.focus();
     if (digits.every((d) => d)) {
-      verifyOtp();
+      verifyOtp(digits.join(''));
     }
   };
 
@@ -1341,14 +1331,14 @@ export default function Farmers() {
     setOtp('');
   }
 
-   async function verifyOtp() {
+   async function verifyOtp(code = otp) {
     const m = norm(mobile);
-    if (!otp.trim()) {
-      alert('Enter the OTP');
+    if (!/^\d{6}$/.test(code)) {
+      alert('Enter the 6-digit OTP');
       return;
     }
 
-    const payload = { mobile: m, code: otp, role: 'farmer' };
+    const payload = { mobile: m, code, role: 'farmer' };
 
     try {
       // 1) verify OTP (creates session via verifyOtp controller)
