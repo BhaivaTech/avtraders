@@ -10,19 +10,23 @@ import { listAuthAudit, listDealerAudit } from '../controllers/auditController.j
 import { adminGetAllOrders, adminUpdateOrderStatus } from '../controllers/dealer/orders.js';
 import { ensureAdminSession, requirePermission } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
+import { adminLoginByEmailLimiter } from '../middlewares/rateLimiter.js';
 import { adminLoginStartSchema, adminVerifyOtpSchema, adminResendOtpSchema, changeMyPasswordSchema } from '../validations/schemas.js';
 
 const router = express.Router();
+const otpSendLimiter = adminLoginByEmailLimiter();
 
 // ── Authentication (no session required) ─────────────────────────────
 router.post(
   '/login-start',
   validateBody(adminLoginStartSchema),
+  otpSendLimiter,
   loginStart
 );
 router.post(
   '/resend-otp',
   validateBody(adminResendOtpSchema),
+  otpSendLimiter,
   resendOtp
 );
 router.post('/verify-otp', validateBody(adminVerifyOtpSchema), verifyOtp);

@@ -177,14 +177,14 @@ export function adminMutationLimiter() {
 
 /**
  * Per-mobile counter for the farmer OTP send endpoint.
- * 5 sends per hour per phone number, on top of the IP-based limiter.
+ * 5 send/resend requests per 30 seconds per phone number.
  */
 export function farmerOtpSendByMobileLimiter() {
   return createIdentifierLimiter({
     bucket: 'farmer-otp-send',
-    windowMs: 60 * 60 * 1000,
+    windowMs: 30 * 1000,
     max: 5,
-    message: 'Too many OTP requests for this number. Try again after an hour.',
+    message: 'Too many OTP requests for this number. Please wait up to 30 seconds.',
     extractId: (req) => req.body?.mobile,
   });
 }
@@ -232,15 +232,15 @@ export function dealerOtpVerifyByMobileLimiter() {
 }
 
 /**
- * Per-email counter for admin login start.
- * 5 attempts per 15 minutes per email.
+ * Shared per-email counter for admin login start and OTP resend.
+ * 5 requests per 30 seconds per email.
  */
 export function adminLoginByEmailLimiter() {
   return createIdentifierLimiter({
     bucket: 'admin-login',
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: 'Too many admin login attempts for this email. Please wait 15 minutes.',
+    windowMs: 30 * 1000,
+    max: 5,
+    message: 'Too many OTP requests for this email. Please wait up to 30 seconds.',
     extractId: (req) => (req.body?.email || '').toLowerCase().trim(),
   });
 }

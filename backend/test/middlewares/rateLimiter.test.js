@@ -2,7 +2,7 @@
 // Verifies the per-mobile / per-email identifier limiters shipped
 // in the previous quick-win batch.
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   farmerOtpSendByMobileLimiter,
   dealerOtpVerifyByMobileLimiter,
@@ -83,5 +83,33 @@ describe('adminLoginByEmailLimiter', () => {
     lim({ body: { email: 'admin@test.local' } }, res, () => { next = true; });
     expect(next).toBe(false);
     expect(res.status).toHaveBeenCalledWith(429);
+  });
+});
+
+describe.each([
+  ['farmer', farmerOtpSendByMobileLimiter, { mobile: '9999999999' }],
+  ['admin', adminLoginByEmailLimiter, { email: 'reset@test.local' }],
+])('%s OTP window', (_section, factory, body) => {
+  it('blocks the sixth request and resets after 30 seconds', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    try {
+      const limiter = factory();
+      for (let i = 0; i < 5; i++) {
+        const next = vi.fn();
+        limiter({ body }, makeRes(), next);
+        expect(next).toHaveBeenCalledOnce();
+      }
+      now.mockReturnValue(1_029_000);
+      const blocked = makeRes();
+      limiter({ body }, blocked, vi.fn());
+      expect(blocked.status).toHaveBeenCalledWith(429);
+      expect(blocked.setHeader).toHaveBeenCalledWith('Retry-After', '1');
+      now.mockReturnValue(1_030_000);
+      const next = vi.fn();
+      limiter({ body }, makeRes(), next);
+      expect(next).toHaveBeenCalledOnce();
+    } finally {
+      now.mockRestore();
+    }
   });
 });

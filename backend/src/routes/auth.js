@@ -12,6 +12,7 @@ import {
 } from '../controllers/authController.js';
 import { requireFarmerSession } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
+import { farmerOtpSendByMobileLimiter } from '../middlewares/rateLimiter.js';
 import {
   sendOtpSchema,
   verifyOtpSchema,
@@ -20,16 +21,19 @@ import {
 } from '../validations/schemas.js';
 
 const router = express.Router();
+const otpSendLimiter = farmerOtpSendByMobileLimiter();
 
 router.get('/exists/:mobile', checkExists);
 router.post(
   '/send-otp',
   validateBody(sendOtpSchema),
+  otpSendLimiter,
   sendOtp
 );
 router.post(
   '/resend-otp',
   validateBody(sendOtpSchema),
+  otpSendLimiter,
   sendOtp
 );
 router.post(
