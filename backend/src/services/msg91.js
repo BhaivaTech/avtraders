@@ -70,7 +70,12 @@ async function postToMsg91(host, authkey, payload) {
     validateStatus: () => true,
   });
 
-  if (resp.status >= 200 && resp.status < 300) {
+  const body = resp.data;
+  const rejected = body && typeof body === 'object' && (
+    body.hasError === true || body.success === false ||
+    ['fail', 'failed', 'error', 'rejected'].includes(String(body.status || body.type || '').toLowerCase())
+  );
+  if (resp.status >= 200 && resp.status < 300 && !rejected) {
     return { ok: true, host, data: resp.data };
   }
 
@@ -133,13 +138,10 @@ export async function sendWhatsAppTemplate(arg1, arg2, arg3 = null) {
     btnParam = BUTTON_PREFIX ? `${BUTTON_PREFIX}${buttonText}` : String(buttonText);
   }
 
-  /**
-   * ✅ IMPORTANT:
-   * Your error says: "to_and_components received is Invalid"
-   * So we try "components[]" FIRST (Meta format) and only then try to_and_components.
-   */
+  // Keep the legacy Meta-style variant available for older integrations;
+  // dealer OTPs use MSG91's documented to_and_components format first.
 
-  // Variant B (components[]) — TRY FIRST
+  // Meta-style components variant for older integrations.
   const comps = [{ type: "body", parameters: [{ type: "text", text: bodyText }] }];
 
   if (btnParam) {
@@ -167,7 +169,7 @@ export async function sendWhatsAppTemplate(arg1, arg2, arg3 = null) {
     },
   };
 
-  // Variant A (to_and_components) — fallback only
+  // MSG91's documented OTP shape includes both body_1 and button_1.
   const componentsA = { body_1: { type: "text", value: bodyText } };
   if (btnParam) {
     componentsA.button_1 = { subtype: "url", type: "text", value: btnParam };
@@ -189,17 +191,20 @@ export async function sendWhatsAppTemplate(arg1, arg2, arg3 = null) {
   };
 
   let lastErr;
+  const payloads = kind === 'dealer'
+    ? [payloadToAnd, payloadComponents]
+    : [payloadComponents, payloadToAnd];
 
   for (const host of HOSTS) {
-    try {
-      return await postToMsg91(host, AUTH_KEY, payloadComponents);
-    } catch (e) {
-      lastErr = e;
-    }
-    try {
-      return await postToMsg91(host, AUTH_KEY, payloadToAnd);
-    } catch (e) {
-      lastErr = e;
+    for (const payload of payloads) {
+      try {
+        return await postToMsg91(host, AUTH_KEY, payload);
+      } catch (e) {
+        lastErr = e;
+        // An indeterminate network result might already have sent the message.
+        // Retry only an explicit provider rejection, avoiding duplicate OTPs.
+        if (!e.vendorStatus || e.vendorStatus === 401 || e.vendorStatus === 403 || e.vendorStatus === 429 || e.vendorStatus >= 500) throw e;
+      }
     }
   }
 

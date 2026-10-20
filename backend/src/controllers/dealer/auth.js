@@ -93,12 +93,12 @@ export async function sendOtp(req, res) {
         kind: 'dealer',
         toMsisdn: `91${phone10}`,
         bodyText: String(otp),
-        buttonText: null,
+        buttonText: String(otp),
       });
       await insertAuthAudit({ actorType: 'dealer', actorId: dealer?.id || null, identifier: phone10, action: 'otp_sent', success: true, ...requestAuditMeta(req) });
-      return res.json({ ok: true, message: 'OTP sent on WhatsApp', ttl: DEALER_OTP_EXPIRY_SECONDS });
+      return res.json({ ok: true, message: 'OTP requested on WhatsApp. Delivery may take a moment.', delivery_status: 'submitted', ttl: DEALER_OTP_EXPIRY_SECONDS });
     } catch (vendorErr) {
-      logger.error({ err: vendorErr }, '[dealer-otp-msg91]');
+      logger.error({ message: vendorErr?.message, vendorStatus: vendorErr?.vendorStatus || vendorErr?.response?.status }, '[dealer-otp-provider]');
       if (DEALER_OTP_DEV_FALLBACK && process.env.NODE_ENV !== 'production') {
         await insertAuthAudit({ actorType: 'dealer', actorId: dealer?.id || null, identifier: phone10, action: 'otp_sent_dev_fallback', success: true, ...requestAuditMeta(req) });
         return res.json({
@@ -111,11 +111,7 @@ export async function sendOtp(req, res) {
         });
       }
       await insertAuthAudit({ actorType: 'dealer', actorId: dealer?.id || null, identifier: phone10, action: 'otp_send_failed', success: false, ...requestAuditMeta(req, { error: vendorErr?.message || 'MSG91 WhatsApp OTP failed' }) });
-      return res.status(500).json({
-        message: vendorErr?.message || 'MSG91 WhatsApp OTP failed',
-        vendorStatus: vendorErr?.vendorStatus || null,
-        vendorBody: vendorErr?.vendorBody || null,
-      });
+      return res.status(502).json({ message: 'Unable to send the WhatsApp OTP. Please try again shortly or contact support.' });
     }
   } catch (err) {
     await insertAuthAudit({ actorType: 'dealer', identifier: phone10, action: 'otp_send_failed', success: false, ...requestAuditMeta(req, { error: err?.message || 'Failed to send OTP' }) });

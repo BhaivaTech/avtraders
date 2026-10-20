@@ -341,9 +341,9 @@ export default function Dealers() {
       if (out?.dev_otp) {
         setMsg(`DEV OTP: ${out.dev_otp}`);
       } else {
-        setMsg("OTP sent on WhatsApp. Please check your WhatsApp messages.");
+        setMsg(out?.message || "OTP requested on WhatsApp. Delivery may take a moment.");
       }
-      notifyOk("OTP sent.");
+      notifyOk(out?.dev_otp ? 'Development OTP generated.' : 'OTP request submitted.');
 
       setStep("verifyOtp");
       startCooldown();
@@ -427,7 +427,7 @@ export default function Dealers() {
       if (out?.dev_otp) {
         setMsg(`DEV OTP: ${out.dev_otp}`);
       } else {
-        setMsg("OTP re-sent on WhatsApp.");
+        setMsg(out?.message || "OTP requested again on WhatsApp. Delivery may take a moment.");
       }
 
       startCooldown();
@@ -669,7 +669,7 @@ export default function Dealers() {
             <form onSubmit={handleVerifyOtp} className="cl-form">
               <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Verify OTP</h2>
               <p className="cl-lead" style={{ marginBottom: "2rem" }}>
-                OTP sent to WhatsApp number: <b>{normalizePhone(phone)}</b>
+                WhatsApp number: <b>{normalizePhone(phone)}</b>
               </p>
 
               <div className="cl-form-group">
