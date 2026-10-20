@@ -48,6 +48,8 @@ const NAV_ITEMS = [
   { to: '/admin/payments',   label: 'Payments',   icon: icons.payments,   permission: 'payments' },
   { to: '/admin/tracking',   label: 'Tracking',   icon: icons.tracking,   permission: 'chats' },
   { to: '/admin/users',      label: 'Users',      icon: icons.users,      permission: 'users' },
+  { to: '/admin/dealers', label: 'Dealer Portal', icon: icons.users, permission: 'dealers' },
+  { to: '/admin/products', label: 'Products', icon: icons.quotations, permission: null, superadminOnly: true },
   { to: '/admin/announcements', label: 'Announcements', icon: icons.announcements, permission: 'announcements' },
   { to: '/admin/analytics',  label: 'Analytics',  icon: icons.analytics,  permission: 'analytics' },
   { to: '/admin/settings',   label: 'Settings',   icon: icons.settings,   permission: null },
@@ -65,8 +67,8 @@ export default function AdminSidebar({ open, onClose }) {
 
   const visibleItems = loading
     ? NAV_ITEMS // show all while loading to prevent layout shift
-    : NAV_ITEMS.filter(({ permission }) =>
-        permission === null || hasPermission(permission)
+    : NAV_ITEMS.filter(({ permission, superadminOnly }) =>
+        (!superadminOnly || role === 'superadmin') && (permission === null || hasPermission(permission))
       );
 
   return (

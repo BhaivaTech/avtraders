@@ -4,6 +4,7 @@ import { api } from "../lib/api.js";
 import { socket as sharedSocket } from "../lib/socket.js";
 import { CONTACT_PHONE, CONTACT_EMAIL, WHATSAPP_CHANNEL_URL, WHATSAPP_URL } from '../lib/config.js';
 import './Home.css';
+import HomeAnnouncements from '../components/HomeAnnouncements.jsx';
 
 /* ─────────────────────────────────────────────
    Animation Hooks
@@ -584,34 +585,6 @@ export default function Home() {
     window.location.href = "/farmers";
   };
 
-  /* ---- Latest announcement ticker ---- */
-  const hasTicker = !annLoading && !annError && announcements && announcements.length > 0;
-
-  let tickerNode = null;
-  if (hasTicker) {
-    const a = announcements[0];
-    const rawBody = (a.body || a.text || "").trim();
-    const rawTitle = (a.title || "").trim();
-    let fullText = rawBody || rawTitle || "";
-    if (rawTitle && rawBody && !rawBody.startsWith(rawTitle)) fullText = `${rawTitle} — ${rawBody}`;
-    if (!fullText) fullText = "New announcement from AV Traders Agri Clinic.";
-    const fieldUrl = a.link_url || a.link || a.url || a.youtube_url || "";
-    const urlRegex = /(https?:\/\/[^\s]+)/i;
-    let detectedUrl = fieldUrl || "";
-    if (!detectedUrl) { const m = fullText.match(urlRegex); if (m) detectedUrl = m[0]; }
-
-    if (detectedUrl) {
-      if (!fieldUrl && fullText.includes(detectedUrl)) {
-        const parts = fullText.split(detectedUrl);
-        tickerNode = <>{parts[0]}<a href={detectedUrl} target="_blank" rel="noreferrer">{detectedUrl}</a>{parts.slice(1).join(detectedUrl)}</>;
-      } else {
-        tickerNode = <a href={detectedUrl} target="_blank" rel="noreferrer">{fullText}</a>;
-      }
-    } else {
-      tickerNode = <>{fullText}</>;
-    }
-  }
-
   /* ═══════════════════════════════════════════
      ANIMATION: refs, reveals, staggers
   ═══════════════════════════════════════════ */
@@ -642,10 +615,10 @@ export default function Home() {
   const topicCards = useStagger(eduReveal.isVisible, 4, 90);
   const footerCols = useStagger(footerReveal.isVisible, 4, 100);
 
-  const count30 = useCountUp("30+", 1400, heroPanel.isVisible);
-  const count6000 = useCountUp("6000+", 1400, heroPanel.isVisible);
-  const count200 = useCountUp("200+", 1400, heroPanel.isVisible);
-  const count90 = useCountUp("90%", 1400, heroPanel.isVisible);
+  const count30 = "30+";
+  const count6000 = "6000+";
+  const count200 = "200+";
+  const count90 = "90%";
 
   const [heroMounted, setHeroMounted] = useState(false);
   useEffect(() => { const t = setTimeout(() => setHeroMounted(true), 100); return () => clearTimeout(t); }, []);
@@ -1998,6 +1971,7 @@ export default function Home() {
       <div className="h-root">
         {/* WhatsApp Channel Popup */}
         <WhatsAppChannelPopup />
+        <HomeAnnouncements items={announcements} loading={annLoading} error={annError} onRetry={loadAnnouncements} />
 
         {/* ══════════════════════════════════════════════
             HERO
@@ -2036,13 +2010,16 @@ export default function Home() {
             </p>
 
             <div className="h-cta-row">
-              <Link className="cl-btn-primary anim-cta-child" to="/farmers" aria-label="Explore solutions" style={{ animationDelay: "600ms" }}>
-                Explore Solutions
+              <Link className="cl-btn-primary anim-cta-child" to="/farmers">
+                Farmer Support
                 <IconArrow />
               </Link>
-              <Link className="cl-btn-ghost anim-cta-child" to="/contact" style={{ animationDelay: "690ms" }}>Contact us</Link>
+              <Link className="cl-btn-ghost anim-cta-child" to="/dealers">Distributor Portal <IconArrow /></Link>
+            </div>
+            <div className="h-contact-links">
+              <Link to="/contact">Contact our team</Link>
               <a
-                className="cl-btn-wa anim-cta-child"
+                className="h-contact-whatsapp"
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noreferrer"
@@ -2114,29 +2091,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════
-            ANNOUNCEMENT TICKER
-        ══════════════════════════════════════════════ */}
-        <div className="h-announce-bar anim-ticker-bar" id="announcements">
-          <div className="h-announce-label">📢 Latest</div>
-          {annLoading && <div className="h-announce-status">Loading latest updates…</div>}
-          {!annLoading && annError && <div className="h-announce-status">{annError}</div>}
-          {!annLoading && !annError && hasTicker && (
-            <div className="h-ticker-shell">
-              <div className="h-ticker-track">
-                <div className="h-ticker-item">{tickerNode}</div>
-                <div className="h-ticker-item">{tickerNode}</div>
-              </div>
-            </div>
-          )}
-          {!annLoading && !annError && !hasTicker && (
-            <div className="h-announce-status">No announcements yet. Please check back soon.</div>
-          )}
-        </div>
-
-        {/* ══════════════════════════════════════════════
-            CAROUSEL
-        ══════════════════════════════════════════════ */}
+        {/* Home image carousel */}
         <ImageCarousel
           images={bannerImages}
           interval={5000}

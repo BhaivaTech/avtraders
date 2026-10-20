@@ -121,7 +121,7 @@ export default function Distribution() {
         <div className="cl-hero-left">
           <div className="cl-hero-eyebrow">
             <span className="cl-hero-pulse" aria-hidden="true" />
-            AV Traders · Distribution
+            AV Agro Distribution
           </div>
 
           <h1 id="dist-hero-heading" className="cl-hero-title">
@@ -131,7 +131,7 @@ export default function Distribution() {
 
           <p className="cl-hero-sub">
             A secure dealer-only portal for registration, document verification and protected
-            access to the latest wholesale price list. Dealer ordering, quotations and dispatch
+            access to the product catalogue and current dealer prices. Dealer ordering, quotations and dispatch
             tracking will be enabled in the next phase.
           </p>
 
@@ -212,7 +212,7 @@ export default function Distribution() {
           />
           <TrustCard
             icon={<IconCatalog />}
-            title="Protected Price List"
+            title="Protected Product Catalogue"
             description="Latest wholesale rates available only after approval."
           />
           <TrustCard
@@ -231,7 +231,7 @@ export default function Distribution() {
         </h2>
         <p className="cl-lead">
           The portal is built to keep dealer onboarding clean, verified and secure before giving
-          access to business price lists.
+          access to the dealer product catalogue.
         </p>
 
         <div className="cl-svc-grid">
@@ -264,11 +264,11 @@ export default function Distribution() {
             accentVar="--sky-400"
             tag="Step 03"
             title="Approved Access"
-            subtitle="Secure wholesale lists"
+            subtitle="Products and dealer prices"
             items={[
                "Approved dealers only",
-               "Protected download link",
-               "Latest uploaded price list visible immediately"
+               "Search, category filters and sorting",
+               "Published products and current prices"
             ]}
           />
         </div>
@@ -279,7 +279,7 @@ export default function Distribution() {
         <div className="cl-eyebrow">Step by Step</div>
         <h2 id="dist-hiw-heading" className="cl-h2">How it <em>works</em></h2>
         <p className="cl-lead">
-          From first login to price list download — the full dealer onboarding flow in six
+          From first login to product catalogue access — the full dealer onboarding flow in six
           straightforward steps.
         </p>
 
@@ -289,7 +289,7 @@ export default function Distribution() {
           <StepCard number="03" label="Documents" detail="Dealer submits GST certificate and Insecticide licence." accent="--sky-400" />
           <StepCard number="04" label="Review" detail="Admin reviews the registration and documents." accent="--earth-400" />
           <StepCard number="05" label="Approval" detail="Admin can Approve or Reject with reason." accent="--g600" />
-          <StepCard number="06" label="Access" detail="Approved dealer logs in and downloads the latest protected price list." accent="--g700" />
+          <StepCard number="06" label="Access" detail="Approved dealers browse products, pack sizes, details and prices." accent="--g700" />
         </div>
       </section>
 
@@ -300,7 +300,7 @@ export default function Distribution() {
           Future Distribution <em>Features</em>
         </h2>
         <p className="cl-lead">
-          After dealer onboarding and price list access, the next phase will include full
+          After dealer onboarding and catalogue access, the next phase will include full
           wholesale ordering and dispatch management.
         </p>
 
@@ -310,7 +310,7 @@ export default function Distribution() {
           <TrustCard icon={<span style={{fontSize: "24px"}}>🧾</span>} title="GST Invoice" description="GST invoice generation" />
           <TrustCard icon={<span style={{fontSize: "24px"}}>🚚</span>} title="Dispatch" description="Dispatch and LR tracking" />
           <TrustCard icon={<span style={{fontSize: "24px"}}>💬</span>} title="Support" description="Dealer support chat" />
-          <TrustCard icon={<span style={{fontSize: "24px"}}>📣</span>} title="Notifications" description="Price list update notification" />
+          <TrustCard icon={<span style={{fontSize: "24px"}}>📣</span>} title="Notifications" description="Dealer account notifications" />
         </div>
       </section>
 
@@ -825,4 +825,4 @@ export default function Distribution() {
       `}</style>
     </div>
   );
-}
+}

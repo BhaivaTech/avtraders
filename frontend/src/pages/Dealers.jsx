@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CONTACT_EMAIL } from '../lib/config.js';
 import Seo from '../components/Seo.jsx';
+import Catalogue from '../components/Catalogue.jsx';
 import toast from '../lib/toast.js';
+import { api as sharedApi } from '../lib/api.js';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const LOGIN_MODE = import.meta.env.VITE_DEALER_LOGIN_MODE || "otp";
 const OTP_RESEND_SECONDS = 30;
 
@@ -153,6 +154,22 @@ export default function Dealers() {
   const [gstFile, setGstFile] = useState(null);
   const [licFile, setLicFile] = useState(null);
 
+  useEffect(() => {
+    if (step !== 'pending' || !token) return;
+    const timer = setInterval(async () => {
+      try {
+        const out = await api('/api/dealer/me');
+        setDealer(out.dealer);
+        if (out.dealer?.status === 'approved') setStep('dashboard');
+        if (out.dealer?.status === 'rejected') {
+          setErr(`Application rejected: ${out.dealer.rejection_reason || 'Please correct your documents and resubmit.'}`);
+          setStep('register');
+        }
+      } catch { /* A failed refresh can be retried on the next interval. */ }
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [step, token]);
+
   const mailtoHref = useMemo(() => {
     const to = CONTACT_EMAIL;
     const subject = "Dealer Portal — Enquiry";
@@ -185,7 +202,7 @@ export default function Dealers() {
   // Persist token/dealer to localStorage whenever they change
   useEffect(() => {
     try {
-      if (token && dealer) {
+      if (token) {
         localStorage.setItem('dealerAuth', JSON.stringify({ token, dealer, ts: Date.now() }));
       } else if (!token) {
         localStorage.removeItem('dealerAuth');
@@ -195,19 +212,22 @@ export default function Dealers() {
 
   // Revalidate on mount if we have a saved token
   useEffect(() => {
-    if (!token || dealer) return;
+    if (!token) return;
     (async () => {
       try {
         const out = await api('/api/dealer/me', { method: 'GET' });
         if (out?.dealer) {
           setDealer(out.dealer);
           if (out?.token) setToken(out.token);
-          setStep('dashboard');
+          setPhone(out.dealer.phone);
+          setStep(out.dealer.status === 'approved' ? 'dashboard' : out.dealer.status === 'pending' ? 'pending' : 'register');
+          if (out.dealer.status === 'rejected') {
+            setErr(`Previous request rejected: ${out.dealer.rejection_reason || 'Please correct and resubmit your documents.'}`);
+          }
         } else {
           // Token invalid or no dealer data
-          setToken('');
-          setDealer(null);
-          localStorage.removeItem('dealerAuth');
+          setStep('register');
+          setPhone(out.auth?.phone || '');
         }
       } catch {
         setToken('');
@@ -244,48 +264,15 @@ export default function Dealers() {
   }
 
   async function api(path, options = {}) {
-    const url = `${API_BASE}${path}`;
-    const headers = options.headers || {};
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
-
-    const text = await res.text();
-
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text;
-    }
-
-    if (!res.ok) {
-      // Handle 401 globally for dealer requests
-      if (res.status === 401) {
-        setToken("");
-        setDealer(null);
-        try { localStorage.removeItem('dealerAuth'); } catch {}
-      }
-
-      const message =
-        (data && data.message) ||
-        (typeof data === "string" ? data : "Request failed");
-
-      const extra =
-        data && typeof data === "object" ? `\n\n${JSON.stringify(data, null, 2)}` : "";
-
-      throw new Error(message + extra);
-    }
-
-    return data;
+    const response = await sharedApi.request({
+      url: path,
+      method: options.method || 'GET',
+      data: options.body instanceof FormData ? options.body : options.body ? JSON.parse(options.body) : undefined,
+      headers: { ...options.headers, ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.body instanceof FormData ? { 'Content-Type': undefined } : {}) },
+    }).catch(ex => { throw new Error(ex.response?.data?.message || ex.message); });
+    return response.data;
   }
+
 
   async function handleSimpleLogin(e) {
     e.preventDefault();
@@ -522,40 +509,11 @@ export default function Dealers() {
       onConfirm: () => submitRegistration(p),
     });
   }
-  async function fetchPriceInfo() {
-    clearAlerts();
-
-    try {
-      setLoading(true);
-      const out = await api("/api/dealer/pricelist", { method: "GET" });
-      setMsg("Price list is ready.");
-      return out;
-    } catch (ex) {
-      setErr(ex.message || "Unable to fetch price list.");
-      notifyErr(ex.message || "Unable to fetch price list.");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDownloadPriceList() {
-    const out = await fetchPriceInfo();
-
-    if (!out?.download_url) return;
-
-    window.open(`${API_BASE}${out.download_url}`, "_blank", "noopener,noreferrer");
-  }
-
   function resetToIntro() {
     // Call server logout if a token exists
     if (token) {
       try {
-        fetch(`${API_BASE}/api/dealer/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include',
-        }).catch(() => {});
+        api('/api/dealer/logout', { method: 'POST' }).catch(() => {});
       } catch {}
     }
     setStep("intro");
@@ -567,7 +525,14 @@ export default function Dealers() {
     try { localStorage.removeItem('dealerAuth'); } catch {}
   }
 
-  const isSimpleMode = LOGIN_MODE === "simple";
+  if (step === 'dashboard') return (
+    <section style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 12px 60px' }}>
+      <div className="catalogue-distributor-account"><span><strong>Approved distributor</strong> · {dealer?.firm_name || dealer?.name} · {dealer?.phone || phone}</span><button onClick={resetToIntro}>Logout</button></div>
+      <Catalogue token={token} />
+    </section>
+  );
+
+  const isSimpleMode = import.meta.env.DEV && LOGIN_MODE === "simple";
 
   return (
     <div className="cl-root">
@@ -586,7 +551,7 @@ export default function Dealers() {
 
           <p className="cl-hero-sub">
             Secure dealer onboarding, document verification and protected access to the latest
-            wholesale price list after admin approval.
+            product catalogue and dealer prices after admin approval.
           </p>
 
           <div className="cl-hero-proof">
@@ -616,7 +581,7 @@ export default function Dealers() {
           <h2 className="cl-h2" style={{ fontSize: "1.4rem" }}>Requirements</h2>
           <p className="cl-lead" style={{ fontSize: "0.95rem", marginBottom: "1.5rem" }}>
             New dealers must submit valid business details and documents. Admin approval is required
-            before accessing the dealer price list.
+            before accessing the product catalogue.
           </p>
 
           <ul className="cl-svc-list" style={{ marginBottom: "2rem" }}>
@@ -917,7 +882,7 @@ export default function Dealers() {
                 <span className="cl-status-pill">Under review</span>
                 <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Request Received</h2>
                 <p className="cl-lead" style={{ marginBottom: 0 }}>
-                  Your dealer registration is waiting for admin verification. You will get access to the protected price list after approval.
+                  Your dealer registration is waiting for admin verification. You will get access to the product catalogue after approval.
                 </p>
               </div>
 
@@ -937,8 +902,8 @@ export default function Dealers() {
               </div>
 
               <div className="cl-empty-state">
-                <h3>No price list access yet</h3>
-                <p>Once your documents are approved, this page will show the download action and dealer access details.</p>
+                <h3>Catalogue access pending</h3>
+                <p>Once your documents are approved, you can browse products, pack sizes and current dealer prices here.</p>
               </div>
 
               <div className="cl-cta-row">
@@ -948,49 +913,7 @@ export default function Dealers() {
             </div>
           )}
 
-          {/* STEP: DASHBOARD */}
-          {step === "dashboard" && (
-            <div className="cl-status-box">
-              <div className="cl-status-header">
-                <span className="cl-status-pill cl-status-pill-ok">Approved dealer</span>
-                <h2 className="cl-h2" style={{ fontSize: "1.8rem" }}>Dealer Dashboard</h2>
-                <p className="cl-lead" style={{ marginBottom: 0 }}>
-                  Your dealer account is active. Download the protected wholesale price list below.
-                </p>
-              </div>
-
-              <div className="cl-summary-grid" aria-label="Dealer account summary">
-                <div className="cl-summary-card">
-                  <span className="cl-summary-label">Status</span>
-                  <strong>{dealer?.status || "approved"}</strong>
-                </div>
-                <div className="cl-summary-card">
-                  <span className="cl-summary-label">Mobile</span>
-                  <strong>{normalizePhone(phone)}</strong>
-                </div>
-                <div className="cl-summary-card">
-                  <span className="cl-summary-label">Access</span>
-                  <strong>Price list</strong>
-                </div>
-              </div>
-
-              <div className="cl-download-panel">
-                <div>
-                  <h3>Latest Price List</h3>
-                  <p>This file is available only to approved dealers. If no active file exists, you will see a clear error message.</p>
-                </div>
-                <div className="cl-cta-row">
-                  <button className="cl-btn-primary" onClick={handleDownloadPriceList} disabled={loading}>
-                    {loading && <IconSpinner className="cl-spin" />}
-                    {loading ? "Loading..." : "Download Price List"}
-                  </button>
-                  <button className="cl-btn-ghost" onClick={resetToIntro}>
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}        </div>
+        </div>
       </div>
 
       <ConfirmDialog config={confirmAction} loading={loading} onCancel={() => setConfirmAction(null)} />

@@ -2,6 +2,7 @@
 // Dealer authentication: OTP send/verify, compatibility login and JWT token management.
 
 import crypto from 'crypto';
+import { sendDealerWhatsApp } from '../../services/dealerNotifications.js';
 import jwt from 'jsonwebtoken';
 import { sendWhatsAppTemplate } from '../../services/msg91.js';
 import {
@@ -46,7 +47,7 @@ function dealerResponseFor(dealer, token) {
     ok: true,
     token,
     dealer,
-    next: 'register',
+    next: 'rejected',
     message: dealer.rejection_reason
       ? `Previous request rejected: ${dealer.rejection_reason}`
       : 'Please re-submit dealer registration.',
@@ -86,7 +87,9 @@ export async function sendOtp(req, res) {
     await upsertDealerOtp(phone10, otp, DEALER_OTP_EXPIRY_SECONDS);
 
     try {
-      await sendWhatsAppTemplate({
+      if (process.env.DEALER_WHATSAPP_PROVIDER === 'meta') {
+        await sendDealerWhatsApp(phone10, process.env.META_DEALER_OTP_TEMPLATE, [otp], true);
+      } else await sendWhatsAppTemplate({
         kind: 'dealer',
         toMsisdn: `91${phone10}`,
         bodyText: String(otp),
@@ -96,7 +99,7 @@ export async function sendOtp(req, res) {
       return res.json({ ok: true, message: 'OTP sent on WhatsApp', ttl: DEALER_OTP_EXPIRY_SECONDS });
     } catch (vendorErr) {
       logger.error({ err: vendorErr }, '[dealer-otp-msg91]');
-      if (DEALER_OTP_DEV_FALLBACK) {
+      if (DEALER_OTP_DEV_FALLBACK && process.env.NODE_ENV !== 'production') {
         await insertAuthAudit({ actorType: 'dealer', actorId: dealer?.id || null, identifier: phone10, action: 'otp_sent_dev_fallback', success: true, ...requestAuditMeta(req) });
         return res.json({
           ok: true,
@@ -170,7 +173,7 @@ export async function verifyOtp(req, res) {
 /* ------------------------------------------------------------------ */
 export async function simpleLogin(req, res) {
   const phone10 = normalizePhone10(req.body?.phone);
-  if (!DEALER_SIMPLE_LOGIN_ENABLED) return res.status(404).json({ message: 'Simple login disabled' });
+  if (!DEALER_SIMPLE_LOGIN_ENABLED || process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Simple login disabled' });
   if (phone10.length !== 10) return res.status(400).json({ message: 'Enter a valid 10-digit mobile number' });
 
   const dealer = await findDealerByPhone(phone10);

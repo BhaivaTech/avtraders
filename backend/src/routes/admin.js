@@ -1,5 +1,7 @@
 // src/routes/admin.js
 import express from 'express';
+import { catalogueRouter } from './catalogue.js';
+import { listDealers, dealerDetails, dealerDocument, decideDealer } from '../controllers/dealer/admin.js';
 import {
   loginStart, resendOtp, verifyOtp, ping, me, logout,
   blockFarmer, getAdminPayments, getAdminStats, getAdminInsights,
@@ -15,6 +17,12 @@ import { adminLoginStartSchema, adminVerifyOtpSchema, adminResendOtpSchema, chan
 
 const router = express.Router();
 const otpSendLimiter = adminLoginByEmailLimiter();
+router.use('/catalogue', ensureAdminSession, catalogueRouter(true));
+router.get('/dealers', ensureAdminSession, requirePermission('dealers'), listDealers);
+router.get('/dealers/:id', ensureAdminSession, requirePermission('dealers'), dealerDetails);
+router.get('/dealers/:id/documents/:docId', ensureAdminSession, requirePermission('dealers'), dealerDocument);
+router.post('/dealers/:id/approve', ensureAdminSession, requirePermission('dealers'), decideDealer);
+router.post('/dealers/:id/reject', ensureAdminSession, requirePermission('dealers'), decideDealer);
 
 // ── Authentication (no session required) ─────────────────────────────
 router.post(

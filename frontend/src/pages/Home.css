@@ -623,3 +623,34 @@
     grid-template-columns: 1fr;
   }
 }
+/* A calmer homepage: readable content first, with motion reserved for controls. */
+.h-root.h-root .h-hero { padding: 3.5rem 0; gap: 3rem; }
+.h-root.h-root .h-section { padding: 3.5rem 0; }
+.h-root.h-root .h-hero-title { font-size: clamp(2.3rem, 4.5vw, 3.7rem); line-height: 1.12; letter-spacing: -.035em; }
+.h-root.h-root .h-hero-sub { font-size: 1rem; line-height: 1.8; max-width: 560px; }
+.h-root.h-root .h-cta-row { gap: 12px; }
+.h-root.h-root .cl-btn-primary { background: #226343; border-radius: 10px; box-shadow: none; }
+.h-root.h-root .cl-btn-primary:hover { background: #174d32; transform: translateY(-1px); }
+.h-root.h-root .cl-btn-ghost { border: 1px solid #b6cbbd; background: #fff; border-radius: 10px; color: #28543a; }
+.h-root.h-root .h-contact-links { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-top: 18px; }
+.h-root.h-root .h-contact-links a { display: inline-flex; align-items: center; gap: 7px; color: #526b58; font-size: 12px; font-weight: 600; text-decoration: none; padding: 5px 0; }
+.h-root.h-root .h-contact-links a:hover { color: #226343; text-decoration: underline; text-underline-offset: 4px; }
+.h-root.h-root [class*="anim-"] { animation: none; opacity: 1; transform: none; }
+.h-root.h-root .h-hero-pulse, .h-root.h-root .h-hero::before,
+.h-root.h-root .h-cta-banner::before, .h-root.h-root .h-cta-banner::after,
+.h-root.h-root .anim-founder-quote::before, .h-root.h-root .h-chat-fab-icon { animation: none; }
+.h-root.h-root .anim-founder-photo img, .h-root.h-root .anim-trust-card .cl-trust-icon { animation: none; opacity: 1; transform: none; }
+.h-root.h-root .h-hero-proof { gap: 12px; }
+.h-root.h-root .h-hero-panel { border-radius: 20px; box-shadow: 0 8px 32px #21432f08; }
+@media (max-width: 700px) {
+  .h-root.h-root { padding: 0 4px 3rem; }
+  .h-root.h-root .h-hero { padding: 2.5rem 0; gap: 2rem; }
+  .h-root.h-root .h-section { padding: 2.5rem 0; }
+  .h-root.h-root .h-hero-title { font-size: clamp(2rem, 9vw, 3rem); }
+  .h-root.h-root .h-cta-row { align-items: stretch; }
+  .h-root.h-root .h-hero .h-cta-row>a { width: 100%; justify-content: center; box-sizing: border-box; min-height: 48px; }
+  .h-root.h-root .h-hero-proof-divider { display: none; }
+  .h-root.h-root .h-hero-proof-tag { width: 100%; }
+  .h-root.h-root .h-chat-fab { bottom: 24px; right: 18px; }
+  .h-root.h-root .wa-popup { bottom: 90px; }
+}

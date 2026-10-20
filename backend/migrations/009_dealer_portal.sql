@@ -1,0 +1,4 @@
+ALTER TABLE dealers ADD COLUMN approved_by VARCHAR(190) NULL, ADD COLUMN approved_at DATETIME NULL;
+ALTER TABLE price_lists ADD COLUMN uploaded_by VARCHAR(190) NULL;
+CREATE TABLE IF NOT EXISTS dealer_portal_lock (id INT PRIMARY KEY) ENGINE=InnoDB;
+INSERT IGNORE INTO dealer_portal_lock (id) VALUES (1);

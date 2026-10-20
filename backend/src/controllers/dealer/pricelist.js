@@ -17,7 +17,7 @@ import {
 
 export async function getPricelist(req, res) {
   try {
-    if (req.dealerAuth.status !== 'approved') {
+    if (req.dealer?.status !== 'approved') {
       return res
         .status(403)
         .json({ message: 'Price list is available only after admin approval' });
@@ -64,6 +64,9 @@ export async function downloadPricelist(req, res) {
 
     const row = await getDownloadTokenRow(token);
     if (!row) return res.status(404).send('Invalid download token');
+    if (Number(row.dealer_id) !== Number(req.dealer?.id))
+      return res.status(403).send('This download belongs to another dealer');
+    if (!row.active) return res.status(410).send('A new price list is available. Download the latest version from the portal.');
     if (row.status !== 'approved')
       return res.status(403).send('Dealer is not approved');
     if (Date.now() > new Date(row.expires_at).getTime())
@@ -75,6 +78,7 @@ export async function downloadPricelist(req, res) {
       return res.status(404).send('Price list file not found');
     }
 
+    res.set('Cache-Control', 'private, no-store');
     return res.download(row.file_path, row.file_name);
   } catch (err) {
     return res.status(500).send(err?.message || 'Download failed');

@@ -211,7 +211,7 @@ export function dealerOtpSendByMobileLimiter() {
   return createIdentifierLimiter({
     bucket: 'dealer-otp-send',
     windowMs: 60 * 60 * 1000,
-    max: 5,
+      max: 3,
     message: 'Too many OTP requests for this number. Try again after an hour.',
     extractId: (req) => req.body?.phone,
   });

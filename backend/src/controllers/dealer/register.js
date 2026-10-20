@@ -4,15 +4,7 @@
 
 import fs from 'fs';
 import nodemailer from 'nodemailer';
-import {
-  findDealerByPhone,
-  insertDealer,
-  updateDealerForResubmission,
-  getDealerDocsByDealerId,
-  deleteDealerDocsByDealerId,
-  insertDealerDocuments,
-  insertDealerAudit,
-} from '../../models/dealerModel.js';
+import { saveDealerApplication } from '../../models/dealerModel.js';
 import { normalizePhone10 } from '../../utils/helpers.js';
 
 /* ------------------------------------------------------------------ */
@@ -108,50 +100,15 @@ export async function register(req, res) {
         message: 'Both GST certificate and Insecticide licence are required',
       });
 
-    const existing = await findDealerByPhone(phone10);
-    let dealerId;
-
-    if (!existing) {
-      dealerId = await insertDealer({
-        name,
-        firm,
-        phone10,
-        email,
-        gst,
-        villagePost,
-        taluk,
-        district,
-        pincode,
-      });
-    } else {
-      dealerId = existing.id;
-      const oldDocs = await getDealerDocsByDealerId(dealerId);
-      for (const d of oldDocs) {
-        try {
-          if (d.file_path) fs.unlinkSync(d.file_path);
-        } catch {}
-      }
-      await deleteDealerDocsByDealerId(dealerId);
-      await updateDealerForResubmission(dealerId, {
-        name,
-        firm,
-        email,
-        gst,
-        villagePost,
-        taluk,
-        district,
-        pincode,
-      });
+    for (const file of [gstFile, licenceFile]) {
+      const content = await fs.promises.readFile(file.path);
+      const valid = file.mimetype === 'application/pdf' ? content.subarray(0, 5).toString() === '%PDF-'
+        : file.mimetype === 'image/png' ? content.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+        : content[0] === 255 && content[1] === 216 && content[2] === 255;
+      if (!valid) return res.status(400).json({ message: 'Document contents do not match the selected PDF, JPG or PNG file type' });
     }
 
-    await insertDealerDocuments(dealerId, gstFile, licenceFile);
-    await insertDealerAudit(
-      dealerId,
-      'REGISTER_SUBMIT',
-      'dealer',
-      dealerId,
-      'Dealer submitted registration'
-    );
+    await saveDealerApplication({ name, firm, phone10, email, gst, villagePost, taluk, district, pincode }, gstFile, licenceFile);
 
     const adminBody = [
       'New Dealer Registration Pending Approval',
@@ -178,7 +135,7 @@ export async function register(req, res) {
   } catch (err) {
     console.error('[dealer-register]', err?.message || err);
     return res
-      .status(500)
+      .status(err.status || 500)
       .json({ message: err?.message || 'Dealer registration failed' });
   }
 }

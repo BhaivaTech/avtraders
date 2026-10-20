@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import LanguageSwitch from "./LanguageSwitch.jsx";
 import { socket } from "@/lib/socket";
 import { api } from "@/lib/api";
+import useFocusTrap from '../hooks/useFocusTrap.js';
+import './SiteHeader.css';
 
 /* ─────────────────────────────────────────────
    SVG Icons
@@ -34,7 +36,7 @@ const NAV_ITEMS = [
   { label: "Contact",      href: "/contact" },
   { label: "Guide",        href: "/guide" },
   { label: "Admin",        href: "/admin" },
-  { label: "Farmers",      href: "/farmers", hasBadge: true },
+  { label: "Farmer Support", href: "/farmers", hasBadge: true },
 ];
 
 /* ─────────────────────────────────────────────
@@ -42,7 +44,23 @@ const NAV_ITEMS = [
 ───────────────────────────────────────────── */
 export default function SiteHeader() {
   const location = useLocation();
+  const distributionBrand = /^\/(dealers|distribution)(\/|$)/.test(location.pathname);
+  const brandLogo = distributionBrand ? '/av-agro-distribution.jpeg' : '/1234.png';
+  const brandName = distributionBrand ? 'AV Agro Distribution' : 'AV Traders Agri Clinic';
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef(null);
+  useFocusTrap(drawerRef, drawerOpen);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = event => { if (event.key === 'Escape') setDrawerOpen(false); };
+    const desktop = window.matchMedia('(min-width: 1280px)');
+    const onResize = () => { if (desktop.matches) setDrawerOpen(false); };
+    document.addEventListener('keydown', onKey);
+    desktop.addEventListener('change', onResize);
+    return () => { document.body.style.overflow = previous; document.removeEventListener('keydown', onKey); desktop.removeEventListener('change', onResize); };
+  }, [drawerOpen]);
   const [scrolled, setScrolled] = useState(false);
 
   /* ── Unread ── */
@@ -181,7 +199,8 @@ export default function SiteHeader() {
         }
         .hdr-brand-logo {
           width: 34px; height: 34px;
-          object-fit: cover;
+          object-fit: contain;
+          background: #fff;
           border-radius: 8px;
         }
         .hdr-brand-name {
@@ -202,7 +221,7 @@ export default function SiteHeader() {
           align-items: center;
           gap: 0;
         }
-        @media (min-width: 992px) { .hdr-nav { display: flex; } }
+        @media (min-width: 1280px) { .hdr-nav { display: flex; } }
 
         .hdr-link {
           position: relative;
@@ -305,7 +324,7 @@ export default function SiteHeader() {
           background: rgba(255,255,255,0.14);
           border-color: rgba(255,255,255,0.45);
         }
-        @media (min-width: 992px) { .hdr-burger { display: none; } }
+        @media (min-width: 1280px) { .hdr-burger { display: none; } }
 
         /* ══════════════════════════════════════════════
            MOBILE DRAWER
@@ -420,8 +439,9 @@ export default function SiteHeader() {
       {/* ── Header bar ── */}
       <header className={`hdr ${scrolled ? "scrolled" : ""}`}>
         <Link className="hdr-brand" to="/" aria-label="Home">
-          <img className="hdr-brand-logo" src="/1234.png" alt="AV Traders" />
-          <span className="hdr-brand-name">AV Traders Agri Clinic</span>
+          <img className="hdr-brand-logo" src={brandLogo} alt={brandName} />
+          <span className="hdr-brand-name">{brandName}</span>
+          <span className="hdr-brand-mobile"><strong>{distributionBrand ? 'AV Agro' : 'AV Traders'}</strong><span>{distributionBrand ? 'Distribution' : 'Agri Clinic'}</span></span>
         </Link>
 
         <nav className="hdr-nav" aria-label="Primary">
@@ -442,7 +462,7 @@ export default function SiteHeader() {
 
         <div className="hdr-right">
           <div className="lang-switch"><LanguageSwitch /></div>
-          <button className="hdr-burger" aria-label="Open menu" onClick={() => setDrawerOpen(true)}>
+          <button className="hdr-burger" aria-label="Open menu" aria-expanded={drawerOpen} aria-controls="site-navigation-drawer" onClick={() => setDrawerOpen(true)}>
             <IconMenu />
           </button>
         </div>
@@ -451,11 +471,11 @@ export default function SiteHeader() {
 
       {/* ── Mobile drawer ── */}
       <div className={`hdr-backdrop ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
-      <aside className={`hdr-drawer ${drawerOpen ? "open" : ""}`} aria-hidden={!drawerOpen}>
+      <aside ref={drawerRef} id="site-navigation-drawer" className={`hdr-drawer ${drawerOpen ? "open" : ""}`} role="dialog" aria-label="Site navigation" aria-modal={drawerOpen ? 'true' : undefined} aria-hidden={!drawerOpen} inert={drawerOpen ? undefined : ''}>
         <div className="hdr-drawer-head">
           <div className="hdr-drawer-brand">
-            <img src="/1234.png" alt="" />
-            <span className="hdr-drawer-brand-name">AV Traders</span>
+            <img src={brandLogo} alt="" style={{ objectFit: 'contain', background: '#fff' }} />
+            <span className="hdr-drawer-brand-name">{brandName}</span>
           </div>
           <button className="hdr-drawer-close" aria-label="Close" onClick={() => setDrawerOpen(false)}>
             <IconX />

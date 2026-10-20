@@ -2,6 +2,7 @@
 // Top bar inside the admin layout — menu toggle, page title, and role/name badge.
 
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../contexts/AdminAuthContext.jsx';
 
 const ROLE_COLORS = {
@@ -20,12 +21,14 @@ function IconMenu({ size = 18 }) {
 }
 
 export default function AdminHeader({ onMenuToggle }) {
+  const { pathname } = useLocation();
+  const title = { dashboard: 'Dashboard', inbox: 'Inbox', quotations: 'Quotations', payments: 'Payments', tracking: 'Tracking', users: 'Users', announcements: 'Announcements', analytics: 'Analytics', dealers: 'Dealer applications', products: 'Product catalogue', settings: 'Settings' }[pathname.split('/')[2]] || 'Admin';
   const { name, role, loading } = useAdminAuth();
   const colors = ROLE_COLORS[role] || ROLE_COLORS.support;
 
   return (
     <header className="admin-header">
-      <div className="admin-header-title">Admin</div>
+      <div className="admin-header-title">{title}</div>
       <div className="admin-header-actions">
         {/* Role + name badge */}
         {!loading && role && (

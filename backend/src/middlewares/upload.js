@@ -118,6 +118,17 @@ export const dealerDocUpload = multer({
 
 export { DOCS_DIR, PRIVATE_UPLOAD_ROOT };
 
+const priceDir = path.join(PRIVATE_UPLOAD_ROOT, 'price_lists');
+fs.mkdirSync(priceDir, { recursive: true });
+export const priceListUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, priceDir),
+    filename: (_req, _file, cb) => cb(null, `${crypto.randomUUID()}.xlsx`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => cb(/\.xlsx$/i.test(file.originalname) ? null : Object.assign(new Error('Only .xlsx Excel workbooks are allowed'), { status: 400 }), /\.xlsx$/i.test(file.originalname)),
+});
+
 /* ------------------------------------------------------------------ */
 /*  Announcement image upload                                            */
 /* ------------------------------------------------------------------ */

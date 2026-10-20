@@ -51,6 +51,8 @@ const AdminQuotations   = lazy(() => import('./pages/admin/AdminQuotations.jsx')
 const AdminPayments     = lazy(() => import('./pages/admin/AdminPayments.jsx'));
 const AdminTracking     = lazy(() => import('./pages/admin/AdminTracking.jsx'));
 const AdminUsers        = lazy(() => import('./pages/admin/AdminUsers.jsx'));
+const AdminProducts     = lazy(() => import('./pages/admin/AdminProducts.jsx'));
+const AdminDealers      = lazy(() => import('./pages/admin/AdminDealers.jsx'));
 const AdminAnalytics    = lazy(() => import('./pages/admin/AdminAnalytics.jsx'));
 const AdminSettings     = lazy(() => import('./pages/admin/AdminSettings.jsx'));
 const AdminLogin        = lazy(() => import('./pages/AdminLogin.jsx'));
@@ -126,6 +128,8 @@ export default function App() {
                   <Route path="/admin/users"        element={<RequirePermission permission="users"><AdminUsers /></RequirePermission>} />
                   <Route path="/admin/announcements" element={<RequirePermission permission="announcements"><AdminAnnouncements /></RequirePermission>} />
                   <Route path="/admin/analytics"    element={<RequirePermission permission="analytics"><AdminAnalytics /></RequirePermission>} />
+                  <Route path="/admin/dealers" element={<RequirePermission permission="dealers"><AdminDealers /></RequirePermission>} />
+                  <Route path="/admin/products" element={<AdminProducts />} />
                   <Route path="/admin/settings"     element={<AdminSettings />} />
                 </Route>
 
