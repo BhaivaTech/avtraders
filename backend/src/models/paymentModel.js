@@ -20,8 +20,8 @@ export async function updatePaymentMeta(paymentId, status, meta) {
 
 export async function updatePaymentStatus(paymentId, status, txnId, meta) {
   await pool.query(
-    'UPDATE payments SET status = ?, txn_id = ?, meta = ? WHERE id = ?',
-    [status, txnId, JSON.stringify(meta), paymentId]
+    "UPDATE payments SET status = ?, txn_id = ?, meta = ? WHERE id = ? AND (status <> 'success' OR ? = 'success')",
+    [status, txnId, JSON.stringify(meta), paymentId, status]
   );
 }
 
@@ -51,7 +51,7 @@ export async function getPaymentMetaById(paymentId) {
 
 export async function findPaymentByMerchantOrderId(merchantOrderId) {
   const [rows] = await pool.query(
-    `SELECT id, meta FROM payments WHERE JSON_EXTRACT(meta,'$.merchantOrderId') = ? LIMIT 1`,
+    `SELECT id, chat_id, amount, status, meta FROM payments WHERE JSON_EXTRACT(meta,'$.merchantOrderId') = ? LIMIT 1`,
     [merchantOrderId]
   );
   return rows[0] || null;

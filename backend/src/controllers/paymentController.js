@@ -12,7 +12,8 @@ import {
   getPaymentMetaById,
   findPaymentByMerchantOrderId,
 } from '../models/paymentModel.js';
-import { markQuotationPaidFromPaymentId } from '../models/quotationModel.js';
+import { syncQuotationPaymentState, getQuotationById } from '../models/quotationModel.js';
+import { pool } from '../config/db.js';
 
 const T = (v) => (typeof v === 'string' ? v.trim() : '');
 const FRONT_BASE = T(process.env.PUBLIC_BASE_URL || 'http://localhost:5173');
@@ -20,7 +21,7 @@ const BACK_BASE = T(process.env.BACKEND_BASE_URL || 'http://localhost:5100');
 
 const toPaise = (inr) => Math.round(Number(inr) * 100);
 function makeMerchantOrderId(paymentId) { return `AV${Date.now()}_${paymentId}`.slice(0, 34); }
-const parseMeta = (raw) => { try { return JSON.parse(raw || '{}'); } catch { return {}; } };
+const parseMeta = (raw) => { if (raw && typeof raw === 'object') return raw; try { return JSON.parse(raw || '{}'); } catch { return {}; } };
 
 function resolveState(state) {
   const s = (state || '').toUpperCase();
@@ -106,6 +107,15 @@ export async function createPayment(req, res) {
       return res.status(400).json({ ok: false, error: 'invalid_amount', detail: `Amount must be a positive number. Got: ${amount}` });
     }
 
+    const [[chat]] = await pool.query('SELECT user_id AS owner_id FROM chats WHERE id=?', [chat_id]);
+    if (!chat) return res.status(404).json({ ok: false, error: 'Chat not found' });
+    assertPaymentAccess(req, chat);
+    if (!quotationId) return res.status(400).json({ ok: false, error: 'Quotation not found. Refresh the chat and try again.' });
+    const quote = await getQuotationById(quotationId);
+    if (!quote || Number(quote.chat_id) !== Number(chat_id)) return res.status(400).json({ ok: false, error: 'Quotation does not belong to this chat' });
+    if (quote.status === 'PAID') return res.status(409).json({ ok: false, error: 'This quotation is already paid' });
+    if (Math.round(Number(quote.amount)*100) !== Math.round(numAmount*100)) return res.status(400).json({ ok: false, error: 'Payment amount does not match the quotation' });
+
     const amountPaise = toPaise(numAmount);
     const paymentId = await insertPayment(chat_id, numAmount);
     const merchantOrderId = makeMerchantOrderId(paymentId);
@@ -116,6 +126,7 @@ export async function createPayment(req, res) {
     const ppRedirect = pay?.redirectUrl || null;
     const meta = { merchantOrderId, redirectUrl: ppRedirect, orderId: pay?.orderId || null, state: pay?.state || 'PENDING', expireAt: pay?.expireAt || null, quotation_id: quotationId || null };
     await updatePaymentMeta(paymentId, 'pending', meta);
+    await syncQuotationPaymentState(paymentId);
 
     if ((mode || 'REDIRECT').toUpperCase() === 'IFRAME') {
       const tokenUrl = `${BACK_BASE}/api/payment/iframe-token?pid=${paymentId}`;
@@ -123,6 +134,7 @@ export async function createPayment(req, res) {
     }
     return res.json({ ok: true, payment_id: paymentId, provider: 'phonepe', redirectUrl: ppRedirect, checkoutUrl: ppRedirect, merchantOrderId });
   } catch (err) {
+    if (err?.status === 403) return res.status(403).json({ ok: false, error: 'Not authorized for this chat' });
     const status = err?.status || err?.response?.status || 500;
     const detail = err?.data || err?.response?.data || err?.message || null;
     console.error('PhonePe /create error:', { status, detail });
@@ -158,15 +170,17 @@ export async function phonePeReturn(req, res) {
     const merchantOrderId = String(req.query.mo || req.body?.mo || '');
     if (!paymentId || !merchantOrderId) return res.redirect(`${FRONT_BASE}/payment-result?pid=0&status=error`);
 
+    const row = await getPaymentMetaById(paymentId);
+    const oldMeta = parseMeta(row?.meta);
+    if (!row || oldMeta.merchantOrderId !== merchantOrderId) return res.redirect(`${FRONT_BASE}/payment-result?pid=0&status=error`);
+
     const st = await phonepeApi.getOrderStatus(merchantOrderId);
     const final = resolveState(st?.state);
     const txId = st?.paymentDetails?.[0]?.transactionId || st?.transactionId || null;
 
-    const row = await getPaymentMetaById(paymentId);
-    const oldMeta = parseMeta(row?.meta);
     const newMeta = { ...oldMeta, statusPayload: st };
     await updatePaymentStatus(paymentId, final, txId, newMeta);
-    if (final === 'success') await markQuotationPaidFromPaymentId(paymentId);
+    await syncQuotationPaymentState(paymentId);
 
     return res.redirect(`${FRONT_BASE}/payment-result?pid=${paymentId}&status=${final}`);
   } catch (err) {
@@ -206,7 +220,7 @@ export async function webhook(req, res) {
     if (!row) return res.status(200).json({ ok: true });
 
     // Verify amount matches (PhonePe sends amount in paise)
-    const webhookAmountPaise = payload?.amount || payload?.paymentDetails?.[0]?.amount || null;
+    const webhookAmountPaise = payload?.amount ?? payload?.paymentDetails?.[0]?.amount ?? null;
     if (webhookAmountPaise !== null) {
       const storedAmountPaise = Math.round(Number(row.amount || 0) * 100);
       const receivedAmount = Number(webhookAmountPaise);
@@ -217,7 +231,7 @@ export async function webhook(req, res) {
           receivedPaise: receivedAmount,
           paymentId: row.id,
         });
-        // Still process but log the mismatch for audit
+        return res.status(400).json({ ok: false, error: 'amount_mismatch' });
       }
     }
 
@@ -227,7 +241,7 @@ export async function webhook(req, res) {
     const newMeta = { ...oldMeta, webhook: { event, payload } };
 
     await updatePaymentStatus(row.id, final, txId, newMeta);
-    if (final === 'success') await markQuotationPaidFromPaymentId(row.id);
+    await syncQuotationPaymentState(row.id);
 
     res.status(200).json({ ok: true });
   } catch (e) {
@@ -259,9 +273,10 @@ export async function getPaymentStatus(req, res) {
         p.status = final;
         p.txn_id = txId;
         p.meta = JSON.stringify(newMeta);
-        if (final === 'success') await markQuotationPaidFromPaymentId(id);
+
       }
     }
+    await syncQuotationPaymentState(id);
     res.json({ ok: true, payment: p });
   } catch (e) {
     console.error('status error:', e?.message || e);

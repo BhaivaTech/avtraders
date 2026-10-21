@@ -6,6 +6,7 @@
 // is now owned by migrations/004_canonicalize_schema.sql — not by JS.
 
 import { pool } from '../config/db.js';
+import { getIo } from '../utils/socketBus.js';
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                              */
@@ -59,10 +60,11 @@ export async function listPendingQuotesByMobile(mobile) {
 }
 
 export async function insertQuotation(conn, chatId, messageId, filePath, amount) {
-  await conn.query(
+  const [result] = await conn.query(
     'INSERT INTO quotations (chat_id, message_id, file_path, amount, currency, status) VALUES (?,?,?,?, "INR", "PENDING")',
     [chatId, messageId, filePath, amount]
   );
+  return result.insertId;
 }
 
 export async function markQuotationPaid(id) {
@@ -87,38 +89,32 @@ export async function getQuotationById(id) {
   return q || null;
 }
 
-export async function markQuotationPaidFromPaymentId(paymentId) {
+// Synchronize only payments explicitly linked to this quotation. Never infer
+// that a payment belongs to a quote just because their amounts match.
+export async function syncQuotationPaymentState(paymentId) {
+  const conn = await pool.getConnection();
+  let event;
   try {
-    const [[p]] = await pool.query('SELECT meta FROM payments WHERE id = ?', [paymentId]);
-    if (!p) return;
-
-    const meta = (() => { try { return JSON.parse(p.meta || '{}'); } catch { return {}; } })();
+    await conn.beginTransaction();
+    const [[payment]] = await conn.query('SELECT id, chat_id, status, amount, meta FROM payments WHERE id=?', [paymentId]);
+    let meta;
+    try { meta = typeof payment?.meta === 'object' ? payment.meta : JSON.parse(payment?.meta || '{}'); } catch { meta = {}; }
     const quotationId = Number(meta?.quotation_id || 0);
-    if (!quotationId) return;
-
-    const [[q]] = await pool.query(
-      'SELECT message_id, status, paid_at FROM quotations WHERE id = ?',
-      [quotationId]
-    );
-    if (!q) return;
-
-    await pool.query(
-      `UPDATE quotations
-       SET status = 'PAID',
-           paid_at = CASE WHEN paid_at IS NULL THEN NOW() ELSE paid_at END
-       WHERE id = ? AND status <> 'DELETED'`,
-      [quotationId]
-    );
-
-    if (q.message_id) {
-      await pool.query(
-        `UPDATE messages
-         SET meta = JSON_SET(COALESCE(meta, '{}'), '$.payment_status', 'PAID')
-         WHERE id = ?`,
-        [q.message_id]
-      );
-    }
-  } catch (e) {
-    console.error('markQuotationPaidFromPaymentId error:', e?.message || e);
+    if (!payment || !quotationId) { await conn.rollback(); return; }
+    const [[quote]] = await conn.query('SELECT id, chat_id, message_id, status, amount FROM quotations WHERE id=? FOR UPDATE', [quotationId]);
+    if (!quote || Number(quote.chat_id) !== Number(payment.chat_id) || Math.round(Number(quote.amount)*100) !== Math.round(Number(payment.amount)*100)) { await conn.rollback(); return; }
+    const [[latest]] = await conn.query("SELECT id, status FROM payments WHERE chat_id=? AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.quotation_id'))=? ORDER BY (status='success') DESC, id DESC LIMIT 1", [quote.chat_id, String(quotationId)]);
+    const state = quote.status === 'PAID' || latest?.status === 'success' ? 'PAID' : String(latest?.status || payment.status).toUpperCase();
+    if (state === 'PAID') await conn.query("UPDATE quotations SET status='PAID', paid_at=COALESCE(paid_at,NOW()) WHERE id=?", [quotationId]);
+    if (quote.message_id) await conn.query("UPDATE messages SET meta=JSON_SET(COALESCE(meta, '{}'), '$.quotation_id', ?, '$.payment_status', ?, '$.payment_id', ?) WHERE id=?", [quotationId, state, latest?.id || payment.id, quote.message_id]);
+    await conn.commit();
+    event = { chat_id: Number(quote.chat_id), quotation_id: quotationId, payment_status: state };
+  } catch (err) { await conn.rollback(); throw err; }
+  finally { conn.release(); }
+  if (event) {
+    getIo()?.emit('quotes:changed', event);
+    getIo()?.emit('chat:payment', event);
   }
 }
+
+export const markQuotationPaidFromPaymentId = syncQuotationPaymentState;

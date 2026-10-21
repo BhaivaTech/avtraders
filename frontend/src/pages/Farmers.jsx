@@ -6,6 +6,8 @@ import { socket as sharedSocket } from '../lib/socket.js';
 import LinkifyText from '../components/LinkifyText.jsx';
 import { useRecorder } from '../lib/useRecorder.js';
 import './Farmers.css';
+import QuotationPaymentAction from '../components/QuotationPaymentAction.jsx';
+import { quotationPaymentState } from '../lib/quotationPayment.js';
 
 /* ---------------- Ping + title flash ---------------- */
 const ping = typeof Audio !== 'undefined' ? new Audio('/ping.mp3') : null;
@@ -1036,11 +1038,13 @@ export default function Farmers() {
     };
     s.on('chat:status', onChatStatus);
 
-    const onQuotesChanged = async () => {
-      if (!mobile) return;
-      await loadQuotes(norm(mobile));
+    const onQuotesChanged = async (event = {}) => {
+      if (event.chat_id && String(event.chat_id) !== String(chatId)) return;
+      if (mobile) await loadQuotes(norm(mobile));
+      await refreshThread(false);
     };
     s.on('quotes:changed', onQuotesChanged);
+    s.on('chat:payment', refreshIf);
 
     const onCE = (e) => console.warn('[socket] connect_error', e?.message || e);
     s.on('connect_error', onCE);
@@ -1053,6 +1057,7 @@ export default function Farmers() {
       s.off('chat:deleted', onChatDeleted);
       s.off('chat:status', onChatStatus);
       s.off('quotes:changed', onQuotesChanged);
+      s.off('chat:payment', refreshIf);
       s.off('connect_error', onCE);
       s.off('error', onCE);
     };
@@ -1061,11 +1066,14 @@ export default function Farmers() {
 
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === 'visible') stopTitleFlash();
+      if (document.visibilityState === 'visible') { stopTitleFlash(); if (chatId) refreshThread(false); }
     };
     document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
-  }, []);
+    const onFocus = () => { if (chatId) refreshThread(false); };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onFocus);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onFocus); window.removeEventListener('pageshow', onFocus); };
+  }, [chatId]);
   useEffect(() => {
     if (logged) scrollToBottomSoon();
   }, [logged]);
@@ -1157,8 +1165,31 @@ export default function Farmers() {
     if (chatId) return refreshThreadById(chatId, smooth);
   }
 
+  const pendingPaymentKey = [...new Set(thread.map(parseMeta).filter(meta => quotationPaymentState(meta) === 'pending' && meta.payment_id).map(meta => Number(meta.payment_id)))].join(',');
+  useEffect(() => {
+    if (!chatId || !pendingPaymentKey) return;
+    let active = true;
+    let running = false;
+    const reconcile = async () => {
+      if (!active || running || document.visibilityState !== 'visible') return;
+      running = true;
+      try {
+        await Promise.allSettled(pendingPaymentKey.split(',').map(id => api.get(`/payment/status/${id}`)));
+        if (active) await refreshThread(false);
+      } finally { running = false; }
+    };
+    reconcile();
+    const timer = setInterval(reconcile, 15000);
+    return () => { active = false; clearInterval(timer); };
+  }, [chatId, pendingPaymentKey]);
+
   /* -------------------- PHONEPE: create payment + redirect -------------------- */
+  const [startingQuote, setStartingQuote] = useState(null);
+  const paymentStarting = useRef(false);
   async function startPhonePePayment({ chat_id, amount, quotation_id }) {
+    if (paymentStarting.current) return;
+    paymentStarting.current = true;
+    setStartingQuote(quotation_id);
     try {
       const cid = chat_id || chatId;
       if (!cid) {
@@ -1172,7 +1203,8 @@ export default function Farmers() {
         return;
       }
 
-      // 👉 send quotation_id also
+      if (!quotation_id) { await refreshThread(false); alert('Please refresh the quotation before paying.'); return; }
+      // Link this attempt to the exact quotation in the conversation.
       const res = await api.post(
         '/payment/create',
         { chat_id: cid, amount: amt, mode: 'REDIRECT', quotation_id },
@@ -1202,7 +1234,8 @@ export default function Farmers() {
         'Failed to start payment';
 
       alert(msg);
-    }
+      await refreshThread(false);
+    } finally { paymentStarting.current = false; setStartingQuote(null); }
   }
 
   /* -------- Helper: validate profile for new farmers -------- */
@@ -2165,13 +2198,6 @@ export default function Farmers() {
                           )}
 
                           {isQuotation && (() => {
-                            // treat any of these as "paid"
-                            const paid =
-                              meta?.payment_status === 'COMPLETED' ||
-                              meta?.payment_status === 'PAID' ||
-                              meta?.payment_state === 'COMPLETED' ||
-                              !!meta?.paid_at;
-
                             return (
                               <div className="quote-chip">
                                 <div className="q-details">
@@ -2200,26 +2226,7 @@ export default function Farmers() {
                                     </div>
                                   )}
 
-                                  {/* PAY button or PAID tag */}
-                                  {meta?.amount != null && (
-                                    paid ? (
-                                      <div className="paid-pill">PAID</div>
-                                    ) : (
-                                      <button
-                                        className="pay-big-btn"
-                                        onClick={() =>
-                                          startPhonePePayment({
-                                            chat_id: m.chat_id || chatId,
-                                            amount: meta.amount,
-                                            // 👇 use whichever field actually holds the quotation id in meta
-                                            quotation_id: meta.quotation_id || meta.quote_id || meta.id
-                                          })
-                                        }
-                                      >
-                                        PAY
-                                      </button>
-                                    )
-                                  )}
+                                  {meta?.amount != null && <QuotationPaymentAction meta={meta} busy={startingQuote != null && String(startingQuote) === String(meta.quotation_id || m.quotation_id)} onPay={() => startPhonePePayment({ chat_id: m.chat_id || chatId, amount: meta.amount, quotation_id: meta.quotation_id || m.quotation_id })} />}
                                 </div>
                               </div>
                             );
@@ -2828,6 +2835,7 @@ export default function Farmers() {
                                 startPhonePePayment({
                                   chat_id: q.chat_id || chatId,
                                   amount: q.amount,
+                                  quotation_id: q.id,
                                 })
                               }
                             >

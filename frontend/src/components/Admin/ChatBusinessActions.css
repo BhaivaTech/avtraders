@@ -1,0 +1,27 @@
+.chat-business-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid #e0e9e1; background: #f5f9f3; flex-shrink: 0; }
+.chat-business-toolbar>span { font-size: 11px; color: #64765e; margin-right: auto; }
+.chat-business-toolbar button, .chat-business-dialog button { font: inherit; font-size: 12px; font-weight: 600; border: 1px solid #c7d8c8; border-radius: 8px; background: white; color: #28543a; padding: 9px 12px; cursor: pointer; }
+.chat-business-toolbar button:hover, .chat-business-dialog button:hover { background: #edf5ed; }
+.chat-business-toolbar button:disabled, .chat-business-dialog button:disabled { opacity: .5; cursor: default; }
+.chat-business-backdrop { position: fixed; inset: 0; z-index: 1200; padding: 20px; background: #132d22a6; backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.chat-business-dialog { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; width: min(540px,100%); max-height: 90dvh; overflow-y: auto; background: white; color: #203e2c; border-radius: 18px; padding: 24px; box-shadow: 0 20px 70px #10281c33; box-sizing: border-box; }
+.chat-business-dialog>header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.chat-business-dialog header p { font-size: 11px; color: #6a7b68; margin: 0 0 5px; }
+.chat-business-dialog h2 { font-size: 23px; margin: 0; }
+.chat-business-dialog header button { font-size: 24px; padding: 2px 10px; }
+.chat-business-recipient { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; background: #edf5e9; padding: 13px; border-radius: 10px; margin-bottom: 20px; overflow-wrap: anywhere; }
+.chat-business-recipient>span { color: #60755a; }
+.chat-business-dialog fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.chat-business-dialog label { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 8px; font-size: 13px; font-weight: 600; }
+.chat-business-dialog input { font: inherit; font-size: 14px; width: 100%; padding: 12px; border: 1px solid #cbdacf; border-radius: 8px; background: white; color: #203e2c; box-sizing: border-box; min-width: 0; }
+.chat-business-dialog input[type=file] { font-size: 12px; }
+.chat-business-dialog footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid #e3eae1; }
+.chat-business-dialog .chat-business-primary { background: #226343; border-color: #226343; color: white; }
+.chat-business-dialog .chat-business-primary:hover { background: #174d32; }
+.chat-business-hint { font-size: 11px; color: #667b60; line-height: 1.6; }
+.chat-business-preview { padding: 14px; border: 1px solid #e0e8dd; border-radius: 10px; background: #f7faf5; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.chat-business-preview>span { display: block; color: #667b60; }
+.chat-business-preview img { display: block; max-width: 100%; max-height: 180px; object-fit: contain; margin: 0 auto 10px; }
+.chat-business-error { color: #a13a26; background: #fff0ec; padding: 12px; border-radius: 8px; font-size: 12px; }
+.chat-business-toolbar button:focus-visible, .chat-business-dialog button:focus-visible, .chat-business-dialog input:focus-visible { outline: 3px solid #8eb394; outline-offset: 2px; }
+@media(max-width:540px) { .chat-business-toolbar>span { width: 100%; } .chat-business-toolbar button { flex: 1; min-height: 40px; } .chat-business-backdrop { padding: 10px; } .chat-business-dialog { padding: 20px; max-height: 95dvh; } .chat-business-dialog input { font-size: 16px; } }

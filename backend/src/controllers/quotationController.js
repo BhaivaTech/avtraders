@@ -112,7 +112,8 @@ export async function uploadQuotation(req, res) {
       );
     }
 
-    await insertQuotation(conn, chat_id, message_id, file_path, amountNum);
+    const quotationId = await insertQuotation(conn, chat_id, message_id, file_path, amountNum);
+    await conn.query("UPDATE messages SET meta=JSON_SET(COALESCE(meta, '{}'), '$.quotation_id', ?) WHERE id=?", [quotationId, message_id]);
     await conn.query("UPDATE chats SET status='READ' WHERE id=?", [chat_id]);
     await conn.commit();
 

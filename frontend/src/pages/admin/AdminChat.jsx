@@ -20,6 +20,8 @@ import { useRecorder } from '../../lib/useRecorder.js';
 import { resolveApiOrigin, buildMediaUrl } from '@/lib/endpoint';
 import LinkifyText from '../../components/LinkifyText.jsx';
 import toast from '../../lib/toast.js';
+import ChatBusinessActions from '../../components/Admin/ChatBusinessActions.jsx';
+import QuotationPaymentAction from '../../components/QuotationPaymentAction.jsx';
 import '../Admin.css';
 
 /* ------------ constants ------------ */
@@ -428,6 +430,7 @@ function QuoteChip({ m, fileUrl }) {
             )}
           </div>
         )}
+        <QuotationPaymentAction meta={meta} readOnly />
       </div>
     </div>
   );
@@ -641,6 +644,8 @@ export default function AdminChat() {
   const [chatsPage, setChatsPage] = useState(1);
   const [hasMoreChats, setHasMoreChats] = useState(true);
   const [sel, setSel] = useState(null);
+  const selectedChatId = useRef(null);
+  selectedChatId.current = sel?.id;
   const [thread, setThread] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [query, setQuery] = useState('');
@@ -964,15 +969,17 @@ export default function AdminChat() {
     });
 
     const onNew = (p) => {
-      if (sel && p.chat_id === sel.id) loadThread(sel.id);
+      if (sel && String(p.chat_id) === String(sel.id)) loadThread(sel.id);
       loadChats();
     };
     const reloadThread = (p) => {
-      if (sel && p.chat_id === sel.id) loadThread(sel.id);
+      if (sel && String(p.chat_id) === String(sel.id)) loadThread(sel.id);
     };
 
     s.on('chat:new_message', onNew);
     s.on('chat:delete', reloadThread);
+    s.on('quotes:changed', reloadThread);
+    s.on('chat:payment', reloadThread);
     // NOTE: pass wrappers, not loadChats directly — socket payloads
     // would otherwise be treated as the search-query argument.
     const onStatus = () => loadChats();
@@ -996,6 +1003,8 @@ export default function AdminChat() {
     return () => {
       s.off('chat:new_message', onNew);
       s.off('chat:delete', reloadThread);
+      s.off('quotes:changed', reloadThread);
+      s.off('chat:payment', reloadThread);
       s.off('chat:status', onStatus);
       s.off('chat:cleared', reloadThread);
       s.off('chat:deleted', onDeleted);
@@ -1761,6 +1770,10 @@ export default function AdminChat() {
               </div>
             </div>
           )}
+          {sel && <ChatBusinessActions key={sel.id} chat={sel} disabled={blocked} onSent={async chatId => {
+            if (String(selectedChatId.current) === String(chatId)) await loadThread(chatId);
+            await loadChats();
+          }} />}
           <div className="thread-body" ref={chatBodyRef}>
             {!sel && (
               <div className="empty">

@@ -151,33 +151,43 @@ export async function getChatThread(chatId, role) {
   const baseSelect = `
     SELECT m.id, m.chat_id, m.sender_role, m.text, m.meta, m.created_at,
            a.file_path, a.mime_type, a.duration_seconds, a.kind,
-           (c.last_read_admin_at IS NOT NULL AND m.created_at <= c.last_read_admin_at) AS is_read
+           (c.last_read_admin_at IS NOT NULL AND m.created_at <= c.last_read_admin_at) AS is_read,
+           q.id AS quotation_id, q.status AS quotation_status, q.paid_at AS quotation_paid_at,
+           (SELECT p.status FROM payments p WHERE p.chat_id=m.chat_id
+            AND JSON_UNQUOTE(JSON_EXTRACT(p.meta, '$.quotation_id'))=CAST(q.id AS CHAR)
+            ORDER BY (p.status='success') DESC, p.id DESC LIMIT 1) AS quotation_payment_status,
+           (SELECT p.id FROM payments p WHERE p.chat_id=m.chat_id
+            AND JSON_UNQUOTE(JSON_EXTRACT(p.meta, '$.quotation_id'))=CAST(q.id AS CHAR)
+            ORDER BY (p.status='success') DESC, p.id DESC LIMIT 1) AS quotation_payment_id
   `;
   const withOrig = `${baseSelect}, a.original_name`;
   const fromJoin = `
     FROM messages m
     LEFT JOIN attachments a ON a.message_id = m.id
+    LEFT JOIN quotations q ON q.message_id = m.id AND q.chat_id = m.chat_id
     JOIN chats c ON c.id = m.chat_id
     WHERE m.chat_id = ? AND m.${hideCol} = 0
     ORDER BY m.id ASC
   `;
 
+  let rows;
   try {
-    const [rows] = await pool.query(withOrig + fromJoin, [chatId]);
-    return rows.map((rw) => {
-      if (rw.original_name) {
-        try {
-          const meta = rw.meta ? JSON.parse(rw.meta) : {};
-          if (!meta.original_name) meta.original_name = rw.original_name;
-          rw.meta = JSON.stringify(meta);
-        } catch { /* ignore */ }
-      }
-      return rw;
-    });
+    [rows] = await pool.query(withOrig + fromJoin, [chatId]);
   } catch {
-    const [rows] = await pool.query(baseSelect + fromJoin, [chatId]);
-    return rows;
+    [rows] = await pool.query(baseSelect + fromJoin, [chatId]);
   }
+  return rows.map(rw => {
+    let meta;
+    try { meta = typeof rw.meta === 'object' && rw.meta !== null ? { ...rw.meta } : JSON.parse(rw.meta || '{}'); } catch { meta = {}; }
+    if (rw.original_name && !meta.original_name) meta.original_name = rw.original_name;
+    if (rw.quotation_id) {
+      meta.quotation_id = rw.quotation_id;
+      if (rw.quotation_payment_id) meta.payment_id = rw.quotation_payment_id;
+      if (rw.quotation_status === 'PAID' || rw.quotation_paid_at || rw.quotation_payment_status === 'success') meta.payment_status = 'PAID';
+      else if (rw.quotation_payment_status) meta.payment_status = String(rw.quotation_payment_status).toUpperCase();
+    }
+    return { ...rw, meta: JSON.stringify(meta) };
+  });
 }
 
 export async function getMessageById(id) {
