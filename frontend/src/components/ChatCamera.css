@@ -1,0 +1,16 @@
+.chat-camera-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.75)}
+.chat-camera{width:min(680px,100%);max-height:100dvh;display:flex;flex-direction:column;background:#111827;color:#fff;border-radius:16px;overflow:auto;box-shadow:0 12px 40px #0005}
+.chat-camera header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:12px}
+.chat-camera h2{font-size:18px;margin:0}
+.chat-camera button{min-height:44px;padding:10px 14px;border:1px solid #475569;border-radius:10px;background:#1e293b;color:#fff;cursor:pointer;font:inherit}
+.chat-camera button:disabled{opacity:.5;cursor:default}
+.chat-camera button:focus-visible{outline:3px solid #86efac;outline-offset:2px}
+.chat-camera .camera-primary,.chat-camera button[aria-pressed=true]{background:#15803d;border-color:#15803d}
+.chat-camera-preview{position:relative;min-height:180px;display:flex;justify-content:center;background:#000;flex-shrink:0}
+.chat-camera-preview video,.chat-camera-preview img{display:block;width:100%;height:min(55dvh,460px);object-fit:contain}
+.chat-camera-status{position:absolute;inset:0;display:grid;place-items:center;margin:0}
+.chat-camera-timer{position:absolute;top:10px;left:12px;margin:0;background:#b91c1c;padding:6px 10px;border-radius:8px}
+.chat-camera footer{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.chat-camera-modes,.chat-camera-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;width:100%}
+.chat-camera-error{color:#fecaca;padding:0 16px;margin:12px 0 0;font-size:14px}
+@media(max-width:480px){.chat-camera-backdrop{padding:0}.chat-camera{border-radius:0;width:100%}.chat-camera footer{padding:12px}.chat-camera-actions{gap:6px}.chat-camera button{padding:10px 12px}}

@@ -16,6 +16,7 @@ const CHAT_ALLOWED_MIME = new Map([
   ['image/gif',        '.gif'],
   ['image/webp',       '.webp'],
   ['video/mp4',        '.mp4'],
+  ['video/webm',       '.webm'],
   ['video/quicktime',  '.mov'],
   ['audio/mpeg',       '.mp3'],
   ['audio/ogg',        '.ogg'],

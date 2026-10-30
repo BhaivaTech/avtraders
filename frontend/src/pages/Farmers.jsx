@@ -7,6 +7,7 @@ import LinkifyText from '../components/LinkifyText.jsx';
 import { useRecorder } from '../lib/useRecorder.js';
 import './Farmers.css';
 import QuotationPaymentAction from '../components/QuotationPaymentAction.jsx';
+import ChatCamera from '../components/ChatCamera.jsx';
 import { quotationPaymentState } from '../lib/quotationPayment.js';
 
 /* ---------------- Ping + title flash ---------------- */
@@ -813,7 +814,7 @@ export default function Farmers() {
   const [showUp, setShowUp] = useState(false);
 
   const chatBodyRef = useRef(null);
-  const cameraInputRef = useRef(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileInputRef = useRef(null);
   const taRef = useRef(null);
   const messageRefs = useRef({});
@@ -1815,8 +1816,8 @@ export default function Farmers() {
 
   // Track when any overlay (preview/viewer) is open
   useEffect(() => {
-    overlayBackRef.current = !!preview || !!viewer;
-  }, [preview, viewer]);
+    overlayBackRef.current = !!preview || !!viewer || cameraOpen;
+  }, [preview, viewer, cameraOpen]);
 
   // Handle browser back button
   useEffect(() => {
@@ -1826,6 +1827,7 @@ export default function Farmers() {
         overlayBackRef.current = false;
         setPreview(null);
         setViewer(null);
+        setCameraOpen(false);
       } else {
         // No popup → go back to home/clinic
         goBackFromChat();
@@ -2473,15 +2475,6 @@ export default function Farmers() {
 
               <div className="composer">
                 <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: 'none' }}
-                  onChange={(e) => onPickFiles(e.target.files)}
-                  disabled={blocked}
-                />
-                <input
                   ref={fileInputRef}
                   type="file"
                   multiple
@@ -2493,9 +2486,9 @@ export default function Farmers() {
                 <button
                   className="icon-btn media-btn"
                   title="Camera"
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={blocked}
-                  aria-label="Take photo"
+                  onClick={() => { pushOverlayHistory(); setCameraOpen(true); }}
+                  disabled={blocked || recording}
+                  aria-label="Take photo or record video"
                 >
                   <Icon.Camera />
                 </button>
@@ -2774,6 +2767,10 @@ export default function Farmers() {
           )}
         </main>
       </section>
+
+      {cameraOpen && logged && !blocked && (
+        <ChatCamera onCapture={onPickFiles} onClose={() => setCameraOpen(false)} />
+      )}
 
       {/* Slide-overs */}
       <div
