@@ -778,6 +778,9 @@ export default function Farmers() {
   const [message, setMessage] = useState('');
   // Multiple attachments (images / videos / docs), max 15
   const [attachments, setAttachments] = useState([]); // [{ file, url, type, name }]
+  const [sprayWater, setSprayWater] = useState('');
+  const [sprayCount, setSprayCount] = useState('');
+  const [cropProblem, setCropProblem] = useState('');
   const [lastDate, setLastDate] = useState('');
   const [lastChem, setLastChem] = useState('');
   const [lastDose, setLastDose] = useState('');
@@ -1718,14 +1721,20 @@ export default function Farmers() {
 
   /* -------- Spray -------- */
   async function sendSprayDetailsNow() {
-    if ((!lastDate && !lastChem && !lastDose) || sending) {
+    if (sending || blocked) return;
+    if (![sprayWater, sprayCount, cropProblem, lastDate, lastChem, lastDose].some(value => value.trim())) {
       alert('Add at least one field.');
       return;
     }
     const fd = new FormData();
     fd.append('mobile', norm(mobile));
     fd.append('sender_role', 'farmer');
-    fd.append('text', '');
+    fd.append('text', [
+      'Crop Problem Details',
+      sprayWater.trim() && `Spray Water Quantity: ${sprayWater.trim()}`,
+      sprayCount.trim() && `Number of Sprays Needed: ${sprayCount.trim()}`,
+      cropProblem.trim() && `Major Crop Problem: ${cropProblem.trim()}`,
+    ].filter(Boolean).join('\n'));
     fd.append('last_spray_date', lastDate);
     fd.append('last_chemical', lastChem);
     fd.append('last_dosage', lastDose);
@@ -1747,10 +1756,13 @@ export default function Farmers() {
       setLastDate('');
       setLastChem('');
       setLastDose('');
+      setSprayWater('');
+      setSprayCount('');
+      setCropProblem('');
       setPanel('none');
       scrollToBottomSoon();
     } catch {
-      alert('Failed to send spray details');
+      alert('Failed to send crop problem details');
     } finally {
       setSending(false);
     }
@@ -1894,14 +1906,6 @@ export default function Farmers() {
                       <Icon.User />
                     </button>
 
-                    {/* Last Spray */}
-                    <button
-                      className="icon-btn ghost"
-                      title="Last Spray"
-                      onClick={() => setPanel('spray')}
-                    >
-                      <Icon.Flask />
-                    </button>
                     {/* Rupee + Logout buttons removed as requested */}
                   </>
                 )}
@@ -2553,6 +2557,11 @@ export default function Farmers() {
                     {recording ? <Icon.Stop /> : <Icon.Mic />}
                   </button>
                 )}
+                <button className="icon-btn media-btn" title="Crop Problem Details"
+                  aria-label="Crop Problem Details" onClick={() => setPanel('spray')}
+                  disabled={blocked || recording}>
+                  <Icon.Flask />
+                </button>
               </div>
 
               {/* Context + Action sheet */}
@@ -2776,7 +2785,7 @@ export default function Farmers() {
         <div className="slideover-inner">
           <div className="slideover-head">
             <div className="title">
-              {panel === 'quote' ? 'Quotations' : 'Last Spray Details'}
+              {panel === 'quote' ? 'Quotations' : 'Crop Problem Details'}
             </div>
             <button
               className="icon-btn"
@@ -2873,46 +2882,44 @@ export default function Farmers() {
             )}
 
             {panel === 'spray' && (
-              <>
-                <label>Date</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={lastDate}
-                  onChange={(e) => setLastDate(e.target.value)}
-                />
-                <label>Chemical</label>
-                <input
-                  className="input"
-                  value={lastChem}
-                  onChange={(e) => setLastChem(e.target.value)}
-                />
-                <label>Dosage</label>
-                <input
-                  className="input"
-                  value={lastDose}
-                  onChange={(e) => setLastDose(e.target.value)}
-                />
-                <div className="muted" style={{ marginTop: 8 }}>
-                  Send these details now or they will be attached to your next
-                  message.
+              <form className="crop-problem-form" onSubmit={(event) => {
+                event.preventDefault();
+                sendSprayDetailsNow();
+              }}>
+                {[
+                  { id: 'spray-water', title: '1. Spray Water Quantity', help: 'How many litres of water do you use for each spray?', placeholder: 'e.g., 15 L, 200 L, or 500 L', value: sprayWater, update: setSprayWater },
+                  { id: 'spray-count', title: '2. Number of Sprays Needed', help: 'For how many sprays do you need a solution?', placeholder: 'e.g., 1 spray or a full spray schedule', value: sprayCount, update: setSprayCount },
+                  { id: 'crop-problem', title: '3. Major Crop Problem', help: 'What is the main problem you are facing in your crop?', placeholder: 'e.g., Thrips, mites, whiteflies, or disease', value: cropProblem, update: setCropProblem },
+                ].map(field => (
+                  <div className="crop-problem-section" key={field.id}>
+                    <label className="crop-problem-heading" htmlFor={field.id}>{field.title}</label>
+                    <p id={field.id + '-help'}>{field.help}</p>
+                    <input id={field.id} className="input" value={field.value}
+                      aria-describedby={field.id + '-help'} maxLength={1000}
+                      placeholder={field.placeholder} onChange={(event) => field.update(event.target.value)} />
+                  </div>
+                ))}
+                <div className="crop-problem-section">
+                  <h3 className="crop-problem-heading">4. Last Spray Details (if known)</h3>
+                  <p>Please mention the details of your last spray, if you remember.</p>
+                  <label htmlFor="last-spray-date">Date</label>
+                  <input id="last-spray-date" type="date" className="input" value={lastDate}
+                    onChange={(event) => setLastDate(event.target.value)} />
+                  <label htmlFor="last-spray-chemical">Chemical / Product Name</label>
+                  <input id="last-spray-chemical" className="input" value={lastChem}
+                    placeholder="e.g., Confidor, Nativo, or Mancozeb"
+                    onChange={(event) => setLastChem(event.target.value)} />
+                  <label htmlFor="last-spray-dose">Dosage</label>
+                  <input id="last-spray-dose" className="input" value={lastDose}
+                    placeholder="e.g., 2 ml per litre"
+                    onChange={(event) => setLastDose(event.target.value)} />
+                  <p className="crop-problem-note">If you don't remember your last spray details, you can leave them blank.</p>
                 </div>
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <button
-                    className="btn primary"
-                    onClick={sendSprayDetailsNow}
-                    disabled={sending}
-                  >
-                    <Icon.Send />
-                  </button>
-                </div>
-              </>
+                <button type="submit" className="btn primary crop-problem-send"
+                  disabled={sending || blocked} aria-label="Send crop problem details" title="Send crop problem details">
+                  <Icon.Send />
+                </button>
+              </form>
             )}
           </div>
         </div>
@@ -2952,7 +2959,10 @@ body.no-scroll{overflow:hidden!important}
 .thread{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch;position:relative;background-image:url('/chat-bg.png');background-size:cover;background-attachment:fixed;background-position:center}
 @media (max-width: 640px){ .thread{ background-attachment: scroll; } }
 .composer{position:sticky;bottom:0;z-index:25;background:#fff;padding:8px;border-top:1px solid #e5e7eb;display:flex;gap:8px;align-items:flex-end}
-.composer .input.ta{max-height:180px;border-radius:12px}
+.composer .composer-input-wrapper{flex:1;min-width:0}
+.composer .input.ta{max-height:180px;border-radius:12px;width:100%;min-width:0}
+.composer > button{flex-shrink:0}
+@media(max-width:480px){.composer{gap:5px}.composer > .icon-btn,.composer > .send-btn{width:36px;height:40px;padding:7px}}
 .icon-btn,.send-btn{border:none;background:#f3f4f6;padding:10px;border-radius:12px;display:grid;place-items:center}
 .icon-btn.rec{background:#fee2e2}
 .icon-btn.ghost{background:transparent;color:#f0fff4}
@@ -3125,7 +3135,17 @@ body.no-scroll{overflow:hidden!important}
   .qactions{flex-direction:row;align-items:center}
 }
 
-/* spray panel */
+/* crop problem panel */
+.crop-problem-form{display:flex;flex-direction:column;gap:20px;padding-bottom:env(safe-area-inset-bottom,0px)}
+.crop-problem-section{display:flex;flex-direction:column;gap:6px;min-width:0}
+.crop-problem-heading{font-size:17px;font-weight:600;margin:0;color:#111827}
+.crop-problem-section p{font-size:13px;line-height:1.5;color:#8a8f98;margin:0 0 6px}
+.crop-problem-section label:not(.crop-problem-heading){font-size:15px;margin-top:8px}
+.crop-problem-form .input{min-width:0;min-height:44px;margin-bottom:0;padding:12px;border-radius:12px;font-size:14px}
+.crop-problem-section .crop-problem-note{font-size:12px;margin-top:4px}
+.crop-problem-send{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;background:#10a346;box-shadow:0 6px 16px rgba(16,163,70,.18)}
+.crop-problem-send:disabled{opacity:.6}
+/* spray cards */
 .spr-card{margin-top:6px;padding:10px 12px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;font-size:13px}
 .spr-title{font-weight:600;margin-bottom:4px}
 .spr-card .row{display:flex;gap:6px;margin-top:2px}
